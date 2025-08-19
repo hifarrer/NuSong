@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertMusicGenerationSchema } from "@shared/schema";
+import { insertTextToMusicSchema, insertAudioToMusicSchema } from "@shared/schema";
+import { ObjectStorageService } from "./objectStorage";
 import { z } from "zod";
 
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
@@ -23,14 +24,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Music generation routes
-  app.post("/api/generate-music", isAuthenticated, async (req: any, res) => {
+  // Object storage routes
+  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
+  // Text-to-music generation
+  app.post("/api/generate-text-to-music", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const validation = insertMusicGenerationSchema.parse(req.body);
+      const validation = insertTextToMusicSchema.parse(req.body);
       
       // Create generation record
-      const generation = await storage.createMusicGeneration(userId, validation);
+      const generation = await storage.createTextToMusicGeneration(userId, validation);
       
       // Submit request to FAL.ai
       const falResponse = await fetch("https://queue.fal.run/fal-ai/ace-step", {
@@ -66,6 +79,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating music:", error);
       res.status(500).json({ message: "Failed to generate music" });
+    }
+  });
+
+  // Audio-to-music generation
+  app.post("/api/generate-audio-to-music", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validation = insertAudioToMusicSchema.parse(req.body);
+      
+      // Create generation record
+      const generation = await storage.createAudioToMusicGeneration(userId, validation);
+      
+      // Submit request to FAL.ai
+      const falResponse = await fetch("https://queue.fal.run/fal-ai/ace-step/audio-to-audio", {
+        method: "POST",
+        headers: {
+          "Authorization": `Key ${FAL_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          audio_url: validation.inputAudioUrl,
+          tags: validation.tags,
+          lyrics: validation.lyrics || "",
+        })
+      });
+
+      if (!falResponse.ok) {
+        const errorText = await falResponse.text();
+        console.error("FAL.ai API error:", errorText);
+        await storage.updateMusicGeneration(generation.id, { status: "failed" });
+        return res.status(500).json({ message: "Failed to submit audio generation request" });
+      }
+
+      const falResult = await falResponse.json();
+      const requestId = falResult.request_id;
+
+      // Update generation with FAL request ID
+      await storage.updateMusicGeneration(generation.id, {
+        status: "generating",
+        falRequestId: requestId,
+      });
+
+      res.json({ generationId: generation.id, requestId });
+    } catch (error) {
+      console.error("Error generating audio-to-music:", error);
+      res.status(500).json({ message: "Failed to generate audio-to-music" });
     }
   });
 

@@ -4,7 +4,8 @@ import {
   type User,
   type UpsertUser,
   type MusicGeneration,
-  type InsertMusicGeneration,
+  type InsertTextToMusic,
+  type InsertAudioToMusic,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -17,7 +18,8 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Music generation operations
-  createMusicGeneration(userId: string, data: InsertMusicGeneration): Promise<MusicGeneration>;
+  createTextToMusicGeneration(userId: string, data: InsertTextToMusic): Promise<MusicGeneration>;
+  createAudioToMusicGeneration(userId: string, data: InsertAudioToMusic): Promise<MusicGeneration>;
   updateMusicGeneration(id: string, updates: Partial<MusicGeneration>): Promise<MusicGeneration>;
   getMusicGeneration(id: string): Promise<MusicGeneration | undefined>;
   getUserMusicGenerations(userId: string): Promise<MusicGeneration[]>;
@@ -48,12 +50,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Music generation operations
-  async createMusicGeneration(userId: string, data: InsertMusicGeneration): Promise<MusicGeneration> {
+  async createTextToMusicGeneration(userId: string, data: InsertTextToMusic): Promise<MusicGeneration> {
     const [generation] = await db
       .insert(musicGenerations)
       .values({
         ...data,
         userId,
+        type: "text-to-music",
+      })
+      .returning();
+    return generation;
+  }
+
+  async createAudioToMusicGeneration(userId: string, data: InsertAudioToMusic): Promise<MusicGeneration> {
+    const [generation] = await db
+      .insert(musicGenerations)
+      .values({
+        ...data,
+        userId,
+        type: "audio-to-music",
       })
       .returning();
     return generation;

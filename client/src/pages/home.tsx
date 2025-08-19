@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AudioPlayer } from "@/components/ui/audio-player";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { ObjectUploader } from "@/components/ObjectUploader";
 import { 
   Music, 
   WandSparkles, 
@@ -35,11 +36,20 @@ export default function Home() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Text-to-music state
   const [tags, setTags] = useState("");
   const [lyrics, setLyrics] = useState("");
   const [duration, setDuration] = useState([60]);
+  
+  // Audio-to-music state
+  const [audioTags, setAudioTags] = useState("");
+  const [audioLyrics, setAudioLyrics] = useState("");
+  const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string>("");
+  
+  // Shared state
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentGeneration, setCurrentGeneration] = useState<MusicGeneration | null>(null);
+  const [activeTab, setActiveTab] = useState("textToMusic");
 
   // Fetch user's music generations
   const { data: generations } = useQuery({
@@ -47,86 +57,102 @@ export default function Home() {
     retry: false,
   });
 
-  // Generate music mutation
-  const generateMusicMutation = useMutation({
-    mutationFn: async (data: { tags: string; lyrics: string; duration: number }) => {
-      const response = await apiRequest("POST", "/api/generate-music", data);
-      return await response.json();
-    },
-    onSuccess: async (data) => {
-      setIsGenerating(true);
-      const { generationId } = data;
-      
-      // Poll for status updates
-      const pollStatus = async () => {
-        try {
-          const response = await apiRequest("GET", `/api/generation/${generationId}/status`);
-          const generation = await response.json();
-          
-          setCurrentGeneration(generation);
-          
-          if (generation.status === "completed") {
-            setIsGenerating(false);
-            toast({
-              title: "Music Generated!",
-              description: "Your track is ready to play.",
-            });
-            queryClient.invalidateQueries({ queryKey: ["/api/my-generations"] });
-          } else if (generation.status === "failed") {
-            setIsGenerating(false);
-            toast({
-              title: "Generation Failed",
-              description: "There was an error generating your music. Please try again.",
-              variant: "destructive",
-            });
-          } else {
-            setTimeout(pollStatus, 3000); // Poll every 3 seconds
-          }
-        } catch (error) {
-          if (isUnauthorizedError(error as Error)) {
-            toast({
-              title: "Unauthorized",
-              description: "You are logged out. Logging in again...",
-              variant: "destructive",
-            });
-            setTimeout(() => {
-              window.location.href = "/api/login";
-            }, 500);
-            return;
-          }
-          console.error("Error polling status:", error);
+  // Shared generation success handler
+  const handleGenerationSuccess = async (data: any) => {
+    setIsGenerating(true);
+    const { generationId } = data;
+    
+    // Poll for status updates
+    const pollStatus = async () => {
+      try {
+        const response = await apiRequest("GET", `/api/generation/${generationId}/status`);
+        const generation = await response.json();
+        
+        setCurrentGeneration(generation);
+        
+        if (generation.status === "completed") {
           setIsGenerating(false);
           toast({
-            title: "Error",
-            description: "Failed to check generation status.",
+            title: "Music Generated!",
+            description: "Your track is ready to play.",
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/my-generations"] });
+        } else if (generation.status === "failed") {
+          setIsGenerating(false);
+          toast({
+            title: "Generation Failed",
+            description: "There was an error generating your music. Please try again.",
             variant: "destructive",
           });
+        } else {
+          setTimeout(pollStatus, 3000); // Poll every 3 seconds
         }
-      };
-      
-      pollStatus();
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
+      } catch (error) {
+        if (isUnauthorizedError(error as Error)) {
+          toast({
+            title: "Unauthorized",
+            description: "You are logged out. Logging in again...",
+            variant: "destructive",
+          });
+          setTimeout(() => {
+            window.location.href = "/api/login";
+          }, 500);
+          return;
+        }
+        console.error("Error polling status:", error);
+        setIsGenerating(false);
         toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          title: "Error",
+          description: "Failed to check generation status.",
           variant: "destructive",
         });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
       }
+    };
+    
+    pollStatus();
+  };
+
+  // Shared generation error handler
+  const handleGenerationError = (error: any) => {
+    if (isUnauthorizedError(error)) {
       toast({
-        title: "Generation Failed",
-        description: "Failed to start music generation. Please try again.",
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
         variant: "destructive",
       });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+      return;
+    }
+    toast({
+      title: "Generation Failed",
+      description: "Failed to start music generation. Please try again.",
+      variant: "destructive",
+    });
+  };
+
+  // Text-to-music generation mutation
+  const generateTextToMusicMutation = useMutation({
+    mutationFn: async (data: { tags: string; lyrics: string; duration: number }) => {
+      const response = await apiRequest("POST", "/api/generate-text-to-music", data);
+      return await response.json();
     },
+    onSuccess: handleGenerationSuccess,
+    onError: handleGenerationError,
   });
 
-  const handleGenerateMusic = (e: React.FormEvent) => {
+  // Audio-to-music generation mutation
+  const generateAudioToMusicMutation = useMutation({
+    mutationFn: async (data: { tags: string; lyrics: string; inputAudioUrl: string }) => {
+      const response = await apiRequest("POST", "/api/generate-audio-to-music", data);
+      return await response.json();
+    },
+    onSuccess: handleGenerationSuccess,
+    onError: handleGenerationError,
+  });
+
+  const handleGenerateTextToMusic = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!tags.trim()) {
@@ -138,11 +164,59 @@ export default function Home() {
       return;
     }
 
-    generateMusicMutation.mutate({
+    generateTextToMusicMutation.mutate({
       tags: tags.trim(),
       lyrics: lyrics.trim(),
       duration: duration[0],
     });
+  };
+
+  const handleGenerateAudioToMusic = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!audioTags.trim()) {
+      toast({
+        title: "Missing Tags",
+        description: "Please enter at least one genre tag.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!uploadedAudioUrl) {
+      toast({
+        title: "Missing Audio File",
+        description: "Please upload an audio file first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    generateAudioToMusicMutation.mutate({
+      tags: audioTags.trim(),
+      lyrics: audioLyrics.trim(),
+      inputAudioUrl: uploadedAudioUrl,
+    });
+  };
+
+  const handleGetUploadParameters = async () => {
+    const response = await apiRequest("POST", "/api/objects/upload");
+    const data = await response.json();
+    return {
+      method: "PUT" as const,
+      url: data.uploadURL,
+    };
+  };
+
+  const handleUploadComplete = (result: any) => {
+    if (result.successful && result.successful.length > 0) {
+      const uploadedFile = result.successful[0];
+      setUploadedAudioUrl(uploadedFile.uploadURL);
+      toast({
+        title: "Audio Uploaded!",
+        description: "Your audio file is ready for processing.",
+      });
+    }
   };
 
   const handleDownload = async (audioUrl: string) => {
@@ -197,7 +271,7 @@ export default function Home() {
                   <User className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-sm text-gray-300">
-                  {user?.firstName || user?.email || "User"}
+                  {(user as any)?.firstName || (user as any)?.email || "User"}
                 </span>
               </div>
               <Button
@@ -229,13 +303,11 @@ export default function Home() {
             </TabsTrigger>
             <TabsTrigger 
               value="audioToMusic"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white opacity-50 cursor-not-allowed"
-              disabled
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white"
               data-testid="tab-audio-to-music"
             >
               <AudioWaveform className="mr-2 h-4 w-4" />
               Audio to Music
-              <span className="ml-2 text-xs bg-music-accent px-2 py-1 rounded-full">Coming Soon</span>
             </TabsTrigger>
           </TabsList>
 
@@ -253,7 +325,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleGenerateMusic} className="space-y-6">
+                    <form onSubmit={handleGenerateTextToMusic} className="space-y-6">
                       {/* Tags Field */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-300 mb-3">
@@ -312,7 +384,7 @@ export default function Home() {
                       {/* Generate Button */}
                       <Button
                         type="submit"
-                        disabled={generateMusicMutation.isPending || isGenerating}
+                        disabled={generateTextToMusicMutation.isPending || isGenerating}
                         className="w-full bg-gradient-to-r from-music-purple via-music-blue to-music-green hover:from-purple-600 hover:via-blue-600 hover:to-green-600 text-white py-4 text-lg font-bold transition-all transform hover:scale-[1.02] shadow-2xl disabled:opacity-50"
                         data-testid="button-generate"
                       >
@@ -360,7 +432,7 @@ export default function Home() {
                       {/* Track Info */}
                       <div className="pt-4 border-t border-gray-700">
                         <div className="flex justify-between text-sm text-gray-400">
-                          <span>Duration: {Math.floor(currentGeneration.duration / 60)}:{(currentGeneration.duration % 60).toString().padStart(2, '0')}</span>
+                          <span>Duration: {currentGeneration.duration ? Math.floor(currentGeneration.duration / 60) + ':' + (currentGeneration.duration % 60).toString().padStart(2, '0') : 'N/A'}</span>
                           <span>Genre: {currentGeneration.tags}</span>
                         </div>
                       </div>
@@ -386,7 +458,7 @@ export default function Home() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => handleGenerateMusic({ preventDefault: () => {} } as React.FormEvent)}
+                          onClick={() => handleGenerateTextToMusic({ preventDefault: () => {} } as React.FormEvent)}
                           className="border-gray-600 hover:border-music-green"
                           data-testid="button-regenerate"
                         >
@@ -430,18 +502,200 @@ export default function Home() {
             </div>
           </TabsContent>
 
-          <TabsContent value="audioToMusic">
-            <div className="text-center py-20">
-              <div className="w-24 h-24 bg-gradient-to-br from-music-accent to-music-blue rounded-full flex items-center justify-center mx-auto mb-6">
-                <AudioWaveform className="text-3xl text-white" />
+          <TabsContent value="audioToMusic" className="space-y-8">
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Audio Upload Form */}
+              <div className="space-y-6">
+                <Card className="bg-music-secondary border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <div className="w-8 h-8 bg-gradient-to-br from-music-accent to-music-blue rounded-lg flex items-center justify-center mr-3">
+                        <AudioWaveform className="text-sm text-white" />
+                      </div>
+                      Transform Your Audio
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleGenerateAudioToMusic} className="space-y-6">
+                      {/* Audio Upload */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-3">
+                          <AudioWaveform className="inline mr-2 h-4 w-4 text-music-accent" />
+                          Upload Audio File
+                        </label>
+                        <ObjectUploader
+                          maxNumberOfFiles={1}
+                          maxFileSize={50485760} // 50MB
+                          onGetUploadParameters={handleGetUploadParameters}
+                          onComplete={handleUploadComplete}
+                          acceptedFileTypes={['.mp3', '.wav', '.m4a', '.aac', '.ogg']}
+                          buttonClassName="w-full bg-music-dark border-2 border-dashed border-gray-600 hover:border-music-accent text-gray-300 hover:text-white py-8 rounded-lg transition-all"
+                        >
+                          <div className="flex flex-col items-center space-y-3">
+                            <AudioWaveform className="h-8 w-8 text-music-accent" />
+                            <div className="text-center">
+                              <p className="font-semibold">Click to upload audio file</p>
+                              <p className="text-sm text-gray-400">Supports MP3, WAV, M4A, AAC, OGG (max 50MB)</p>
+                            </div>
+                          </div>
+                        </ObjectUploader>
+                        {uploadedAudioUrl && (
+                          <p className="text-sm text-music-green mt-2">✓ Audio file uploaded successfully!</p>
+                        )}
+                      </div>
+
+                      {/* Tags Field */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-3">
+                          <Tags className="inline mr-2 h-4 w-4 text-music-accent" />
+                          Target Genres & Style Tags
+                        </label>
+                        <Input
+                          value={audioTags}
+                          onChange={(e) => setAudioTags(e.target.value)}
+                          placeholder="e.g., lofi, hiphop, electronic, chill, trap"
+                          className="bg-music-dark border-gray-600 text-white placeholder-gray-400 focus:border-music-purple"
+                          required
+                          data-testid="input-audio-tags"
+                        />
+                        <p className="text-xs text-gray-400 mt-2">Describe the style you want the output to have</p>
+                      </div>
+
+                      {/* Lyrics Field */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-3">
+                          <Mic className="inline mr-2 h-4 w-4 text-music-green" />
+                          Lyrics (Optional)
+                        </label>
+                        <Textarea
+                          value={audioLyrics}
+                          onChange={(e) => setAudioLyrics(e.target.value)}
+                          placeholder="[Verse 1]&#10;Add lyrics to overlay on the audio&#10;&#10;[Chorus]&#10;Transform the melody with vocals"
+                          rows={6}
+                          className="bg-music-dark border-gray-600 text-white placeholder-gray-400 focus:border-music-green resize-none"
+                          data-testid="textarea-audio-lyrics"
+                        />
+                        <p className="text-xs text-gray-400 mt-2">Add lyrics to be sung over the transformed audio. Leave empty to keep instrumental.</p>
+                      </div>
+
+                      {/* Generate Button */}
+                      <Button
+                        type="submit"
+                        disabled={generateAudioToMusicMutation.isPending || isGenerating}
+                        className="w-full bg-gradient-to-r from-music-accent via-music-purple to-music-blue hover:from-purple-600 hover:via-blue-600 hover:to-green-600 text-white py-4 text-lg font-bold transition-all transform hover:scale-[1.02] shadow-2xl disabled:opacity-50"
+                        data-testid="button-generate-audio"
+                      >
+                        <AudioWaveform className="mr-2 h-5 w-5" />
+                        Transform Audio
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
               </div>
-              <h3 className="text-3xl font-bold mb-4">Audio to Music</h3>
-              <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-                Transform existing audio files into new musical arrangements. This feature is coming soon!
-              </p>
-              <Button className="bg-gradient-to-r from-music-accent to-music-blue opacity-50 cursor-not-allowed" disabled>
-                Coming Soon
-              </Button>
+
+              {/* Results Panel - Shared with Text-to-Music */}
+              <div className="space-y-6">
+                {/* Loading State */}
+                {isGenerating && (
+                  <Card className="bg-music-secondary border-gray-700">
+                    <CardContent className="pt-6 text-center">
+                      <div className="space-y-4">
+                        <div className="w-16 h-16 bg-gradient-to-br from-music-accent to-music-blue rounded-full flex items-center justify-center mx-auto animate-bounce">
+                          <AudioWaveform className="text-2xl text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold">Transforming Your Audio...</h3>
+                        <p className="text-gray-400">This usually takes 30-60 seconds</p>
+                        <LoadingSpinner />
+                        <p className="text-sm text-gray-400">Processing your audio transformation...</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Music Player */}
+                {currentGeneration?.status === "completed" && currentGeneration.audioUrl && (
+                  <Card className="bg-music-secondary border-gray-700">
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <div className="w-8 h-8 bg-gradient-to-br from-music-green to-music-blue rounded-lg flex items-center justify-center mr-3">
+                          <Play className="text-sm text-white" />
+                        </div>
+                        Your Transformed Track
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <AudioPlayer src={currentGeneration.audioUrl} />
+                      
+                      {/* Track Info */}
+                      <div className="pt-4 border-t border-gray-700">
+                        <div className="flex justify-between text-sm text-gray-400">
+                          <span>Type: {currentGeneration.type === 'audio-to-music' ? 'Audio Transformation' : 'Text Generation'}</span>
+                          <span>Genre: {currentGeneration.tags}</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex space-x-3">
+                        <Button
+                          onClick={() => handleDownload(currentGeneration.audioUrl!)}
+                          className="flex-1 bg-music-purple hover:bg-purple-600"
+                          data-testid="button-download-audio"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1 border-gray-600 hover:border-music-accent"
+                          data-testid="button-share-audio"
+                        >
+                          <Share className="mr-2 h-4 w-4" />
+                          Share
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleGenerateAudioToMusic({ preventDefault: () => {} } as React.FormEvent)}
+                          className="border-gray-600 hover:border-music-green"
+                          data-testid="button-regenerate-audio"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Tips Card */}
+                <Card className="bg-gradient-to-br from-music-secondary to-gray-800 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Lightbulb className="text-music-accent mr-3 h-5 w-5" />
+                      Audio Transformation Tips
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3 text-gray-300">
+                      <li className="flex items-start">
+                        <CheckCircle className="text-music-green mr-3 mt-1 h-4 w-4" />
+                        <span>Upload clear, high-quality audio files for best results</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="text-music-green mr-3 mt-1 h-4 w-4" />
+                        <span>Specify target genres to guide the transformation style</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="text-music-green mr-3 mt-1 h-4 w-4" />
+                        <span>Add lyrics to create a vocal version of instrumental tracks</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="text-music-green mr-3 mt-1 h-4 w-4" />
+                        <span>Shorter audio clips (30s-2min) typically work best</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

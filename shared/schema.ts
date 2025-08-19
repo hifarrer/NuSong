@@ -40,9 +40,11 @@ export const users = pgTable("users", {
 export const musicGenerations = pgTable("music_generations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
+  type: varchar("type").notNull().default("text-to-music"), // text-to-music, audio-to-music
   tags: text("tags").notNull(),
   lyrics: text("lyrics"),
-  duration: integer("duration").notNull(),
+  duration: integer("duration"), // Only for text-to-music
+  inputAudioUrl: varchar("input_audio_url"), // Only for audio-to-music
   audioUrl: varchar("audio_url"),
   seed: integer("seed"),
   status: varchar("status").notNull().default("pending"), // pending, generating, completed, failed
@@ -54,11 +56,22 @@ export const musicGenerations = pgTable("music_generations", {
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
-export const insertMusicGenerationSchema = createInsertSchema(musicGenerations).pick({
+export const insertTextToMusicSchema = createInsertSchema(musicGenerations).pick({
   tags: true,
   lyrics: true,
   duration: true,
+}).extend({
+  type: z.literal("text-to-music").default("text-to-music"),
 });
 
-export type InsertMusicGeneration = z.infer<typeof insertMusicGenerationSchema>;
+export const insertAudioToMusicSchema = createInsertSchema(musicGenerations).pick({
+  tags: true,
+  lyrics: true,
+  inputAudioUrl: true,
+}).extend({
+  type: z.literal("audio-to-music").default("audio-to-music"),
+});
+
+export type InsertTextToMusic = z.infer<typeof insertTextToMusicSchema>;
+export type InsertAudioToMusic = z.infer<typeof insertAudioToMusicSchema>;
 export type MusicGeneration = typeof musicGenerations.$inferSelect;
