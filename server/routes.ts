@@ -461,7 +461,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/admin/settings', isAdminAuthenticated, async (req, res) => {
     try {
       const { key, value } = req.body;
-      const updatedSetting = await storage.upsertSiteSetting({ key, value });
+      
+      // Determine category based on key prefix
+      let category = 'general';
+      if (key.startsWith('stripe_')) {
+        category = 'stripe';
+      } else if (key.startsWith('webhook_')) {
+        category = 'webhook';
+      }
+      
+      const updatedSetting = await storage.upsertSiteSetting({ 
+        key, 
+        value: value || '',
+        category,
+        description: `Setting for ${key.replace(/_/g, ' ')}`
+      });
       res.json(updatedSetting);
     } catch (error) {
       console.error('Error updating site setting:', error);
