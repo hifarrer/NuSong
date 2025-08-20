@@ -3,6 +3,7 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminDashboardContent } from "@/components/admin/AdminDashboardContent";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
+import { AdminPlanManagement } from "@/components/admin/AdminPlanManagement";
 
 export default function AdminDashboard() {
   const { isAuthenticated, isLoading } = useAdminAuth();
@@ -26,10 +27,9 @@ export default function AdminDashboard() {
     if (currentPath === "/admin/users") {
       return <AdminUserManagement />;
     }
-    // Add more routes as needed
-    // if (currentPath === "/admin/plans") {
-    //   return <AdminPlanManagement />;
-    // }
+    if (currentPath === "/admin/plans") {
+      return <AdminPlanManagement />;
+    }
     return <AdminDashboardContent />;
   };
 

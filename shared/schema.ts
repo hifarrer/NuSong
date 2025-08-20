@@ -109,11 +109,11 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   description: text("description"),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  currency: varchar("currency").notNull().default("USD"),
-  billingPeriod: varchar("billing_period").notNull(), // monthly, yearly
-  maxGenerations: integer("max_generations"), // null for unlimited
-  features: jsonb("features").default(sql`'[]'::jsonb`), // array of feature strings
+  monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }),
+  yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }),
+  monthlyPriceId: varchar("monthly_price_id"), // Stripe price ID for monthly billing
+  yearlyPriceId: varchar("yearly_price_id"), // Stripe price ID for yearly billing
+  features: text("features").array().default(sql`'{}'::text[]`), // array of feature strings
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
@@ -181,6 +181,10 @@ export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  features: z.array(z.string()).default([]),
+  monthlyPrice: z.string().optional(),
+  yearlyPrice: z.string().optional(),
 });
 
 export const updateSubscriptionPlanSchema = insertSubscriptionPlanSchema.partial();
