@@ -208,14 +208,28 @@ export default function Home() {
     };
   };
 
-  const handleUploadComplete = (result: any) => {
+  const handleUploadComplete = async (result: any) => {
     if (result.successful && result.successful.length > 0) {
       const uploadedFile = result.successful[0];
-      setUploadedAudioUrl(uploadedFile.uploadURL);
-      toast({
-        title: "Audio Uploaded!",
-        description: "Your audio file is ready for processing.",
-      });
+      // Call backend to convert the upload URL to object path format
+      try {
+        const response = await apiRequest("POST", "/api/objects/normalize-path", { 
+          uploadURL: uploadedFile.uploadURL 
+        });
+        const data = await response.json();
+        setUploadedAudioUrl(data.objectPath);
+        toast({
+          title: "Audio Uploaded!",
+          description: "Your audio file is ready for processing.",
+        });
+      } catch (error) {
+        console.error("Error normalizing upload path:", error);
+        toast({
+          title: "Upload Error",
+          description: "Failed to process uploaded file.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

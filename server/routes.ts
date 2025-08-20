@@ -36,6 +36,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/objects/normalize-path", isAuthenticated, async (req, res) => {
+    try {
+      const { uploadURL } = req.body;
+      if (!uploadURL) {
+        return res.status(400).json({ message: "Upload URL is required" });
+      }
+      
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      res.json({ objectPath });
+    } catch (error) {
+      console.error("Error normalizing object path:", error);
+      res.status(500).json({ message: "Failed to normalize object path" });
+    }
+  });
+
   // Text-to-music generation
   app.post("/api/generate-text-to-music", isAuthenticated, async (req: any, res) => {
     try {
