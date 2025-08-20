@@ -70,6 +70,7 @@ export const insertAudioToMusicSchema = createInsertSchema(musicGenerations).pic
   inputAudioUrl: true,
 }).extend({
   type: z.literal("audio-to-music").default("audio-to-music"),
+  inputAudioUrl: z.string().min(1, "Audio file URL is required"),
 });
 
 export type InsertTextToMusic = z.infer<typeof insertTextToMusicSchema>;

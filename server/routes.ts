@@ -91,6 +91,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create generation record
       const generation = await storage.createAudioToMusicGeneration(userId, validation);
       
+      // Validate audio URL is provided
+      if (!validation.inputAudioUrl) {
+        return res.status(400).json({ message: "Audio file URL is required" });
+      }
+
+      // Get publicly accessible URL for the audio file
+      const objectStorageService = new ObjectStorageService();
+      const publicAudioUrl = await objectStorageService.getObjectEntityPublicUrl(validation.inputAudioUrl, 7200); // 2 hours
+      
       // Submit request to FAL.ai
       const falResponse = await fetch("https://queue.fal.run/fal-ai/ace-step/audio-to-audio", {
         method: "POST",
@@ -99,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          audio_url: validation.inputAudioUrl,
+          audio_url: publicAudioUrl,
           tags: validation.tags,
           lyrics: validation.lyrics || "",
         })
