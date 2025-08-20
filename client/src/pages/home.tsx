@@ -368,7 +368,7 @@ export default function Home() {
                           value={tags}
                           onChange={(e) => setTags(e.target.value)}
                           placeholder="e.g., lofi, hiphop, electronic, chill, trap"
-                          className="bg-music-dark border-gray-600 text-white placeholder-gray-400 focus:border-music-purple"
+                          className="bg-music-dark border-gray-600 text-white placeholder-gray-300 focus:border-music-purple"
                           required
                           data-testid="input-tags"
                         />
@@ -386,7 +386,7 @@ export default function Home() {
                           onChange={(e) => setLyrics(e.target.value)}
                           placeholder="[Verse 1]&#10;Walking down the street tonight&#10;City lights are shining bright&#10;&#10;[Chorus]&#10;This is my moment to shine&#10;Everything's gonna be fine"
                           rows={6}
-                          className="bg-music-dark border-gray-600 text-white placeholder-gray-400 focus:border-music-green resize-none"
+                          className="bg-music-dark border-gray-600 text-white placeholder-gray-300 focus:border-music-green resize-none"
                           data-testid="textarea-lyrics"
                         />
                         <p className="text-xs text-gray-400 mt-2">Use [verse], [chorus], [bridge] to structure your song. Leave empty for instrumental.</p>
@@ -402,7 +402,7 @@ export default function Home() {
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
                           placeholder="e.g., Sunset Dreams, Midnight Vibes"
-                          className="bg-music-dark border-gray-600 text-white placeholder-gray-400 focus:border-music-accent"
+                          className="bg-music-dark border-gray-600 text-white placeholder-gray-300 focus:border-music-accent"
                           data-testid="input-title"
                         />
                       </div>
@@ -623,7 +623,7 @@ export default function Home() {
                           value={audioTags}
                           onChange={(e) => setAudioTags(e.target.value)}
                           placeholder="e.g., lofi, hiphop, electronic, chill, trap"
-                          className="bg-music-dark border-gray-600 text-white placeholder-gray-400 focus:border-music-purple"
+                          className="bg-music-dark border-gray-600 text-white placeholder-gray-300 focus:border-music-purple"
                           required
                           data-testid="input-audio-tags"
                         />
@@ -640,7 +640,7 @@ export default function Home() {
                           value={audioTitle}
                           onChange={(e) => setAudioTitle(e.target.value)}
                           placeholder="e.g., Transformed Melody, Audio Remix"
-                          className="bg-music-dark border-gray-600 text-white placeholder-gray-400 focus:border-music-accent"
+                          className="bg-music-dark border-gray-600 text-white placeholder-gray-300 focus:border-music-accent"
                           data-testid="input-audio-title"
                         />
                       </div>
@@ -656,7 +656,7 @@ export default function Home() {
                           onChange={(e) => setAudioLyrics(e.target.value)}
                           placeholder="[Verse 1]&#10;Add lyrics to overlay on the audio&#10;&#10;[Chorus]&#10;Transform the melody with vocals"
                           rows={6}
-                          className="bg-music-dark border-gray-600 text-white placeholder-gray-400 focus:border-music-green resize-none"
+                          className="bg-music-dark border-gray-600 text-white placeholder-gray-300 focus:border-music-green resize-none"
                           data-testid="textarea-audio-lyrics"
                         />
                         <p className="text-xs text-gray-400 mt-2">Add lyrics to be sung over the transformed audio. Leave empty to keep instrumental.</p>
