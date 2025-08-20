@@ -288,6 +288,14 @@ export default function Home() {
               </h1>
             </div>
             
+            {/* Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              <a href="#" className="text-gray-300 hover:text-white transition-colors">Home</a>
+              <a href="#" className="text-gray-300 hover:text-white transition-colors">My Library</a>
+              <a href="#" className="text-gray-300 hover:text-white transition-colors">Community</a>
+              <a href="#" className="text-gray-300 hover:text-white transition-colors">Help</a>
+            </nav>
+            
             {/* User Menu */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
@@ -813,17 +821,17 @@ export default function Home() {
                     <div className="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center mr-3">
                       <Music className="text-sm text-white" />
                     </div>
-                    My Music Library ({generations?.length || 0} tracks)
+                    My Music Library ({Array.isArray(generations) ? generations.length : 0} tracks)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {!generations || generations.length === 0 ? (
+                  {!generations || !Array.isArray(generations) || generations.length === 0 ? (
                     <div className="text-center py-12">
                       <Music className="h-16 w-16 text-gray-600 mx-auto mb-4" />
                       <h3 className="text-xl font-semibold text-gray-400 mb-2">No tracks yet</h3>
                       <p className="text-gray-500 mb-6">Create your first AI-generated track to start your music library.</p>
                       <Button
-                        onClick={() => document.querySelector('[data-testid="tab-text-to-music"]')?.click()}
+                        onClick={() => (document.querySelector('[data-testid="tab-text-to-music"]') as HTMLElement)?.click()}
                         className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
                         data-testid="button-create-first-track"
                       >
@@ -833,7 +841,7 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="grid gap-4">
-                      {generations.map((track: MusicGeneration) => (
+                      {(generations as MusicGeneration[]).map((track: MusicGeneration) => (
                         <TrackCard key={track.id} track={track} />
                       ))}
                     </div>

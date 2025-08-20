@@ -4,6 +4,7 @@ import { AudioPlayer } from "@/components/ui/audio-player";
 import { Music, Play, Headphones, WandSparkles, Lightbulb, Clock, Tags, AudioWaveform } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { MusicGeneration } from "@shared/schema";
+import heroImage from "@assets/MZVFGa87BRUKkOkO0cUlN_output_1755653603944.png";
 
 export default function Landing() {
   // Fetch public tracks for the gallery
@@ -96,26 +97,14 @@ export default function Landing() {
                 </Button>
               </div>
 
-              {/* Waveform Visualization */}
-              <div className="flex justify-center lg:justify-start items-center space-x-1 mb-8 opacity-60">
-                {Array.from({ length: 8 }, (_, i) => (
-                  <div
-                    key={i}
-                    className="w-1 bg-gradient-to-t from-music-purple to-music-accent rounded-full animate-pulse"
-                    style={{
-                      height: `${20 + Math.random() * 25}px`,
-                      animationDelay: `${i * 0.1}s`,
-                    }}
-                  />
-                ))}
-              </div>
+
             </div>
 
             {/* Image Column */}
             <div className="relative">
               <div className="relative z-10">
                 <img 
-                  src="/attached_assets/MZVFGa87BRUKkOkO0cUlN_output_1755653603944.png"
+                  src={heroImage}
                   alt="AI Music Generation - Futuristic robot with headphones creating music with sound waves"
                   className="w-full h-auto rounded-lg shadow-2xl"
                 />
@@ -140,7 +129,7 @@ export default function Landing() {
             </div>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(publicTracks as MusicGeneration[]).slice(0, 6).map((track) => (
+              {(publicTracks as MusicGeneration[]).slice(0, 6).map((track: MusicGeneration) => (
                 <PublicTrackCard key={track.id} track={track} />
               ))}
             </div>
@@ -264,7 +253,7 @@ export default function Landing() {
   );
 }
 
-function PublicTrackCard({ track }: { track: MusicGeneration }) {
+function PublicTrackCard({ track }: { track: MusicGeneration }): JSX.Element {
   return (
     <Card className="bg-music-secondary border-gray-700 hover:border-gray-600 transition-colors">
       <CardHeader className="pb-3">
