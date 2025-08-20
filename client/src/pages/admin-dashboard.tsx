@@ -4,6 +4,7 @@ import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminDashboardContent } from "@/components/admin/AdminDashboardContent";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { AdminPlanManagement } from "@/components/admin/AdminPlanManagement";
+import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings";
 
 export default function AdminDashboard() {
   const { isAuthenticated, isLoading } = useAdminAuth();
@@ -29,6 +30,9 @@ export default function AdminDashboard() {
     }
     if (currentPath === "/admin/plans") {
       return <AdminPlanManagement />;
+    }
+    if (currentPath === "/admin/settings") {
+      return <AdminSiteSettings />;
     }
     return <AdminDashboardContent />;
   };

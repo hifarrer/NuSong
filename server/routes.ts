@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { 
@@ -457,11 +458,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.put('/api/admin/settings/:key', isAdminAuthenticated, async (req, res) => {
+  app.put('/api/admin/settings', isAdminAuthenticated, async (req, res) => {
     try {
-      const { key } = req.params;
-      const updateData = updateSiteSettingSchema.parse(req.body);
-      const updatedSetting = await storage.upsertSiteSetting({ key, ...updateData });
+      const { key, value } = req.body;
+      const updatedSetting = await storage.upsertSiteSetting({ key, value });
       res.json(updatedSetting);
     } catch (error) {
       console.error('Error updating site setting:', error);
@@ -477,6 +477,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting site setting:', error);
       res.status(500).json({ message: 'Failed to delete site setting' });
+    }
+  });
+
+  // Admin password change
+  app.put('/api/admin/change-password', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const adminId = (req as any).adminUser?.id;
+      
+      if (!adminId) {
+        return res.status(401).json({ message: 'Admin not found' });
+      }
+
+      // Verify current password
+      const admin = await storage.getAdminUser(adminId);
+      if (!admin) {
+        return res.status(404).json({ message: 'Admin not found' });
+      }
+
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, admin.passwordHash);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+
+      // Hash new password and update
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateAdminPassword(adminId, hashedPassword);
+      
+      res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Error changing admin password:', error);
+      res.status(500).json({ message: 'Failed to change password' });
     }
   });
 

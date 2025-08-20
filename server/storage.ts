@@ -305,6 +305,17 @@ export class DatabaseStorage implements IStorage {
   async deleteSiteSetting(key: string): Promise<void> {
     await db.delete(siteSettings).where(eq(siteSettings.key, key));
   }
+
+  // Admin password operations
+  async updateAdminPassword(adminId: string, hashedPassword: string): Promise<void> {
+    await db
+      .update(adminUsers)
+      .set({ 
+        passwordHash: hashedPassword,
+        updatedAt: new Date()
+      })
+      .where(eq(adminUsers.id, adminId));
+  }
 }
 
 export const storage = new DatabaseStorage();
