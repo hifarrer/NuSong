@@ -1,0 +1,44 @@
+import { useLocation } from "wouter";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminDashboardContent } from "@/components/admin/AdminDashboardContent";
+import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
+
+export default function AdminDashboard() {
+  const { isAuthenticated, isLoading } = useAdminAuth();
+  const [, navigate] = useLocation();
+  const currentPath = window.location.pathname;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    navigate("/admin/login");
+    return null;
+  }
+
+  const renderContent = () => {
+    if (currentPath === "/admin/users") {
+      return <AdminUserManagement />;
+    }
+    // Add more routes as needed
+    // if (currentPath === "/admin/plans") {
+    //   return <AdminPlanManagement />;
+    // }
+    return <AdminDashboardContent />;
+  };
+
+  return (
+    <div className="min-h-screen bg-black flex">
+      <AdminSidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {renderContent()}
+      </div>
+    </div>
+  );
+}

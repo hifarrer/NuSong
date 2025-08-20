@@ -2,13 +2,33 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertTextToMusicSchema, insertAudioToMusicSchema, updateMusicGenerationVisibilitySchema } from "@shared/schema";
+import { 
+  insertTextToMusicSchema, 
+  insertAudioToMusicSchema, 
+  updateMusicGenerationVisibilitySchema,
+  adminLoginSchema,
+  insertAdminUserSchema,
+  updateAdminUserSchema,
+  insertSubscriptionPlanSchema,
+  updateSubscriptionPlanSchema,
+  insertSiteSettingSchema,
+  updateSiteSettingSchema,
+} from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { z } from "zod";
+import { 
+  isAdminAuthenticated, 
+  hashPassword, 
+  verifyPassword, 
+  initializeDefaultAdmin 
+} from "./adminAuth";
 
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize default admin user
+  await initializeDefaultAdmin();
+  
   // Auth middleware
   await setupAuth(app);
 
@@ -262,6 +282,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating generation visibility:", error);
       res.status(500).json({ message: "Failed to update generation visibility" });
+    }
+  });
+
+  // ===== ADMIN ROUTES =====
+  
+  // Admin login
+  app.post('/api/admin/login', async (req, res) => {
+    try {
+      const { username, password } = adminLoginSchema.parse(req.body);
+      
+      const adminUser = await storage.getAdminUserByUsername(username);
+      if (!adminUser || !adminUser.isActive) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      const isValidPassword = await verifyPassword(password, adminUser.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      // Update last login
+      await storage.updateAdminLastLogin(adminUser.id);
+      
+      // Set admin session
+      req.session.adminUserId = adminUser.id;
+      
+      // Return admin user (without password hash)
+      const { passwordHash, ...adminUserResponse } = adminUser;
+      res.json(adminUserResponse);
+    } catch (error) {
+      console.error('Admin login error:', error);
+      res.status(500).json({ message: 'Login failed' });
+    }
+  });
+  
+  // Admin logout
+  app.post('/api/admin/logout', (req, res) => {
+    req.session.adminUserId = undefined;
+    res.json({ message: 'Logged out' });
+  });
+  
+  // Get current admin user
+  app.get('/api/admin/user', isAdminAuthenticated, async (req, res) => {
+    const { passwordHash, ...adminUserResponse } = req.adminUser!;
+    res.json(adminUserResponse);
+  });
+  
+  // Dashboard stats
+  app.get('/api/admin/dashboard/stats', isAdminAuthenticated, async (req, res) => {
+    try {
+      const stats = await storage.getDashboardStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      res.status(500).json({ message: 'Failed to fetch dashboard stats' });
+    }
+  });
+  
+  // User management
+  app.get('/api/admin/users', isAdminAuthenticated, async (req, res) => {
+    try {
+      const users = await storage.getAllAdminUsers();
+      const userList = users.map(({ passwordHash, ...user }) => user);
+      res.json(userList);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+  
+  app.post('/api/admin/users', isAdminAuthenticated, async (req, res) => {
+    try {
+      const userData = insertAdminUserSchema.parse(req.body);
+      const hashedPassword = await hashPassword(userData.password);
+      
+      const newUser = await storage.createAdminUser({
+        ...userData,
+        passwordHash: hashedPassword,
+      });
+      
+      const { passwordHash, ...userResponse } = newUser;
+      res.status(201).json(userResponse);
+    } catch (error) {
+      console.error('Error creating admin user:', error);
+      res.status(500).json({ message: 'Failed to create user' });
+    }
+  });
+  
+  app.put('/api/admin/users/:id', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = updateAdminUserSchema.parse(req.body);
+      
+      const updates: any = { ...updateData };
+      if (updateData.newPassword) {
+        updates.passwordHash = await hashPassword(updateData.newPassword);
+        delete updates.newPassword;
+      }
+      
+      const updatedUser = await storage.updateAdminUser(id, updates);
+      const { passwordHash, ...userResponse } = updatedUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error('Error updating admin user:', error);
+      res.status(500).json({ message: 'Failed to update user' });
+    }
+  });
+  
+  // Subscription plans management
+  app.get('/api/admin/plans', isAdminAuthenticated, async (req, res) => {
+    try {
+      const plans = await storage.getAllSubscriptionPlans();
+      res.json(plans);
+    } catch (error) {
+      console.error('Error fetching subscription plans:', error);
+      res.status(500).json({ message: 'Failed to fetch subscription plans' });
+    }
+  });
+  
+  app.post('/api/admin/plans', isAdminAuthenticated, async (req, res) => {
+    try {
+      const planData = insertSubscriptionPlanSchema.parse(req.body);
+      const newPlan = await storage.createSubscriptionPlan(planData);
+      res.status(201).json(newPlan);
+    } catch (error) {
+      console.error('Error creating subscription plan:', error);
+      res.status(500).json({ message: 'Failed to create subscription plan' });
+    }
+  });
+  
+  app.put('/api/admin/plans/:id', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = updateSubscriptionPlanSchema.parse(req.body);
+      const updatedPlan = await storage.updateSubscriptionPlan(id, updateData);
+      res.json(updatedPlan);
+    } catch (error) {
+      console.error('Error updating subscription plan:', error);
+      res.status(500).json({ message: 'Failed to update subscription plan' });
+    }
+  });
+  
+  app.delete('/api/admin/plans/:id', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteSubscriptionPlan(id);
+      res.json({ message: 'Subscription plan deleted' });
+    } catch (error) {
+      console.error('Error deleting subscription plan:', error);
+      res.status(500).json({ message: 'Failed to delete subscription plan' });
+    }
+  });
+  
+  // Site settings management
+  app.get('/api/admin/settings', isAdminAuthenticated, async (req, res) => {
+    try {
+      const settings = await storage.getAllSiteSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching site settings:', error);
+      res.status(500).json({ message: 'Failed to fetch site settings' });
+    }
+  });
+  
+  app.post('/api/admin/settings', isAdminAuthenticated, async (req, res) => {
+    try {
+      const settingData = insertSiteSettingSchema.parse(req.body);
+      const newSetting = await storage.upsertSiteSetting(settingData);
+      res.status(201).json(newSetting);
+    } catch (error) {
+      console.error('Error creating site setting:', error);
+      res.status(500).json({ message: 'Failed to create site setting' });
+    }
+  });
+  
+  app.put('/api/admin/settings/:key', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { key } = req.params;
+      const updateData = updateSiteSettingSchema.parse(req.body);
+      const updatedSetting = await storage.upsertSiteSetting({ key, ...updateData });
+      res.json(updatedSetting);
+    } catch (error) {
+      console.error('Error updating site setting:', error);
+      res.status(500).json({ message: 'Failed to update site setting' });
+    }
+  });
+  
+  app.delete('/api/admin/settings/:key', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { key } = req.params;
+      await storage.deleteSiteSetting(key);
+      res.json({ message: 'Site setting deleted' });
+    } catch (error) {
+      console.error('Error deleting site setting:', error);
+      res.status(500).json({ message: 'Failed to delete site setting' });
     }
   });
 
