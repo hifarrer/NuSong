@@ -63,48 +63,67 @@ export default function Landing() {
         <div className="absolute top-20 left-10 w-72 h-72 bg-music-purple/20 rounded-full blur-3xl animate-pulse-slow"></div>
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-music-blue/20 rounded-full blur-3xl animate-pulse-slow"></div>
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-music-accent to-music-green bg-clip-text text-transparent leading-tight">
-            Create Music with AI
-          </h2>
-          <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Transform your ideas into professional music tracks. Generate songs from text prompts or enhance existing audio with our cutting-edge AI technology.
-          </p>
-          
-          {/* Hero CTA */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white px-8 py-4 text-lg font-semibold transition-all transform hover:scale-105 shadow-2xl"
-              onClick={() => window.location.href = "/api/login"}
-              data-testid="button-start-creating"
-            >
-              <Play className="mr-2 h-5 w-5" />
-              Start Creating Music
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-gray-600 hover:border-music-accent text-gray-300 hover:text-white px-8 py-4 text-lg font-semibold"
-              data-testid="button-listen-examples"
-            >
-              <Headphones className="mr-2 h-5 w-5" />
-              Listen to Examples
-            </Button>
-          </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Content Column */}
+            <div className="text-center lg:text-left">
+              <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-music-accent to-music-green bg-clip-text text-transparent leading-tight">
+                Create Music with AI
+              </h2>
+              <p className="text-xl text-gray-300 mb-8 leading-relaxed">
+                Transform your ideas into professional music tracks. Generate songs from text prompts or enhance existing audio with our cutting-edge AI technology.
+              </p>
+              
+              {/* Hero CTA */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center mb-12">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white px-8 py-4 text-lg font-semibold transition-all transform hover:scale-105 shadow-2xl"
+                  onClick={() => window.location.href = "/api/login"}
+                  data-testid="button-start-creating"
+                >
+                  <Play className="mr-2 h-5 w-5" />
+                  Start Creating Music
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border-gray-600 hover:border-music-accent text-gray-300 hover:text-white px-8 py-4 text-lg font-semibold"
+                  data-testid="button-listen-examples"
+                >
+                  <Headphones className="mr-2 h-5 w-5" />
+                  Listen to Examples
+                </Button>
+              </div>
 
-          {/* Waveform Visualization */}
-          <div className="flex justify-center items-center space-x-1 mb-8 opacity-60">
-            {Array.from({ length: 8 }, (_, i) => (
-              <div
-                key={i}
-                className="w-1 bg-gradient-to-t from-music-purple to-music-accent rounded-full animate-pulse"
-                style={{
-                  height: `${20 + Math.random() * 25}px`,
-                  animationDelay: `${i * 0.1}s`,
-                }}
-              />
-            ))}
+              {/* Waveform Visualization */}
+              <div className="flex justify-center lg:justify-start items-center space-x-1 mb-8 opacity-60">
+                {Array.from({ length: 8 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="w-1 bg-gradient-to-t from-music-purple to-music-accent rounded-full animate-pulse"
+                    style={{
+                      height: `${20 + Math.random() * 25}px`,
+                      animationDelay: `${i * 0.1}s`,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Image Column */}
+            <div className="relative">
+              <div className="relative z-10">
+                <img 
+                  src="/attached_assets/MZVFGa87BRUKkOkO0cUlN_output_1755653603944.png"
+                  alt="AI Music Generation - Futuristic robot with headphones creating music with sound waves"
+                  className="w-full h-auto rounded-lg shadow-2xl"
+                />
+              </div>
+              {/* Decorative elements around image */}
+              <div className="absolute -top-4 -right-4 w-24 h-24 bg-music-accent/20 rounded-full blur-2xl"></div>
+              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-music-blue/20 rounded-full blur-2xl"></div>
+            </div>
           </div>
         </div>
       </section>
