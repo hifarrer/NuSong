@@ -252,6 +252,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get public music tracks for gallery
+  // Public plans endpoint
+  app.get("/api/plans", async (req, res) => {
+    try {
+      const plans = await storage.getAllSubscriptionPlans();
+      res.json(plans.filter(plan => plan.isActive));
+    } catch (error) {
+      console.error("Error fetching subscription plans:", error);
+      res.status(500).json({ message: "Failed to fetch subscription plans" });
+    }
+  });
+
   app.get("/api/public-tracks", async (req, res) => {
     try {
       const tracks = await storage.getPublicMusicGenerations();

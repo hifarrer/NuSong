@@ -31,9 +31,9 @@ export default function Landing() {
             
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">Home</a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">Community</a>
+              <a href="/" className="text-gray-300 hover:text-white transition-colors">Home</a>
+              <a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
+              <a href="#community" className="text-gray-300 hover:text-white transition-colors">Community</a>
               <a href="#" className="text-gray-300 hover:text-white transition-colors">Help</a>
             </nav>
             
