@@ -8,7 +8,7 @@ import {
   type InsertAudioToMusic,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -23,6 +23,7 @@ export interface IStorage {
   updateMusicGeneration(id: string, updates: Partial<MusicGeneration>): Promise<MusicGeneration>;
   getMusicGeneration(id: string): Promise<MusicGeneration | undefined>;
   getUserMusicGenerations(userId: string): Promise<MusicGeneration[]>;
+  getPublicMusicGenerations(): Promise<MusicGeneration[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -101,6 +102,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(musicGenerations.userId, userId))
       .orderBy(desc(musicGenerations.createdAt))
       .limit(50);
+  }
+
+  async getPublicMusicGenerations(): Promise<MusicGeneration[]> {
+    return await db
+      .select()
+      .from(musicGenerations)
+      .where(and(
+        eq(musicGenerations.visibility, "public"),
+        eq(musicGenerations.status, "completed")
+      ))
+      .orderBy(desc(musicGenerations.createdAt))
+      .limit(20);
   }
 }
 

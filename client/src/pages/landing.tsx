@@ -1,7 +1,17 @@
 import { Button } from "@/components/ui/button";
-import { Music, Play, Headphones, WandSparkles, Lightbulb, Clock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AudioPlayer } from "@/components/ui/audio-player";
+import { Music, Play, Headphones, WandSparkles, Lightbulb, Clock, Tags, AudioWaveform } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import type { MusicGeneration } from "@shared/schema";
 
 export default function Landing() {
+  // Fetch public tracks for the gallery
+  const { data: publicTracks } = useQuery({
+    queryKey: ["/api/public-tracks"],
+    retry: false,
+  });
+
   return (
     <div className="min-h-screen bg-music-dark text-white">
       {/* Header Navigation */}
@@ -98,6 +108,40 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* Public Gallery Section */}
+      {publicTracks && Array.isArray(publicTracks) && publicTracks.length > 0 && (
+        <section className="py-20 bg-music-dark">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h3 className="text-3xl font-bold mb-4">Community Gallery</h3>
+              <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+                Discover amazing tracks created by our community of AI music creators.
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {(publicTracks as MusicGeneration[]).slice(0, 6).map((track) => (
+                <PublicTrackCard key={track.id} track={track} />
+              ))}
+            </div>
+
+            {publicTracks.length > 6 && (
+              <div className="text-center mt-12">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => window.location.href = "/api/login"}
+                  className="border-music-purple text-music-purple hover:bg-music-purple hover:text-white"
+                  data-testid="button-explore-more"
+                >
+                  Explore More Tracks
+                </Button>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="py-20 bg-music-secondary/50">
@@ -198,5 +242,54 @@ export default function Landing() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function PublicTrackCard({ track }: { track: MusicGeneration }) {
+  return (
+    <Card className="bg-music-secondary border-gray-700 hover:border-gray-600 transition-colors">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center">
+              {track.type === "text-to-music" ? (
+                <WandSparkles className="w-4 h-4 text-white" />
+              ) : (
+                <AudioWaveform className="w-4 h-4 text-white" />
+              )}
+            </div>
+            <div>
+              <h4 className="font-semibold text-white">
+                {track.title || "Untitled Track"}
+              </h4>
+              <p className="text-sm text-gray-400">
+                AI Generated {track.type === "text-to-music" ? "Music" : "Remix"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {track.tags && (
+          <div className="flex items-center text-sm text-gray-400">
+            <Tags className="w-4 h-4 mr-2" />
+            <span className="truncate">{track.tags}</span>
+          </div>
+        )}
+        
+        {track.audioUrl && (
+          <AudioPlayer 
+            src={track.audioUrl}
+            className="w-full"
+          />
+        )}
+        
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>{track.duration ? `${track.duration}s` : ""}</span>
+          <span className="capitalize">{track.type.replace("-", " ")}</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

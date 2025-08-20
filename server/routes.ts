@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertTextToMusicSchema, insertAudioToMusicSchema } from "@shared/schema";
+import { insertTextToMusicSchema, insertAudioToMusicSchema, updateMusicGenerationVisibilitySchema } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { z } from "zod";
 
@@ -227,6 +227,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user generations:", error);
       res.status(500).json({ message: "Failed to fetch generations" });
+    }
+  });
+
+  // Get public music tracks for gallery
+  app.get("/api/public-tracks", async (req, res) => {
+    try {
+      const tracks = await storage.getPublicMusicGenerations();
+      res.json(tracks);
+    } catch (error) {
+      console.error("Error fetching public tracks:", error);
+      res.status(500).json({ message: "Failed to fetch public tracks" });
+    }
+  });
+
+  // Update track visibility and title
+  app.patch("/api/generation/:id/visibility", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const validation = updateMusicGenerationVisibilitySchema.parse(req.body);
+
+      const generation = await storage.getMusicGeneration(id);
+      if (!generation || generation.userId !== userId) {
+        return res.status(404).json({ message: "Generation not found" });
+      }
+
+      const updatedGeneration = await storage.updateMusicGeneration(id, {
+        visibility: validation.visibility,
+        title: validation.title,
+      });
+
+      res.json(updatedGeneration);
+    } catch (error) {
+      console.error("Error updating generation visibility:", error);
+      res.status(500).json({ message: "Failed to update generation visibility" });
     }
   });
 

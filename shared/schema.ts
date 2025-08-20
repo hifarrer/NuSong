@@ -48,6 +48,8 @@ export const musicGenerations = pgTable("music_generations", {
   audioUrl: varchar("audio_url"),
   seed: integer("seed"),
   status: varchar("status").notNull().default("pending"), // pending, generating, completed, failed
+  visibility: varchar("visibility").notNull().default("public"), // public, private
+  title: varchar("title"), // Optional custom title for the track
   falRequestId: varchar("fal_request_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -60,17 +62,28 @@ export const insertTextToMusicSchema = createInsertSchema(musicGenerations).pick
   tags: true,
   lyrics: true,
   duration: true,
+  visibility: true,
+  title: true,
 }).extend({
   type: z.literal("text-to-music").default("text-to-music"),
+  visibility: z.enum(["public", "private"]).default("public"),
 });
 
 export const insertAudioToMusicSchema = createInsertSchema(musicGenerations).pick({
   tags: true,
   lyrics: true,
   inputAudioUrl: true,
+  visibility: true,
+  title: true,
 }).extend({
   type: z.literal("audio-to-music").default("audio-to-music"),
   inputAudioUrl: z.string().min(1, "Audio file URL is required"),
+  visibility: z.enum(["public", "private"]).default("public"),
+});
+
+export const updateMusicGenerationVisibilitySchema = z.object({
+  visibility: z.enum(["public", "private"]),
+  title: z.string().optional(),
 });
 
 export type InsertTextToMusic = z.infer<typeof insertTextToMusicSchema>;
