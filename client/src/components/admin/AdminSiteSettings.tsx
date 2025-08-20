@@ -372,32 +372,77 @@ export function AdminSiteSettings() {
                 Configure webhook endpoints and settings
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Webhook Setup Instructions */}
+              <div className="bg-gray-700 border border-gray-600 rounded-lg p-4 space-y-4">
+                <h4 className="text-md font-semibold text-blue-400">Stripe Webhook Setup Instructions</h4>
+                <div className="space-y-3 text-sm text-gray-300">
+                  <div>
+                    <p className="font-medium text-white mb-2">1. Go to your Stripe Dashboard</p>
+                    <p>Navigate to <span className="text-blue-400">Developers → Webhooks</span> in your Stripe dashboard.</p>
+                  </div>
+                  
+                  <div>
+                    <p className="font-medium text-white mb-2">2. Create a new webhook endpoint</p>
+                    <p>Click "Add endpoint" and use this URL:</p>
+                    <div className="bg-gray-900 border border-gray-500 rounded p-2 mt-1 font-mono text-green-400 text-xs">
+                      {typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/stripe` : '/api/webhooks/stripe'}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="font-medium text-white mb-2">3. Select events to send</p>
+                    <p>Add these essential events for subscription management:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1 mt-2">
+                      <div className="font-mono text-xs bg-gray-800 px-2 py-1 rounded text-green-400">customer.subscription.created</div>
+                      <div className="font-mono text-xs bg-gray-800 px-2 py-1 rounded text-green-400">customer.subscription.updated</div>
+                      <div className="font-mono text-xs bg-gray-800 px-2 py-1 rounded text-green-400">customer.subscription.deleted</div>
+                      <div className="font-mono text-xs bg-gray-800 px-2 py-1 rounded text-green-400">invoice.payment_succeeded</div>
+                      <div className="font-mono text-xs bg-gray-800 px-2 py-1 rounded text-green-400">invoice.payment_failed</div>
+                      <div className="font-mono text-xs bg-gray-800 px-2 py-1 rounded text-green-400">payment_intent.succeeded</div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="font-medium text-white mb-2">4. Copy the webhook secret</p>
+                    <p>After creating the webhook, copy the signing secret (whsec_...) and add it to your Stripe settings in the previous tab.</p>
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <label className="text-gray-200 text-sm font-medium">Stripe Webhook URL</label>
+                <label className="text-gray-200 text-sm font-medium">Your Webhook Endpoint URL</label>
                 <div className="flex space-x-2 mt-1">
                   <Input
-                    value={settingsData.stripe_webhook_url || getSetting("stripe_webhook_url")}
-                    onChange={(e) => handleSettingChange("stripe_webhook_url", e.target.value)}
-                    className="bg-gray-700 border-gray-600 text-white"
-                    placeholder="https://yourdomain.com/api/stripe/webhook"
-                    data-testid="input-stripe-webhook-url"
+                    value={typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/stripe` : '/api/webhooks/stripe'}
+                    readOnly
+                    className="bg-gray-700 border-gray-600 text-gray-300 cursor-not-allowed"
+                    data-testid="input-webhook-endpoint-url"
                   />
                   <Button
-                    onClick={() => handleSaveSetting("stripe_webhook_url")}
-                    disabled={updateSettingMutation.isPending}
-                    className="bg-purple-600 hover:bg-purple-700"
-                    data-testid="button-save-stripe-webhook-url"
+                    onClick={() => {
+                      const url = typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/stripe` : '/api/webhooks/stripe';
+                      navigator.clipboard.writeText(url);
+                      toast({
+                        title: "Copied!",
+                        description: "Webhook URL copied to clipboard",
+                      });
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    data-testid="button-copy-webhook-url"
                   >
-                    Save
+                    Copy URL
                   </Button>
                 </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  This is your webhook endpoint URL. Copy this to your Stripe dashboard.
+                </p>
               </div>
 
               <div className="mt-4 p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg">
                 <p className="text-yellow-300 text-sm">
-                  <strong>Webhook Setup:</strong> Add this endpoint to your Stripe dashboard webhook settings. 
-                  Listen for events: customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, invoice.payment_succeeded, invoice.payment_failed
+                  <strong>Important:</strong> Make sure your webhook endpoint secret is configured in the Stripe tab above. 
+                  This ensures secure webhook verification and prevents unauthorized requests.
                 </p>
               </div>
             </CardContent>
