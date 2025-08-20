@@ -126,6 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         body: JSON.stringify({
           audio_url: publicAudioUrl,
           tags: validation.tags,
+          original_tags: validation.tags, // Copy tags to original_tags as required by FAL.ai
           lyrics: validation.lyrics || "",
         })
       });
