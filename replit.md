@@ -8,6 +8,14 @@ AI Music Studio is a full-stack web application that enables users to generate A
 
 Preferred communication style: Simple, everyday language.
 
+## Subscription Plans
+
+The platform offers three subscription tiers:
+
+- **Free Plan**: Up to 5 songs per month, standard quality, public sharing only
+- **Basic Plan**: Up to 30 songs per month, high quality, private/public sharing ($9/month or $90/year)
+- **Premium Plan**: Up to 200 songs per month, ultra-high quality, priority generation, commercial license ($19/month or $190/year)
+
 ## System Architecture
 
 ### Frontend Architecture
