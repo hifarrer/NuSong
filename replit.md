@@ -8,6 +8,12 @@ AI Music Studio is a full-stack web application that enables users to generate A
 
 Preferred communication style: Simple, everyday language.
 
+## Project Configuration
+
+**Production Domain**: numusic.app  
+**Development Environment**: Replit workspace  
+**Webhook Endpoints**: Configured for numusic.app domain
+
 ## Subscription Plans
 
 The platform offers three subscription tiers:
