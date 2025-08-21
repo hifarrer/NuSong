@@ -78,8 +78,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Log the input parameters being sent to FAL.ai
-      console.log(`[TEXT-TO-MUSIC] User: ${userId}, Generation: ${generation.id}`);
-      console.log(`[TEXT-TO-MUSIC] API Payload:`, JSON.stringify(apiPayload, null, 2));
+      console.log(`\n=== TEXT-TO-MUSIC API REQUEST ===`);
+      console.log(`User ID: ${userId}`);
+      console.log(`Generation ID: ${generation.id}`);
+      console.log(`API Payload being sent to FAL.ai:`);
+      console.log(JSON.stringify(apiPayload, null, 2));
+      console.log(`================================\n`);
 
       // Submit request to FAL.ai
       const falResponse = await fetch("https://queue.fal.run/fal-ai/ace-step", {
@@ -141,8 +145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Log the input parameters being sent to FAL.ai
-      console.log(`[AUDIO-TO-MUSIC] User: ${userId}, Generation: ${generation.id}`);
-      console.log(`[AUDIO-TO-MUSIC] API Payload:`, JSON.stringify(apiPayload, null, 2));
+      console.log(`\n=== AUDIO-TO-MUSIC API REQUEST ===`);
+      console.log(`User ID: ${userId}`);
+      console.log(`Generation ID: ${generation.id}`);
+      console.log(`API Payload being sent to FAL.ai:`);
+      console.log(JSON.stringify(apiPayload, null, 2));
+      console.log(`==================================\n`);
 
       // Submit request to FAL.ai
       const falResponse = await fetch("https://queue.fal.run/fal-ai/ace-step/audio-to-audio", {
