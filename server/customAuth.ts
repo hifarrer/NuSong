@@ -174,6 +174,74 @@ export function setupCustomAuth(app: Express) {
     });
   });
 
+  // Update user email route
+  app.put('/api/user/email', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { newEmail } = req.body;
+      if (!newEmail || typeof newEmail !== 'string') {
+        return res.status(400).json({ message: 'New email is required' });
+      }
+
+      const userId = req.session.userId!;
+      
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(newEmail);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+
+      // Update user email
+      const updatedUser = await storage.updateUserEmail(userId, newEmail);
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const { passwordHash: _, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Update email error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Update user password route
+  app.put('/api/user/password', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Current password and new password are required' });
+      }
+
+      const userId = req.session.userId!;
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Verify current password
+      const isValidPassword = await verifyPassword(currentPassword, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const newPasswordHash = await hashPassword(newPassword);
+      
+      // Update password
+      const updatedUser = await storage.updateUserPassword(userId, newPasswordHash);
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const { passwordHash: _, ...userWithoutPassword } = updatedUser;
+      res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Update password error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Get current user route
   app.get('/api/auth/user', (req: Request, res: Response) => {
     if (!req.user) {

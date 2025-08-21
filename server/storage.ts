@@ -29,6 +29,8 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: Omit<UpsertUser, 'id'>): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserEmail(userId: string, newEmail: string): Promise<User | undefined>;
+  updateUserPassword(userId: string, newPasswordHash: string): Promise<User | undefined>;
   
   // Music generation operations
   createTextToMusicGeneration(userId: string, data: InsertTextToMusic): Promise<MusicGeneration>;
@@ -108,6 +110,30 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  async updateUserEmail(userId: string, newEmail: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        email: newEmail,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserPassword(userId: string, newPasswordHash: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        passwordHash: newPasswordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
       .returning();
     return user;
   }
