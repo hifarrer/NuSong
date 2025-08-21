@@ -70,11 +70,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create generation record
       const generation = await storage.createTextToMusicGeneration(userId, validation);
       
-      // Prepare API request payload
+      // Prepare API request payload with enhanced parameters
       const apiPayload = {
         tags: validation.tags,
         lyrics: validation.lyrics || "",
         duration: validation.duration,
+        number_of_steps: 27,
+        scheduler: "euler",
+        guidance_type: "apg",
+        granularity_scale: 10,
+        guidance_interval: 0.5,
+        guidance_interval_decay: 0,
+        guidance_scale: 15,
+        minimum_guidance_scale: 3,
+        tag_guidance_scale: 5,
+        lyric_guidance_scale: 1.5
       };
 
       // Log the input parameters being sent to FAL.ai
