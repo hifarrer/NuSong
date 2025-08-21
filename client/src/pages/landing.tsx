@@ -25,7 +25,7 @@ export default function Landing() {
                 <Music className="text-white text-lg" />
               </div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-music-purple to-music-blue bg-clip-text text-transparent">
-                AI Music Studio
+                NuMusic
               </h1>
             </div>
             
@@ -33,6 +33,8 @@ export default function Landing() {
             <nav className="hidden md:flex items-center space-x-8">
               <a href="/" className="text-gray-300 hover:text-white transition-colors">Home</a>
               <a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
+              <a href="/privacy" className="text-gray-300 hover:text-white transition-colors">Privacy</a>
+              <a href="/terms" className="text-gray-300 hover:text-white transition-colors">Terms</a>
             </nav>
             
             {/* Auth Buttons */}
@@ -86,8 +88,6 @@ export default function Landing() {
                 </Button>
 
               </div>
-
-
             </div>
 
             {/* Image Column */}
@@ -195,7 +195,7 @@ export default function Landing() {
                 <div className="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center">
                   <Music className="text-white text-sm" />
                 </div>
-                <span className="text-lg font-bold">AI Music Studio</span>
+                <span className="text-lg font-bold">NuMusic</span>
               </div>
               <p className="text-gray-400">Create professional music with the power of artificial intelligence.</p>
             </div>
@@ -213,14 +213,14 @@ export default function Landing() {
             <div>
               <h4 className="font-semibold mb-4">Legal</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                <li><a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                <li><a href="/terms" className="hover:text-white transition-colors">Terms of Service</a></li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 AI Music Studio. All rights reserved. Powered by FAL.ai</p>
+            <p>&copy; 2024 NuMusic. All rights reserved. Powered by FAL.ai</p>
           </div>
         </div>
       </footer>

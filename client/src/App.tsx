@@ -8,6 +8,8 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Pricing from "@/pages/pricing";
+import Privacy from "@/pages/privacy";
+import Terms from "@/pages/terms";
 import Auth from "@/pages/auth";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -24,6 +26,8 @@ function Router() {
       
       {/* Public routes */}
       <Route path="/pricing" component={Pricing} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route path="/auth" component={Auth} />
       
       {/* Main app routes */}
