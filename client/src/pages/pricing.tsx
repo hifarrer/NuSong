@@ -182,11 +182,19 @@ export default function Pricing() {
             Upgrade or downgrade anytime as your needs change.
           </p>
           <div className="flex justify-center space-x-4">
-            <Button variant="outline" className="border-gray-600 text-white hover:bg-gray-800">
+            <Button 
+              variant="outline" 
+              className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white bg-transparent"
+              data-testid="button-contact-support"
+            >
               Contact Support
             </Button>
             <Link href="/">
-              <Button variant="outline" className="border-gray-600 text-white hover:bg-gray-800">
+              <Button 
+                variant="outline" 
+                className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white bg-transparent"
+                data-testid="button-try-demo"
+              >
                 Try Demo
               </Button>
             </Link>
