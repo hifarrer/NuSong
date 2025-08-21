@@ -71,7 +71,7 @@ export default function Home() {
     // Poll for status updates
     const pollStatus = async () => {
       try {
-        const response = await apiRequest("GET", `/api/generation/${generationId}/status`);
+        const response = await apiRequest(`/api/generation/${generationId}/status`, "GET");
         const generation = await response.json();
         
         setCurrentGeneration(generation);
@@ -101,7 +101,7 @@ export default function Home() {
             variant: "destructive",
           });
           setTimeout(() => {
-            window.location.href = "/api/login";
+            window.location.href = "/auth";
           }, 500);
           return;
         }
@@ -127,7 +127,7 @@ export default function Home() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/auth";
       }, 500);
       return;
     }
@@ -141,7 +141,7 @@ export default function Home() {
   // Text-to-music generation mutation
   const generateTextToMusicMutation = useMutation({
     mutationFn: async (data: { tags: string; lyrics: string; duration: number; title?: string; visibility: "public" | "private" }) => {
-      const response = await apiRequest("POST", "/api/generate-text-to-music", data);
+      const response = await apiRequest("/api/generate-text-to-music", "POST", data);
       return await response.json();
     },
     onSuccess: handleGenerationSuccess,
@@ -151,7 +151,7 @@ export default function Home() {
   // Audio-to-music generation mutation
   const generateAudioToMusicMutation = useMutation({
     mutationFn: async (data: { tags: string; lyrics: string; inputAudioUrl: string; title?: string; visibility: "public" | "private" }) => {
-      const response = await apiRequest("POST", "/api/generate-audio-to-music", data);
+      const response = await apiRequest("/api/generate-audio-to-music", "POST", data);
       return await response.json();
     },
     onSuccess: handleGenerationSuccess,
@@ -210,7 +210,7 @@ export default function Home() {
   };
 
   const handleGetUploadParameters = async () => {
-    const response = await apiRequest("POST", "/api/objects/upload");
+    const response = await apiRequest("/api/objects/upload", "POST");
     const data = await response.json();
     return {
       method: "PUT" as const,
@@ -223,7 +223,7 @@ export default function Home() {
       const uploadedFile = result.successful[0];
       // Call backend to convert the upload URL to object path format
       try {
-        const response = await apiRequest("POST", "/api/objects/normalize-path", { 
+        const response = await apiRequest("/api/objects/normalize-path", "POST", { 
           uploadURL: uploadedFile.uploadURL 
         });
         const data = await response.json();
@@ -880,7 +880,7 @@ function TrackCard({ track }: { track: MusicGeneration }) {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/auth";
         }, 500);
         return;
       }
