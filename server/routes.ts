@@ -70,6 +70,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create generation record
       const generation = await storage.createTextToMusicGeneration(userId, validation);
       
+      // Prepare API request payload
+      const apiPayload = {
+        tags: validation.tags,
+        lyrics: validation.lyrics || "",
+        duration: validation.duration,
+      };
+
+      // Log the input parameters being sent to FAL.ai
+      console.log(`[TEXT-TO-MUSIC] User: ${userId}, Generation: ${generation.id}`);
+      console.log(`[TEXT-TO-MUSIC] API Payload:`, JSON.stringify(apiPayload, null, 2));
+
       // Submit request to FAL.ai
       const falResponse = await fetch("https://queue.fal.run/fal-ai/ace-step", {
         method: "POST",
@@ -77,11 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Authorization": `Key ${FAL_KEY}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          tags: validation.tags,
-          lyrics: validation.lyrics || "",
-          duration: validation.duration,
-        })
+        body: JSON.stringify(apiPayload)
       });
 
       if (!falResponse.ok) {
@@ -125,6 +132,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const objectStorageService = new ObjectStorageService();
       const publicAudioUrl = await objectStorageService.getObjectEntityPublicUrl(validation.inputAudioUrl, 7200); // 2 hours
       
+      // Prepare API request payload
+      const apiPayload = {
+        audio_url: publicAudioUrl,
+        tags: validation.tags,
+        original_tags: validation.tags, // Copy tags to original_tags as required by FAL.ai
+        lyrics: validation.lyrics || "",
+      };
+
+      // Log the input parameters being sent to FAL.ai
+      console.log(`[AUDIO-TO-MUSIC] User: ${userId}, Generation: ${generation.id}`);
+      console.log(`[AUDIO-TO-MUSIC] API Payload:`, JSON.stringify(apiPayload, null, 2));
+
       // Submit request to FAL.ai
       const falResponse = await fetch("https://queue.fal.run/fal-ai/ace-step/audio-to-audio", {
         method: "POST",
@@ -132,12 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Authorization": `Key ${FAL_KEY}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          audio_url: publicAudioUrl,
-          tags: validation.tags,
-          original_tags: validation.tags, // Copy tags to original_tags as required by FAL.ai
-          lyrics: validation.lyrics || "",
-        })
+        body: JSON.stringify(apiPayload)
       });
 
       if (!falResponse.ok) {
