@@ -494,6 +494,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to update track gallery visibility' });
     }
   });
+
+  app.patch('/api/admin/tracks/:id/title', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { title } = req.body;
+      
+      if (typeof title !== 'string') {
+        return res.status(400).json({ message: 'title must be a string' });
+      }
+      
+      if (title.trim().length === 0) {
+        return res.status(400).json({ message: 'title cannot be empty' });
+      }
+      
+      if (title.length > 100) {
+        return res.status(400).json({ message: 'title must be 100 characters or less' });
+      }
+      
+      const updatedTrack = await storage.updateMusicGenerationTitle(id, title.trim());
+      res.json(updatedTrack);
+    } catch (error) {
+      console.error('Error updating track title:', error);
+      res.status(500).json({ message: 'Failed to update track title' });
+    }
+  });
   
   // Site settings management
   app.get('/api/admin/settings', isAdminAuthenticated, async (req, res) => {

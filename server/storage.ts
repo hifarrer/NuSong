@@ -232,6 +232,15 @@ export class DatabaseStorage implements IStorage {
     return generation;
   }
 
+  async updateMusicGenerationTitle(id: string, title: string): Promise<MusicGeneration> {
+    const [generation] = await db
+      .update(musicGenerations)
+      .set({ title, updatedAt: new Date() })
+      .where(eq(musicGenerations.id, id))
+      .returning();
+    return generation;
+  }
+
 
 
   // Analytics operations

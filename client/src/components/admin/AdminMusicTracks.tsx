@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Music, Eye, EyeOff, Search, Filter, WandSparkles, AudioWaveform } from "lucide-react";
+import { Music, Eye, EyeOff, Search, Filter, WandSparkles, AudioWaveform, Edit3, Check, X } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
 export function AdminMusicTracks() {
@@ -19,6 +19,8 @@ export function AdminMusicTracks() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
+  const [editingTitle, setEditingTitle] = useState<string | null>(null);
+  const [editTitleValue, setEditTitleValue] = useState("");
 
   // Fetch all music tracks
   const { data: tracks, isLoading } = useQuery({
@@ -50,11 +52,72 @@ export function AdminMusicTracks() {
     },
   });
 
+  // Update title mutation
+  const updateTitleMutation = useMutation({
+    mutationFn: async ({ trackId, title }: { trackId: string; title: string }) => {
+      const response = await apiRequest(`/api/admin/tracks/${trackId}/title`, "PATCH", {
+        title,
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tracks"] });
+      setEditingTitle(null);
+      setEditTitleValue("");
+      toast({
+        title: "Track Updated",
+        description: "Track title has been updated.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update track title.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleToggleGallery = (trackId: string, currentValue: boolean) => {
     toggleGalleryMutation.mutate({
       trackId,
       showInGallery: !currentValue,
     });
+  };
+
+  const handleStartEditTitle = (trackId: string, currentTitle: string) => {
+    setEditingTitle(trackId);
+    setEditTitleValue(currentTitle || "");
+  };
+
+  const handleSaveTitle = (trackId: string) => {
+    if (editTitleValue.trim().length === 0) {
+      toast({
+        title: "Invalid Title",
+        description: "Title cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (editTitleValue.length > 100) {
+      toast({
+        title: "Invalid Title",
+        description: "Title must be 100 characters or less.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateTitleMutation.mutate({
+      trackId,
+      title: editTitleValue.trim(),
+    });
+  };
+
+  const handleCancelEditTitle = () => {
+    setEditingTitle(null);
+    setEditTitleValue("");
   };
 
   // Filter tracks based on search and filters
@@ -220,23 +283,80 @@ export function AdminMusicTracks() {
                     
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold text-white">
-                          {track.title || "Untitled Track"}
-                        </h3>
-                        <Badge 
-                          variant={track.status === "completed" ? "default" : "secondary"}
-                          className={
-                            track.status === "completed" ? "bg-green-600" :
-                            track.status === "failed" ? "bg-red-600" :
-                            track.status === "generating" ? "bg-yellow-600" :
-                            "bg-gray-600"
-                          }
-                        >
-                          {track.status}
-                        </Badge>
-                        <Badge variant={track.visibility === "public" ? "default" : "secondary"}>
-                          {track.visibility}
-                        </Badge>
+                        {/* Editable Title */}
+                        <div className="flex items-center space-x-2 flex-1">
+                          {editingTitle === track.id ? (
+                            <div className="flex items-center space-x-2 flex-1">
+                              <Input
+                                value={editTitleValue}
+                                onChange={(e) => setEditTitleValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveTitle(track.id);
+                                  } else if (e.key === 'Escape') {
+                                    handleCancelEditTitle();
+                                  }
+                                }}
+                                className="bg-gray-700 border-gray-600 text-white flex-1"
+                                placeholder="Enter track title"
+                                autoFocus
+                                data-testid={`input-edit-title-${track.id}`}
+                              />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleSaveTitle(track.id)}
+                                disabled={updateTitleMutation.isPending}
+                                className="text-green-400 hover:text-green-300"
+                                data-testid={`button-save-title-${track.id}`}
+                              >
+                                <Check className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={handleCancelEditTitle}
+                                disabled={updateTitleMutation.isPending}
+                                className="text-red-400 hover:text-red-300"
+                                data-testid={`button-cancel-title-${track.id}`}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2 group">
+                              <h3 className="text-lg font-semibold text-white">
+                                {track.title || "Untitled Track"}
+                              </h3>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleStartEditTitle(track.id, track.title || "")}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-400 hover:text-blue-300 p-1"
+                                data-testid={`button-edit-title-${track.id}`}
+                              >
+                                <Edit3 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Badge 
+                            variant={track.status === "completed" ? "default" : "secondary"}
+                            className={
+                              track.status === "completed" ? "bg-green-600" :
+                              track.status === "failed" ? "bg-red-600" :
+                              track.status === "generating" ? "bg-yellow-600" :
+                              "bg-gray-600"
+                            }
+                          >
+                            {track.status}
+                          </Badge>
+                          <Badge variant={track.visibility === "public" ? "default" : "secondary"}>
+                            {track.visibility}
+                          </Badge>
+                        </div>
                       </div>
                       
                       <div className="text-sm text-gray-400 space-y-1">
