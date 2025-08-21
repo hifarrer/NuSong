@@ -33,8 +33,6 @@ export default function Landing() {
             <nav className="hidden md:flex items-center space-x-8">
               <a href="/" className="text-gray-300 hover:text-white transition-colors">Home</a>
               <a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
-              <a href="#community" className="text-gray-300 hover:text-white transition-colors">Community</a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">Help</a>
             </nav>
             
             {/* Auth Buttons */}
@@ -198,7 +196,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="bg-music-secondary border-t border-gray-800 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Brand */}
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
@@ -210,25 +208,12 @@ export default function Landing() {
               <p className="text-gray-400">Create professional music with the power of artificial intelligence.</p>
             </div>
 
-            {/* Product */}
+            {/* Quick Links */}
             <div>
-              <h4 className="font-semibold mb-4">Product</h4>
+              <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Text to Music</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Audio to Music</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">API Access</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Mobile App</a></li>
-              </ul>
-            </div>
-
-            {/* Support */}
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Tutorials</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Community</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+                <li><a href="/pricing" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="/api/login" className="hover:text-white transition-colors">Get Started</a></li>
               </ul>
             </div>
 
@@ -238,8 +223,6 @@ export default function Landing() {
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Copyright</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Licensing</a></li>
               </ul>
             </div>
           </div>
