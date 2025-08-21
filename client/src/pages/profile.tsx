@@ -389,15 +389,6 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium text-white">Two-Factor Authentication</h4>
-                  <p className="text-sm text-gray-400">Add an extra layer of security to your account</p>
-                </div>
-                <Badge variant="secondary" className="bg-gray-600 text-gray-200">
-                  Not Enabled
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
                   <h4 className="font-medium text-white">Login Sessions</h4>
                   <p className="text-sm text-gray-400">Manage your active login sessions</p>
                 </div>
