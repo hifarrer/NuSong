@@ -116,6 +116,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   monthlyPriceId: varchar("monthly_price_id"), // Stripe price ID for monthly billing
   yearlyPriceId: varchar("yearly_price_id"), // Stripe price ID for yearly billing
   maxGenerations: integer("max_generations").notNull().default(5), // monthly generation limit
+  generationsNumber: integer("generations_number").notNull().default(5), // number of generations allowed
   features: jsonb("features").default(sql`'[]'::jsonb`), // array of feature strings
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").default(0),
