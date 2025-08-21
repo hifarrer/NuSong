@@ -292,6 +292,7 @@ export default function Home() {
             <nav className="hidden md:flex items-center space-x-8">
               <a href="/" className="text-gray-300 hover:text-white transition-colors">Home</a>
               <a href="/library" className="text-gray-300 hover:text-white transition-colors">My Library</a>
+              <a href="/contact" className="text-gray-300 hover:text-white transition-colors">Contact</a>
             </nav>
             
             {/* User Menu */}

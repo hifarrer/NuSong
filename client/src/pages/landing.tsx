@@ -33,6 +33,7 @@ export default function Landing() {
             <nav className="hidden md:flex items-center space-x-8">
               <a href="/" className="text-gray-300 hover:text-white transition-colors">Home</a>
               <a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
+              <a href="/contact" className="text-gray-300 hover:text-white transition-colors">Contact</a>
               <a href="/privacy" className="text-gray-300 hover:text-white transition-colors">Privacy</a>
               <a href="/terms" className="text-gray-300 hover:text-white transition-colors">Terms</a>
             </nav>
