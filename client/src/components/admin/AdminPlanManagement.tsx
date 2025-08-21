@@ -18,6 +18,8 @@ interface PlanFormData {
   yearlyPrice: string;
   monthlyPriceId: string;
   yearlyPriceId: string;
+  maxGenerations: number;
+  generationsNumber: number;
   sortOrder: number;
   isActive: boolean;
 }
@@ -34,13 +36,15 @@ export function AdminPlanManagement() {
     yearlyPrice: "0",
     monthlyPriceId: "",
     yearlyPriceId: "",
+    maxGenerations: 5,
+    generationsNumber: 5,
     sortOrder: 0,
     isActive: true,
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: plans = [], isLoading } = useQuery({
+  const { data: plans = [], isLoading } = useQuery<SubscriptionPlan[]>({
     queryKey: ["/api/admin/plans"],
   });
 
@@ -118,9 +122,12 @@ export function AdminPlanManagement() {
       yearlyPrice: "0",
       monthlyPriceId: "",
       yearlyPriceId: "",
+      maxGenerations: 5,
+      generationsNumber: 5,
       sortOrder: 0,
       isActive: true,
     });
+    setEditingPlan(null);
   };
 
   const handleCreatePlan = (e: React.FormEvent) => {
@@ -139,11 +146,13 @@ export function AdminPlanManagement() {
     setFormData({
       name: plan.name,
       description: plan.description || "",
-      features: plan.features || [],
+      features: Array.isArray(plan.features) ? plan.features : [],
       monthlyPrice: plan.monthlyPrice || "0",
       yearlyPrice: plan.yearlyPrice || "0",
       monthlyPriceId: plan.monthlyPriceId || "",
       yearlyPriceId: plan.yearlyPriceId || "",
+      maxGenerations: plan.maxGenerations || 5,
+      generationsNumber: plan.generationsNumber || 5,
       sortOrder: plan.sortOrder || 0,
       isActive: plan.isActive,
     });
@@ -266,6 +275,33 @@ export function AdminPlanManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <label className="text-gray-200 text-sm font-medium">Max Generations</label>
+                  <Input 
+                    type="number"
+                    value={formData.maxGenerations}
+                    onChange={(e) => setFormData({ ...formData, maxGenerations: parseInt(e.target.value) || 5 })}
+                    className="bg-gray-800 border-gray-600 text-white mt-1"
+                    placeholder="5"
+                    min="1"
+                    data-testid="input-max-generations"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-200 text-sm font-medium">Generations Number</label>
+                  <Input 
+                    type="number"
+                    value={formData.generationsNumber}
+                    onChange={(e) => setFormData({ ...formData, generationsNumber: parseInt(e.target.value) || 5 })}
+                    className="bg-gray-800 border-gray-600 text-white mt-1"
+                    placeholder="5"
+                    min="1"
+                    data-testid="input-generations-number"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <label className="text-gray-200 text-sm font-medium">Monthly Stripe Price ID</label>
                   <Input 
                     value={formData.monthlyPriceId}
@@ -375,6 +411,24 @@ export function AdminPlanManagement() {
                     ${plan.yearlyPrice}/yr
                   </span>
                 </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Max Generations</span>
+                  <span className="text-white font-semibold" data-testid={`text-max-generations-${plan.id}`}>
+                    {plan.maxGenerations}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Max Generations</span>
+                  <span className="text-white font-semibold" data-testid={`text-max-generations-${plan.id}`}>
+                    {plan.maxGenerations}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Generations Number</span>
+                  <span className="text-white font-semibold" data-testid={`text-generations-number-${plan.id}`}>
+                    {plan.generationsNumber}
+                  </span>
+                </div>
                 {plan.description && (
                   <div className="text-sm text-gray-300">
                     <div className="font-medium mb-1">Features:</div>
@@ -464,6 +518,31 @@ export function AdminPlanManagement() {
                   onChange={(e) => setFormData({ ...formData, yearlyPrice: e.target.value })}
                   className="bg-gray-800 border-gray-600 text-white mt-1"
                   data-testid="input-edit-yearly-price"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-gray-200 text-sm font-medium">Max Generations</label>
+                <Input 
+                  type="number"
+                  value={formData.maxGenerations}
+                  onChange={(e) => setFormData({ ...formData, maxGenerations: parseInt(e.target.value) || 5 })}
+                  className="bg-gray-800 border-gray-600 text-white mt-1"
+                  min="1"
+                  data-testid="input-edit-max-generations"
+                />
+              </div>
+              <div>
+                <label className="text-gray-200 text-sm font-medium">Generations Number</label>
+                <Input 
+                  type="number"
+                  value={formData.generationsNumber}
+                  onChange={(e) => setFormData({ ...formData, generationsNumber: parseInt(e.target.value) || 5 })}
+                  className="bg-gray-800 border-gray-600 text-white mt-1"
+                  min="1"
+                  data-testid="input-edit-generations-number"
                 />
               </div>
             </div>
