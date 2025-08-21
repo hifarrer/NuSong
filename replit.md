@@ -48,16 +48,18 @@ The platform offers three subscription tiers:
 - **Connection**: Connection pooling with @neondatabase/serverless
 
 ### Authentication & Authorization
-- **Provider**: Replit Auth using OpenID Connect protocol
-- **Session Storage**: PostgreSQL-backed sessions with connect-pg-simple
-- **User Management**: Automatic user creation/update on authentication
-- **Route Protection**: Middleware-based authentication checks
+- **Provider**: Custom database-driven authentication system
+- **Password Security**: bcrypt hashing with salt rounds for secure password storage
+- **Session Management**: Express sessions with PostgreSQL storage
+- **User Management**: Complete user registration and login with email/password
+- **Route Protection**: Middleware-based authentication checks with requireAuth
+- **Auth Endpoints**: `/api/auth/login`, `/api/auth/register`, `/api/auth/logout`, `/api/auth/user`
 
 ### External Dependencies
 
 - **AI Service**: FAL.ai for music generation using the ace-step model
 - **Database**: Neon PostgreSQL for data persistence
-- **Authentication**: Replit Auth service for user management
+- **Authentication**: Custom database-driven auth system with bcrypt password hashing
 - **Font Services**: Google Fonts for typography (Inter, Architects Daughter, DM Sans, Fira Code, Geist Mono)
 - **Development**: Replit-specific tooling for development environment integration
 
@@ -69,7 +71,9 @@ The platform offers three subscription tiers:
 
 **Component Architecture**: Modular UI components using shadcn/ui for consistency and maintainability.
 
-**Database Design**: Normalized schema with separate tables for users, sessions, and music generations to support scalability.
+**Database Design**: Normalized schema with separate tables for users, sessions, music generations, admin users, subscription plans, and site settings to support scalability.
+
+**Authentication System**: Custom-built authentication with secure password hashing, session management, and comprehensive form validation.
 
 **Error Handling**: Centralized error handling with structured responses and proper HTTP status codes.
 
