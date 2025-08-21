@@ -105,7 +105,7 @@ export function AudioPlayer({ src, className }: AudioPlayerProps) {
           className="bg-music-dark border-gray-600 hover:border-music-purple"
           data-testid="button-play-pause"
         >
-          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          {isPlaying ? <Pause className="h-4 w-4 text-music-blue" /> : <Play className="h-4 w-4 text-music-blue" />}
         </Button>
 
         <div className="flex-1">

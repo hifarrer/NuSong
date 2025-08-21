@@ -361,7 +361,7 @@ export default function Home() {
                       <div className="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center mr-3">
                         <WandSparkles className="text-sm text-white" />
                       </div>
-                      Create Your Track
+                      <span className="text-music-blue">Create Your Track</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -500,7 +500,7 @@ export default function Home() {
                         <div className="w-8 h-8 bg-gradient-to-br from-music-green to-music-blue rounded-lg flex items-center justify-center mr-3">
                           <Play className="text-sm text-white" />
                         </div>
-                        Your Generated Track
+                        <span className="text-music-blue">Your Generated Track</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -551,7 +551,7 @@ export default function Home() {
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Lightbulb className="text-music-accent mr-3 h-5 w-5" />
-                      Tips for Better Results
+                      <span className="text-music-blue">Tips for Better Results</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
