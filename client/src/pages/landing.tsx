@@ -84,15 +84,7 @@ export default function Landing() {
                   <Play className="mr-2 h-5 w-5" />
                   Start Creating Music
                 </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="border-gray-600 hover:border-music-accent text-gray-300 hover:text-white px-8 py-4 text-lg font-semibold"
-                  data-testid="button-listen-examples"
-                >
-                  <Headphones className="mr-2 h-5 w-5" />
-                  Listen to Examples
-                </Button>
+
               </div>
 
 
