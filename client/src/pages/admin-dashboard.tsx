@@ -5,6 +5,7 @@ import { AdminDashboardContent } from "@/components/admin/AdminDashboardContent"
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { AdminPlanManagement } from "@/components/admin/AdminPlanManagement";
 import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings";
+import { AdminMusicTracks } from "@/components/admin/AdminMusicTracks";
 
 export default function AdminDashboard() {
   const { isAuthenticated, isLoading } = useAdminAuth();
@@ -27,6 +28,9 @@ export default function AdminDashboard() {
   const renderContent = () => {
     if (currentPath === "/admin/users") {
       return <AdminUserManagement />;
+    }
+    if (currentPath === "/admin/tracks") {
+      return <AdminMusicTracks />;
     }
     if (currentPath === "/admin/plans") {
       return <AdminPlanManagement />;

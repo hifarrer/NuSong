@@ -172,7 +172,8 @@ export class DatabaseStorage implements IStorage {
       .from(musicGenerations)
       .where(and(
         eq(musicGenerations.visibility, "public"),
-        eq(musicGenerations.status, "completed")
+        eq(musicGenerations.status, "completed"),
+        eq(musicGenerations.showInGallery, true)
       ))
       .orderBy(desc(musicGenerations.createdAt))
       .limit(20);
@@ -212,6 +213,23 @@ export class DatabaseStorage implements IStorage {
       .update(adminUsers)
       .set({ lastLoginAt: new Date() })
       .where(eq(adminUsers.id, id));
+  }
+
+  // Admin music tracks operations
+  async getAllMusicGenerations(): Promise<MusicGeneration[]> {
+    return await db
+      .select()
+      .from(musicGenerations)
+      .orderBy(desc(musicGenerations.createdAt));
+  }
+
+  async updateMusicGenerationGalleryVisibility(id: string, showInGallery: boolean): Promise<MusicGeneration> {
+    const [generation] = await db
+      .update(musicGenerations)
+      .set({ showInGallery, updatedAt: new Date() })
+      .where(eq(musicGenerations.id, id))
+      .returning();
+    return generation;
   }
 
 

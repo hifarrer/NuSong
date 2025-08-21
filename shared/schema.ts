@@ -50,6 +50,7 @@ export const musicGenerations = pgTable("music_generations", {
   seed: integer("seed"),
   status: varchar("status").notNull().default("pending"), // pending, generating, completed, failed
   visibility: varchar("visibility").notNull().default("public"), // public, private
+  showInGallery: boolean("show_in_gallery").notNull().default(true), // Admin can hide from gallery
   title: varchar("title"), // Optional custom title for the track
   falRequestId: varchar("fal_request_id"),
   createdAt: timestamp("created_at").defaultNow(),

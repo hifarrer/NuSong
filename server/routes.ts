@@ -435,6 +435,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Admin music tracks management
+  app.get('/api/admin/tracks', isAdminAuthenticated, async (req, res) => {
+    try {
+      const tracks = await storage.getAllMusicGenerations();
+      res.json(tracks);
+    } catch (error) {
+      console.error('Error fetching admin tracks:', error);
+      res.status(500).json({ message: 'Failed to fetch tracks' });
+    }
+  });
+
+  app.patch('/api/admin/tracks/:id/gallery-visibility', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { showInGallery } = req.body;
+      
+      if (typeof showInGallery !== 'boolean') {
+        return res.status(400).json({ message: 'showInGallery must be a boolean' });
+      }
+      
+      const updatedTrack = await storage.updateMusicGenerationGalleryVisibility(id, showInGallery);
+      res.json(updatedTrack);
+    } catch (error) {
+      console.error('Error updating track gallery visibility:', error);
+      res.status(500).json({ message: 'Failed to update track gallery visibility' });
+    }
+  });
+  
   // Site settings management
   app.get('/api/admin/settings', isAdminAuthenticated, async (req, res) => {
     try {
