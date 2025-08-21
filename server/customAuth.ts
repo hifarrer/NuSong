@@ -162,6 +162,18 @@ export function setupCustomAuth(app: Express) {
     });
   });
 
+  // Alternative logout route for compatibility
+  app.get('/api/logout', (req: Request, res: Response) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ message: 'Failed to logout' });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ message: 'Logged out successfully' });
+    });
+  });
+
   // Get current user route
   app.get('/api/auth/user', (req: Request, res: Response) => {
     if (!req.user) {
