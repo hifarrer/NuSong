@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, MessageSquare, Send, MapPin, Phone, Clock } from "lucide-react";
+import { Mail, MessageSquare, Send, MapPin, Phone, Clock, Music } from "lucide-react";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -56,6 +56,49 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-music-dark text-white">
+      {/* Header Navigation */}
+      <header className="bg-music-secondary/80 backdrop-blur-lg border-b border-gray-800 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-music-purple to-music-blue rounded-xl flex items-center justify-center">
+                <Music className="text-white text-lg" />
+              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-music-purple to-music-blue bg-clip-text text-transparent">
+                NuMusic
+              </h1>
+            </div>
+            
+            {/* Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              <a href="/" className="text-gray-300 hover:text-white transition-colors">Home</a>
+              <a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
+              <a href="/contact" className="text-music-accent hover:text-white transition-colors font-medium">Contact</a>
+              <a href="/privacy" className="text-gray-300 hover:text-white transition-colors">Privacy</a>
+              <a href="/terms" className="text-gray-300 hover:text-white transition-colors">Terms</a>
+            </nav>
+            
+            {/* Auth Buttons */}
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                className="text-gray-300 hover:text-white"
+                onClick={() => window.location.href = "/auth"}
+              >
+                Sign In
+              </Button>
+              <Button
+                className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white font-medium transition-all transform hover:scale-105"
+                onClick={() => window.location.href = "/auth"}
+              >
+                Get Started
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Header Section */}
       <div className="bg-gradient-to-br from-music-dark via-gray-900 to-music-secondary py-16">
         <div className="max-w-4xl mx-auto px-4 text-center">
