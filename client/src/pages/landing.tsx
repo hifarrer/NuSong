@@ -40,13 +40,13 @@ export default function Landing() {
               <Button
                 variant="ghost"
                 className="text-gray-300 hover:text-white"
-                onClick={() => window.location.href = "/api/login"}
+                onClick={() => window.location.href = "/auth"}
               >
                 Sign In
               </Button>
               <Button
                 className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white font-medium transition-all transform hover:scale-105"
-                onClick={() => window.location.href = "/api/login"}
+                onClick={() => window.location.href = "/auth"}
               >
                 Get Started
               </Button>
@@ -78,7 +78,7 @@ export default function Landing() {
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white px-8 py-4 text-lg font-semibold transition-all transform hover:scale-105 shadow-2xl"
-                  onClick={() => window.location.href = "/api/login"}
+                  onClick={() => window.location.href = "/auth"}
                   data-testid="button-start-creating"
                 >
                   <Play className="mr-2 h-5 w-5" />
@@ -137,7 +137,7 @@ export default function Landing() {
                 <Button
                   variant="outline"
                   size="lg"
-                  onClick={() => window.location.href = "/api/login"}
+                  onClick={() => window.location.href = "/auth"}
                   className="border-music-purple text-music-purple hover:bg-music-purple hover:text-white"
                   data-testid="button-explore-more"
                 >
@@ -213,7 +213,7 @@ export default function Landing() {
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><a href="/pricing" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="/api/login" className="hover:text-white transition-colors">Get Started</a></li>
+                <li><a href="/auth" className="hover:text-white transition-colors">Get Started</a></li>
               </ul>
             </div>
 

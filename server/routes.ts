@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupCustomAuth, requireAuth } from "./customAuth";
 import { 
   insertTextToMusicSchema, 
   insertAudioToMusicSchema, 
@@ -30,23 +30,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default admin user
   await initializeDefaultAdmin();
   
-  // Auth middleware
-  await setupAuth(app);
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Custom auth setup
+  setupCustomAuth(app);
 
   // Object storage routes
-  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
+  app.post("/api/objects/upload", requireAuth, async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -57,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/objects/normalize-path", isAuthenticated, async (req, res) => {
+  app.post("/api/objects/normalize-path", requireAuth, async (req, res) => {
     try {
       const { uploadURL } = req.body;
       if (!uploadURL) {
@@ -74,9 +62,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Text-to-music generation
-  app.post("/api/generate-text-to-music", isAuthenticated, async (req: any, res) => {
+  app.post("/api/generate-text-to-music", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validation = insertTextToMusicSchema.parse(req.body);
       
       // Create generation record
@@ -120,9 +108,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audio-to-music generation
-  app.post("/api/generate-audio-to-music", isAuthenticated, async (req: any, res) => {
+  app.post("/api/generate-audio-to-music", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validation = insertAudioToMusicSchema.parse(req.body);
       
       // Create generation record
@@ -175,9 +163,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/generation/:id/status", isAuthenticated, async (req: any, res) => {
+  app.get("/api/generation/:id/status", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { id } = req.params;
       
       const generation = await storage.getMusicGeneration(id);
@@ -240,9 +228,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/my-generations", isAuthenticated, async (req: any, res) => {
+  app.get("/api/my-generations", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const generations = await storage.getUserMusicGenerations(userId);
       res.json(generations);
     } catch (error) {
@@ -274,9 +262,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update track visibility and title
-  app.patch("/api/generation/:id/visibility", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/generation/:id/visibility", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { id } = req.params;
       const validation = updateMusicGenerationVisibilitySchema.parse(req.body);
 
