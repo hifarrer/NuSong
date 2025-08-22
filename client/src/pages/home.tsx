@@ -1094,8 +1094,14 @@ function TrackCard({ track }: { track: MusicGeneration }) {
         </div>
 
         {track.lyrics && (
-          <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
-            <p className="text-sm text-gray-300 whitespace-pre-wrap">{track.lyrics}</p>
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-gray-400 mb-2">
+              <Mic className="inline w-3 h-3 mr-1" />
+              Lyrics
+            </label>
+            <div className="max-h-24 overflow-y-auto p-3 bg-music-secondary/50 rounded-lg border border-gray-600">
+              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{track.lyrics}</p>
+            </div>
           </div>
         )}
       </CardContent>
