@@ -24,6 +24,7 @@ import {
   initializeDefaultAdmin 
 } from "./adminAuth";
 import { generateLyrics } from "./openaiService";
+import { generateMusic } from "./elevenLabsService";
 
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
 
@@ -62,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Text-to-music generation
+  // Text-to-music generation using ElevenLabs
   app.post("/api/generate-text-to-music", requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -71,60 +72,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create generation record
       const generation = await storage.createTextToMusicGeneration(userId, validation);
       
-      // Prepare API request payload with enhanced parameters
-      const apiPayload = {
-        tags: validation.tags,
-        lyrics: validation.lyrics || "",
-        duration: validation.duration,
-        number_of_steps: 27,
-        scheduler: "euler",
-        guidance_type: "apg",
-        granularity_scale: 10,
-        guidance_interval: 0.5,
-        guidance_interval_decay: 0,
-        guidance_scale: 15,
-        minimum_guidance_scale: 3,
-        tag_guidance_scale: 5,
-        lyric_guidance_scale: 1.5
-      };
-
-      // Log the input parameters being sent to FAL.ai
-      console.log(`\n=== TEXT-TO-MUSIC API REQUEST ===`);
+      // Convert duration from seconds to milliseconds
+      const durationMs = (validation.duration || 30) * 1000;
+      
+      // Log the input parameters
+      console.log(`\n=== TEXT-TO-MUSIC ELEVENLABS REQUEST ===`);
       console.log(`User ID: ${userId}`);
       console.log(`Generation ID: ${generation.id}`);
-      console.log(`API Payload being sent to FAL.ai:`);
-      console.log(JSON.stringify(apiPayload, null, 2));
-      console.log(`================================\n`);
+      console.log(`Tags: ${validation.tags}`);
+      console.log(`Lyrics: ${validation.lyrics || 'N/A'}`);
+      console.log(`Duration: ${durationMs}ms`);
+      console.log(`=========================================\n`);
 
-      // Submit request to FAL.ai
-      const falResponse = await fetch("https://queue.fal.run/fal-ai/ace-step", {
-        method: "POST",
-        headers: {
-          "Authorization": `Key ${FAL_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(apiPayload)
+      // Generate music using ElevenLabs
+      const audioStream = await generateMusic({
+        tags: validation.tags,
+        lyrics: validation.lyrics || undefined,
+        durationMs: durationMs
       });
 
-      if (!falResponse.ok) {
-        const errorText = await falResponse.text();
-        console.error("FAL.ai API error:", errorText);
-        await storage.updateMusicGeneration(generation.id, { status: "failed" });
-        return res.status(500).json({ message: "Failed to submit music generation request" });
+      // Convert stream to buffer for storage
+      const chunks: Uint8Array[] = [];
+      const reader = audioStream.getReader();
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+      
+      const audioBuffer = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
+      let offset = 0;
+      for (const chunk of chunks) {
+        audioBuffer.set(chunk, offset);
+        offset += chunk.length;
       }
 
-      const falResult = await falResponse.json();
-      const requestId = falResult.request_id;
-
-      // Update generation with FAL request ID
+      // Upload to object storage
+      const objectStorageService = new ObjectStorageService();
+      const filename = `generated-music-${generation.id}.mp3`;
+      const uploadUrl = await objectStorageService.uploadAudioBuffer(audioBuffer, filename);
+      
+      // Update generation with success
       await storage.updateMusicGeneration(generation.id, {
-        status: "generating",
-        falRequestId: requestId,
+        status: "completed",
+        audioUrl: uploadUrl,
       });
 
-      res.json({ generationId: generation.id, requestId });
+      res.json({ 
+        generationId: generation.id, 
+        status: "completed",
+        audioUrl: uploadUrl 
+      });
     } catch (error) {
-      console.error("Error generating music:", error);
+      console.error("Error generating music with ElevenLabs:", error);
+      
+      // Update generation with failure
+      try {
+        await storage.updateMusicGeneration(req.body.generationId || '', { status: "failed" });
+      } catch (updateError) {
+        console.error("Error updating generation status:", updateError);
+      }
+      
       res.status(500).json({ message: "Failed to generate music" });
     }
   });

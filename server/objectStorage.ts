@@ -147,6 +147,32 @@ export class ObjectStorageService {
       ttlSec,
     });
   }
+
+  // Upload audio buffer to object storage
+  async uploadAudioBuffer(audioBuffer: Uint8Array, filename: string): Promise<string> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    if (!privateObjectDir) {
+      throw new Error(
+        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
+          "tool and set PRIVATE_OBJECT_DIR env var."
+      );
+    }
+
+    const objectPath = `${privateObjectDir}/generated/${filename}`;
+    const { bucketName, objectName } = parseObjectPath(objectPath);
+    
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    
+    // Upload the buffer
+    await file.save(audioBuffer, {
+      metadata: {
+        contentType: 'audio/mpeg',
+      },
+    });
+    
+    return `/objects/generated/${filename}`;
+  }
 }
 
 function parseObjectPath(path: string): {
