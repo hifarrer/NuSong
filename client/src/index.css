@@ -117,6 +117,31 @@
     @apply font-sans antialiased bg-background text-foreground;
     font-family: var(--font-sans);
   }
+
+  /* Improve placeholder visibility on dark backgrounds */
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(0 0% 60%) !important;
+    opacity: 1 !important;
+  }
+
+  /* Specific styling for dark theme inputs */
+  .bg-music-dark::placeholder,
+  .bg-music-secondary::placeholder {
+    color: hsl(0 0% 65%) !important;
+    opacity: 1 !important;
+  }
+
+  /* Ensure placeholders are visible in all shadcn input variants */
+  .placeholder-gray-300::placeholder {
+    color: hsl(0 0% 65%) !important;
+    opacity: 1 !important;
+  }
+
+  .placeholder-gray-400::placeholder {
+    color: hsl(0 0% 60%) !important;
+    opacity: 1 !important;
+  }
 }
 
 @layer utilities {
