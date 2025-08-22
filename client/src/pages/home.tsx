@@ -405,10 +405,8 @@ export default function Home() {
                           <p className="text-xs text-gray-400 mb-2">Popular tags (click to add):</p>
                           <div className="flex flex-wrap gap-2">
                             {[
-                              "female singer", "male singer", "pop", "electronic", "rock", "hip hop",
-                              "jazz", "classical", "ambient", "synthwave", "lo-fi", "acoustic",
-                              "dance", "house", "techno", "reggae", "country", "folk",
-                              "ad jingle", "upbeat", "mellow", "energetic", "dreamy", "dark"
+                              "female singer", "male singer", "pop", "electronic", "hip hop",
+                              "ad jingle", "synthwave", "lo-fi", "energetic", "upbeat"
                             ].map((tag) => (
                               <button
                                 key={tag}
@@ -702,10 +700,8 @@ export default function Home() {
                           <p className="text-xs text-gray-400 mb-2">Popular tags (click to add):</p>
                           <div className="flex flex-wrap gap-2">
                             {[
-                              "female singer", "male singer", "pop", "electronic", "rock", "hip hop",
-                              "jazz", "classical", "ambient", "synthwave", "lo-fi", "acoustic",
-                              "dance", "house", "techno", "reggae", "country", "folk",
-                              "ad jingle", "upbeat", "mellow", "energetic", "dreamy", "dark"
+                              "female singer", "male singer", "pop", "electronic", "hip hop",
+                              "ad jingle", "synthwave", "lo-fi", "energetic", "upbeat"
                             ].map((tag) => (
                               <button
                                 key={tag}
