@@ -173,6 +173,38 @@ export class ObjectStorageService {
     
     return `/objects/generated/${filename}`;
   }
+
+  // Download object and stream to response
+  async downloadObject(file: File, res: any, cacheTtlSec: number = 3600): Promise<void> {
+    try {
+      // Get file metadata
+      const [metadata] = await file.getMetadata();
+      
+      // Set appropriate headers
+      res.set({
+        "Content-Type": metadata.contentType || "application/octet-stream",
+        "Content-Length": metadata.size,
+        "Cache-Control": `public, max-age=${cacheTtlSec}`,
+      });
+
+      // Stream the file to the response
+      const stream = file.createReadStream();
+
+      stream.on("error", (err: any) => {
+        console.error("Stream error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Error streaming file" });
+        }
+      });
+
+      stream.pipe(res);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Error downloading file" });
+      }
+    }
+  }
 }
 
 function parseObjectPath(path: string): {
