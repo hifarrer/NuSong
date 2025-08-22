@@ -628,13 +628,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate lyrics endpoint
   app.post('/api/generate-lyrics', requireAuth, async (req, res) => {
     try {
-      const { prompt } = req.body;
+      const { prompt, duration = 60 } = req.body;
       
       if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
         return res.status(400).json({ message: 'Prompt is required' });
       }
 
-      const lyrics = await generateLyrics(prompt.trim());
+      const lyrics = await generateLyrics(prompt.trim(), duration);
       res.json({ lyrics });
     } catch (error) {
       console.error('Error generating lyrics:', error);

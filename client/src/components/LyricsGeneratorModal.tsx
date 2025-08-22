@@ -13,9 +13,10 @@ interface LyricsGeneratorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUseLyrics: (lyrics: string) => void;
+  duration?: number; // Duration in seconds
 }
 
-export function LyricsGeneratorModal({ isOpen, onClose, onUseLyrics }: LyricsGeneratorModalProps) {
+export function LyricsGeneratorModal({ isOpen, onClose, onUseLyrics, duration = 60 }: LyricsGeneratorModalProps) {
   const [prompt, setPrompt] = useState("");
   const [generatedLyrics, setGeneratedLyrics] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -33,7 +34,10 @@ export function LyricsGeneratorModal({ isOpen, onClose, onUseLyrics }: LyricsGen
 
     setIsGenerating(true);
     try {
-      const response = await apiRequest("/api/generate-lyrics", "POST", { prompt: prompt.trim() });
+      const response = await apiRequest("/api/generate-lyrics", "POST", { 
+        prompt: prompt.trim(),
+        duration: duration 
+      });
       const data = await response.json();
       setGeneratedLyrics(data.lyrics);
     } catch (error) {

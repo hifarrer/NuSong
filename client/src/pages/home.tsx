@@ -903,6 +903,7 @@ export default function Home() {
         isOpen={showLyricsModal}
         onClose={() => setShowLyricsModal(false)}
         onUseLyrics={handleUseLyrics}
+        duration={currentLyricsTarget === 'text' ? duration[0] : 60}
       />
     </div>
   );
