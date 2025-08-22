@@ -399,6 +399,35 @@ export default function Home() {
                           required
                           data-testid="input-tags"
                         />
+                        
+                        {/* Popular Tag Bubbles */}
+                        <div className="mt-3">
+                          <p className="text-xs text-gray-400 mb-2">Popular tags (click to add):</p>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              "female singer", "male singer", "pop", "electronic", "rock", "hip hop",
+                              "jazz", "classical", "ambient", "synthwave", "lo-fi", "acoustic",
+                              "dance", "house", "techno", "reggae", "country", "folk",
+                              "ad jingle", "upbeat", "mellow", "energetic", "dreamy", "dark"
+                            ].map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => {
+                                  const currentTags = tags.split(',').map(t => t.trim()).filter(t => t);
+                                  if (!currentTags.includes(tag)) {
+                                    setTags(currentTags.length > 0 ? `${tags}, ${tag}` : tag);
+                                  }
+                                }}
+                                className="px-3 py-1 text-xs bg-gray-700 hover:bg-music-purple hover:text-white text-gray-300 rounded-full transition-colors border border-gray-600 hover:border-music-purple"
+                                data-testid={`tag-bubble-${tag.replace(/\s+/g, '-')}`}
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        
                         <p className="text-xs text-gray-400 mt-2">Separate multiple genres with commas</p>
                       </div>
 
@@ -667,6 +696,35 @@ export default function Home() {
                           required
                           data-testid="input-audio-tags"
                         />
+                        
+                        {/* Popular Tag Bubbles */}
+                        <div className="mt-3">
+                          <p className="text-xs text-gray-400 mb-2">Popular tags (click to add):</p>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              "female singer", "male singer", "pop", "electronic", "rock", "hip hop",
+                              "jazz", "classical", "ambient", "synthwave", "lo-fi", "acoustic",
+                              "dance", "house", "techno", "reggae", "country", "folk",
+                              "ad jingle", "upbeat", "mellow", "energetic", "dreamy", "dark"
+                            ].map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => {
+                                  const currentTags = audioTags.split(',').map(t => t.trim()).filter(t => t);
+                                  if (!currentTags.includes(tag)) {
+                                    setAudioTags(currentTags.length > 0 ? `${audioTags}, ${tag}` : tag);
+                                  }
+                                }}
+                                className="px-3 py-1 text-xs bg-gray-700 hover:bg-music-purple hover:text-white text-gray-300 rounded-full transition-colors border border-gray-600 hover:border-music-purple"
+                                data-testid={`audio-tag-bubble-${tag.replace(/\s+/g, '-')}`}
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        
                         <p className="text-xs text-gray-400 mt-2">Describe the style you want the output to have</p>
                       </div>
 
