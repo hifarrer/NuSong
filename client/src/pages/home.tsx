@@ -30,7 +30,10 @@ import {
   CheckCircle,
   AudioWaveform,
   LogOut,
-  User
+  User,
+  Edit2,
+  Check,
+  X
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
@@ -966,10 +969,51 @@ export default function Home() {
 function TrackCard({ track }: { track: MusicGeneration }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(track.title || "");
+
+  const updateTitleMutation = useMutation({
+    mutationFn: async (title: string) => {
+      const response = await apiRequest("PATCH", `/api/generation/${track.id}/visibility`, { 
+        title,
+        visibility: track.visibility 
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-generations"] });
+      setIsEditingTitle(false);
+      toast({
+        title: "Track updated",
+        description: "Title has been changed.",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Update failed",
+        description: "Could not update track title.",
+        variant: "destructive",
+      });
+    },
+  });
   
   const updateVisibilityMutation = useMutation({
     mutationFn: async (visibility: "public" | "private") => {
-      const response = await apiRequest("PATCH", `/api/generation/${track.id}`, { visibility });
+      const response = await apiRequest("PATCH", `/api/generation/${track.id}/visibility`, { 
+        visibility,
+        title: track.title 
+      });
       return await response.json();
     },
     onSuccess: () => {
@@ -1012,9 +1056,66 @@ function TrackCard({ track }: { track: MusicGeneration }) {
                   <AudioWaveform className="w-3 h-3 text-white" />
                 )}
               </div>
-              <h3 className="text-lg font-semibold text-white">
-                {track.title || `Untitled Track`}
-              </h3>
+              {isEditingTitle ? (
+                <div className="flex items-center space-x-2 flex-1">
+                  <Input
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        updateTitleMutation.mutate(editedTitle);
+                      } else if (e.key === 'Escape') {
+                        setIsEditingTitle(false);
+                        setEditedTitle(track.title || "");
+                      }
+                    }}
+                    className="text-lg font-semibold bg-music-secondary border-gray-600 text-white"
+                    placeholder="Enter track title"
+                    autoFocus
+                    data-testid={`input-edit-title-${track.id}`}
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => updateTitleMutation.mutate(editedTitle)}
+                    disabled={updateTitleMutation.isPending}
+                    className="text-music-green hover:text-music-green"
+                    data-testid={`button-save-title-${track.id}`}
+                  >
+                    <Check className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setIsEditingTitle(false);
+                      setEditedTitle(track.title || "");
+                    }}
+                    className="text-gray-400 hover:text-white"
+                    data-testid={`button-cancel-title-${track.id}`}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-lg font-semibold text-white">
+                    {track.title || `Untitled Track`}
+                  </h3>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setIsEditingTitle(true);
+                      setEditedTitle(track.title || "");
+                    }}
+                    className="text-gray-400 hover:text-white p-1 h-auto"
+                    data-testid={`button-edit-title-${track.id}`}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
               <span className={`px-2 py-1 rounded text-xs font-medium ${
                 track.visibility === "public" 
                   ? "bg-music-green/20 text-music-green" 
