@@ -327,7 +327,7 @@ export default function Home() {
           <TabsList className="bg-music-secondary p-2 border border-gray-700 grid w-full grid-cols-3">
             <TabsTrigger 
               value="textToMusic"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white"
+              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white"
               data-testid="tab-text-to-music"
             >
               <WandSparkles className="mr-2 h-4 w-4" />
@@ -335,7 +335,7 @@ export default function Home() {
             </TabsTrigger>
             <TabsTrigger 
               value="audioToMusic"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white"
+              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white"
               data-testid="tab-audio-to-music"
             >
               <AudioWaveform className="mr-2 h-4 w-4" />
@@ -343,7 +343,7 @@ export default function Home() {
             </TabsTrigger>
             <TabsTrigger 
               value="myLibrary"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white"
+              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white"
               data-testid="tab-my-library"
             >
               <Music className="mr-2 h-4 w-4" />
@@ -589,7 +589,7 @@ export default function Home() {
                       <div className="w-8 h-8 bg-gradient-to-br from-music-accent to-music-blue rounded-lg flex items-center justify-center mr-3">
                         <AudioWaveform className="text-sm text-white" />
                       </div>
-                      Transform Your Audio
+                      <span className="text-music-blue">Transform Your Audio</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -785,7 +785,7 @@ export default function Home() {
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Lightbulb className="text-music-accent mr-3 h-5 w-5" />
-                      Audio Transformation Tips
+                      <span className="text-music-blue">Audio Transformation Tips</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -821,7 +821,7 @@ export default function Home() {
                     <div className="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center mr-3">
                       <Music className="text-sm text-white" />
                     </div>
-                    My Music Library ({Array.isArray(generations) ? generations.length : 0} tracks)
+                    <span className="text-music-blue">My Music Library ({Array.isArray(generations) ? generations.length : 0} tracks)</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
