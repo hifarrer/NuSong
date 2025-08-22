@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,7 +33,7 @@ export function LyricsGeneratorModal({ isOpen, onClose, onUseLyrics }: LyricsGen
 
     setIsGenerating(true);
     try {
-      const response = await apiRequest("POST", "/api/generate-lyrics", { prompt: prompt.trim() });
+      const response = await apiRequest("/api/generate-lyrics", "POST", { prompt: prompt.trim() });
       const data = await response.json();
       setGeneratedLyrics(data.lyrics);
     } catch (error) {
@@ -91,6 +91,9 @@ export function LyricsGeneratorModal({ isOpen, onClose, onUseLyrics }: LyricsGen
             <WandSparkles className="mr-2 h-5 w-5" />
             AI Lyrics Generator
           </DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Generate custom lyrics for your music using AI. Describe what your song is about and get professionally structured lyrics.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">
