@@ -172,7 +172,7 @@ export function LyricsGeneratorModal({ isOpen, onClose, onUseLyrics }: LyricsGen
             <Button
               onClick={handleClose}
               variant="outline"
-              className="flex-1 border-gray-600 hover:border-gray-500"
+              className="flex-1 border-gray-600 hover:border-gray-500 text-gray-300 hover:text-white"
               data-testid="button-cancel-lyrics"
             >
               Cancel
