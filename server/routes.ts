@@ -23,6 +23,7 @@ import {
   verifyPassword, 
   initializeDefaultAdmin 
 } from "./adminAuth";
+import { generateLyrics } from "./openaiService";
 
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
 
@@ -607,6 +608,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error changing admin password:', error);
       res.status(500).json({ message: 'Failed to change password' });
+    }
+  });
+
+  // Generate lyrics endpoint
+  app.post('/api/generate-lyrics', requireAuth, async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      
+      if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+        return res.status(400).json({ message: 'Prompt is required' });
+      }
+
+      const lyrics = await generateLyrics(prompt.trim());
+      res.json({ lyrics });
+    } catch (error) {
+      console.error('Error generating lyrics:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : 'Failed to generate lyrics' 
+      });
     }
   });
 

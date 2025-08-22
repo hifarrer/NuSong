@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AudioPlayer } from "@/components/ui/audio-player";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { LyricsGeneratorModal } from "@/components/LyricsGeneratorModal";
 import { 
   Music, 
   WandSparkles, 
@@ -56,12 +57,30 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentGeneration, setCurrentGeneration] = useState<MusicGeneration | null>(null);
   const [activeTab, setActiveTab] = useState("textToMusic");
+  
+  // Lyrics generator modal state
+  const [showLyricsModal, setShowLyricsModal] = useState(false);
+  const [currentLyricsTarget, setCurrentLyricsTarget] = useState<'text' | 'audio'>('text');
 
   // Fetch user's music generations
   const { data: generations } = useQuery({
     queryKey: ["/api/my-generations"],
     retry: false,
   });
+
+  // Lyrics generator handlers
+  const handleOpenLyricsGenerator = (target: 'text' | 'audio') => {
+    setCurrentLyricsTarget(target);
+    setShowLyricsModal(true);
+  };
+
+  const handleUseLyrics = (generatedLyrics: string) => {
+    if (currentLyricsTarget === 'text') {
+      setLyrics(generatedLyrics);
+    } else {
+      setAudioLyrics(generatedLyrics);
+    }
+  };
 
   // Shared generation success handler
   const handleGenerationSuccess = async (data: any) => {
@@ -385,10 +404,23 @@ export default function Home() {
 
                       {/* Lyrics Field */}
                       <div>
-                        <label className="block text-sm font-semibold text-gray-300 mb-3">
-                          <Mic className="inline mr-2 h-4 w-4 text-music-green" />
-                          Lyrics (Optional)
-                        </label>
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="block text-sm font-semibold text-gray-300">
+                            <Mic className="inline mr-2 h-4 w-4 text-music-green" />
+                            Lyrics (Optional)
+                          </label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenLyricsGenerator('text')}
+                            className="border-music-purple text-music-purple hover:bg-music-purple hover:text-white"
+                            data-testid="button-generate-lyrics-text"
+                          >
+                            <WandSparkles className="mr-1 h-3 w-3" />
+                            AI Generate
+                          </Button>
+                        </div>
                         <Textarea
                           value={lyrics}
                           onChange={(e) => setLyrics(e.target.value)}
@@ -655,10 +687,23 @@ export default function Home() {
 
                       {/* Lyrics Field */}
                       <div>
-                        <label className="block text-sm font-semibold text-gray-300 mb-3">
-                          <Mic className="inline mr-2 h-4 w-4 text-music-green" />
-                          Lyrics (Optional)
-                        </label>
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="block text-sm font-semibold text-gray-300">
+                            <Mic className="inline mr-2 h-4 w-4 text-music-green" />
+                            Lyrics (Optional)
+                          </label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenLyricsGenerator('audio')}
+                            className="border-music-purple text-music-purple hover:bg-music-purple hover:text-white"
+                            data-testid="button-generate-lyrics-audio"
+                          >
+                            <WandSparkles className="mr-1 h-3 w-3" />
+                            AI Generate
+                          </Button>
+                        </div>
                         <Textarea
                           value={audioLyrics}
                           onChange={(e) => setAudioLyrics(e.target.value)}
@@ -852,6 +897,13 @@ export default function Home() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Lyrics Generator Modal */}
+      <LyricsGeneratorModal
+        isOpen={showLyricsModal}
+        onClose={() => setShowLyricsModal(false)}
+        onUseLyrics={handleUseLyrics}
+      />
     </div>
   );
 }
