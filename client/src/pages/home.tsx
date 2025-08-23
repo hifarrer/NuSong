@@ -312,9 +312,20 @@ export default function Home() {
             
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="/" className="text-gray-300 hover:text-white transition-colors">Home</a>
-              <a href="/library" className="text-gray-300 hover:text-white transition-colors">My Library</a>
+              <button 
+                onClick={() => (document.querySelector('[data-testid="tab-text-to-music"]') as HTMLElement)?.click()}
+                className="text-gray-300 hover:text-white transition-colors"
+              >
+                Create
+              </button>
+              <button 
+                onClick={() => (document.querySelector('[data-testid="tab-my-library"]') as HTMLElement)?.click()}
+                className="text-gray-300 hover:text-white transition-colors"
+              >
+                My Library
+              </button>
               <a href="/profile" className="text-gray-300 hover:text-white transition-colors">Profile</a>
+              <a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
               <a href="/contact" className="text-gray-300 hover:text-white transition-colors">Contact</a>
             </nav>
             
@@ -1098,7 +1109,7 @@ function TrackCard({ track }: { track: MusicGeneration }) {
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 flex-1">
                   <h3 className="text-lg font-semibold text-white">
                     {track.title || `Untitled Track`}
                   </h3>
@@ -1109,10 +1120,11 @@ function TrackCard({ track }: { track: MusicGeneration }) {
                       setIsEditingTitle(true);
                       setEditedTitle(track.title || "");
                     }}
-                    className="text-gray-400 hover:text-white p-1 h-auto"
+                    className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 h-8 w-8 opacity-70 hover:opacity-100 transition-all"
                     data-testid={`button-edit-title-${track.id}`}
+                    title="Edit track title"
                   >
-                    <Edit2 className="w-3 h-3" />
+                    <Edit2 className="w-4 h-4" />
                   </Button>
                 </div>
               )}
