@@ -1214,6 +1214,30 @@ function TrackCard({ track }: { track: MusicGeneration }) {
                 <Download className="w-4 h-4" />
               </Button>
             )}
+            
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.origin + '/track/' + track.id);
+                  toast({
+                    title: "Link Copied!",
+                    description: "Track link has been copied to your clipboard.",
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Share Failed",
+                    description: "Failed to copy link to clipboard.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              className="text-gray-400 hover:text-white"
+              data-testid={`button-share-${track.id}`}
+            >
+              <Share className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
