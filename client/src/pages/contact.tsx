@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, MessageSquare, Send, MapPin, Phone, Clock, Music } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Mail, MessageSquare, Send, MapPin, Phone, Clock, Music, User, LogOut } from "lucide-react";
 
 export default function ContactPage() {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -72,28 +74,36 @@ export default function ContactPage() {
             
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="/" className="text-gray-300 hover:text-white transition-colors">Home</a>
+              <a href="/" className="text-gray-300 hover:text-white transition-colors">Create</a>
               <a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
-              <a href="/contact" className="text-music-accent hover:text-white transition-colors font-medium">Contact</a>
-              <a href="/privacy" className="text-gray-300 hover:text-white transition-colors">Privacy</a>
-              <a href="/terms" className="text-gray-300 hover:text-white transition-colors">Terms</a>
+              <a href="/contact" className="text-music-blue font-medium">Contact</a>
             </nav>
             
-            {/* Auth Buttons */}
+            {/* User Menu */}
             <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                className="text-gray-300 hover:text-white"
-                onClick={() => window.location.href = "/auth"}
-              >
-                Sign In
-              </Button>
-              <Button
-                className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white font-medium transition-all transform hover:scale-105"
-                onClick={() => window.location.href = "/auth"}
-              >
-                Get Started
-              </Button>
+              {user ? (
+                <>
+                  <a href="/profile" className="flex items-center space-x-3 hover:bg-gray-800/50 rounded-lg px-3 py-2 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-music-purple to-music-blue flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm text-gray-300 hover:text-white transition-colors">
+                      {(user as any)?.firstName || (user as any)?.email || "User"}
+                    </span>
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.location.href = "/api/auth/logout"}
+                    data-testid="button-logout"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <a href="/auth" className="text-gray-300 hover:text-white transition-colors">Login</a>
+              )}
             </div>
           </div>
         </div>

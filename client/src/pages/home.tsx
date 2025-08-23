@@ -318,27 +318,20 @@ export default function Home() {
               >
                 Create
               </button>
-              <button 
-                onClick={() => (document.querySelector('[data-testid="tab-my-library"]') as HTMLElement)?.click()}
-                className="text-gray-300 hover:text-white transition-colors"
-              >
-                My Library
-              </button>
-              <a href="/profile" className="text-gray-300 hover:text-white transition-colors">Profile</a>
               <a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
               <a href="/contact" className="text-gray-300 hover:text-white transition-colors">Contact</a>
             </nav>
             
             {/* User Menu */}
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
+              <a href="/profile" className="flex items-center space-x-3 hover:bg-gray-800/50 rounded-lg px-3 py-2 transition-colors">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-music-purple to-music-blue flex items-center justify-center">
                   <User className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-sm text-gray-300">
+                <span className="text-sm text-gray-300 hover:text-white transition-colors">
                   {(user as any)?.firstName || (user as any)?.email || "User"}
                 </span>
-              </div>
+              </a>
               <Button
                 variant="ghost"
                 size="sm"

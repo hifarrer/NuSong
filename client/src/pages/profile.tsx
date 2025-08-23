@@ -17,7 +17,8 @@ import {
   Crown,
   Mail,
   Key,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from "lucide-react";
 import type { SubscriptionPlan } from "@shared/schema";
 
@@ -163,19 +164,28 @@ export default function ProfilePage() {
             
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="/" className="text-gray-300 hover:text-white transition-colors">Home</a>
-              <a href="/library" className="text-gray-300 hover:text-white transition-colors">My Library</a>
-              <a href="/profile" className="text-music-accent hover:text-white transition-colors font-medium">Profile</a>
+              <a href="/" className="text-gray-300 hover:text-white transition-colors">Create</a>
+              <a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
               <a href="/contact" className="text-gray-300 hover:text-white transition-colors">Contact</a>
             </nav>
             
             {/* User Menu */}
             <div className="flex items-center space-x-4">
+              <a href="/profile" className="flex items-center space-x-3 hover:bg-gray-800/50 rounded-lg px-3 py-2 transition-colors bg-gray-800/30 border border-gray-700">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-music-purple to-music-blue flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-sm text-white font-medium">
+                  {(user as any)?.firstName || (user as any)?.email || "User"}
+                </span>
+              </a>
               <Button
                 variant="ghost"
-                className="text-gray-300 hover:text-white"
-                onClick={() => window.location.href = "/api/logout"}
+                size="sm"
+                onClick={() => window.location.href = "/api/auth/logout"}
+                data-testid="button-logout"
               >
+                <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>
             </div>

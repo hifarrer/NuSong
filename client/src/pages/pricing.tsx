@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Music, Zap, Crown } from "lucide-react";
+import { Check, Music, Zap, Crown, User, LogOut } from "lucide-react";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import type { SubscriptionPlan } from "@shared/schema";
 
 export default function Pricing() {
+  const { user } = useAuth();
   const { data: plans = [], isLoading } = useQuery<SubscriptionPlan[]>({
     queryKey: ["/api/plans"],
   });
@@ -58,26 +60,59 @@ export default function Pricing() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900">
-      {/* Navigation */}
-      <nav className="border-b border-gray-800 bg-black/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <Music className="w-8 h-8 text-purple-400" />
-              <span className="text-xl font-bold text-white">AI Music Studio</span>
-            </Link>
-            <div className="flex items-center space-x-6">
-              <Link href="/" className="text-gray-300 hover:text-white transition-colors">
-                Home
-              </Link>
-              <Link href="/pricing" className="text-purple-400 font-medium">
-                Pricing
-              </Link>
+    <div className="min-h-screen bg-music-dark text-white">
+      {/* Header */}
+      <header className="bg-music-secondary/80 backdrop-blur-lg border-b border-gray-800 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-music-purple to-music-blue rounded-xl flex items-center justify-center">
+                <Music className="text-white text-lg" />
+              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-music-purple to-music-blue bg-clip-text text-transparent">
+                AI Music Studio
+              </h1>
+            </div>
+            
+            {/* Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              <a href="/" className="text-gray-300 hover:text-white transition-colors">Create</a>
+              <a href="/pricing" className="text-music-blue font-medium">Pricing</a>
+              <a href="/contact" className="text-gray-300 hover:text-white transition-colors">Contact</a>
+            </nav>
+            
+            {/* User Menu */}
+            <div className="flex items-center space-x-4">
+              {user ? (
+                <>
+                  <a href="/profile" className="flex items-center space-x-3 hover:bg-gray-800/50 rounded-lg px-3 py-2 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-music-purple to-music-blue flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm text-gray-300 hover:text-white transition-colors">
+                      {(user as any)?.firstName || (user as any)?.email || "User"}
+                    </span>
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.location.href = "/api/auth/logout"}
+                    data-testid="button-logout"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <a href="/auth" className="text-gray-300 hover:text-white transition-colors">Login</a>
+              )}
             </div>
           </div>
         </div>
-      </nav>
+      </header>
+
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900">
 
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
@@ -200,6 +235,7 @@ export default function Pricing() {
             </Link>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
