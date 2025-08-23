@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Music, Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import backgroundVideo from "/background-video.mp4";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -129,8 +130,25 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background Video */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        onLoadStart={() => console.log("Video loading started")}
+        onCanPlay={() => console.log("Video can play")}
+        onPlay={() => console.log("Video started playing")}
+      >
+        <source src={backgroundVideo} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+
+      {/* Content overlay */}
+      <div className="relative z-10 bg-black/40 min-h-screen">
+        <div className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center min-h-screen">
           {/* Hero Section */}
           <div className="text-center lg:text-left">
@@ -358,6 +376,7 @@ export default function Auth() {
             </Card>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

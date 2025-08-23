@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Shield, Eye, EyeOff } from "lucide-react";
+import backgroundVideo from "/background-video.mp4";
 
 export default function AdminLogin() {
   const [, navigate] = useLocation();
@@ -54,7 +55,24 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+      {/* Background Video */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        onLoadStart={() => console.log("Video loading started")}
+        onCanPlay={() => console.log("Video can play")}
+        onPlay={() => console.log("Video started playing")}
+      >
+        <source src={backgroundVideo} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+
+      {/* Content overlay */}
+      <div className="relative z-10 bg-black/40 min-h-screen flex items-center justify-center p-4 w-full">
       <Card className="w-full max-w-md bg-gray-900 border-gray-800">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
@@ -133,6 +151,7 @@ export default function AdminLogin() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
