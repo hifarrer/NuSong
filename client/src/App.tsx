@@ -16,7 +16,8 @@ import Contact from "@/pages/contact";
 import Auth from "@/pages/auth";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
-import backgroundVideo from "@assets/robotmusic_1755913869566.mp4";
+// Use direct path to video in public folder
+const backgroundVideo = "/background-video.mp4";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -61,12 +62,18 @@ function App() {
           loop
           muted
           playsInline
+          preload="auto"
+          onError={(e) => console.error('Video error:', e)}
+          onLoadStart={() => console.log('Video loading started')}
+          onCanPlay={() => console.log('Video can play')}
+          onPlay={() => console.log('Video started playing')}
         >
           <source src={backgroundVideo} type="video/mp4" />
+          Your browser does not support the video tag.
         </video>
         
         {/* Content overlay */}
-        <div className="relative z-10">
+        <div className="relative z-10 min-h-screen">
           <Toaster />
           <Router />
         </div>
