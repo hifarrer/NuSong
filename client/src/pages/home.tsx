@@ -286,6 +286,23 @@ export default function Home() {
     }
   };
 
+  const handleShare = async (track: MusicGeneration) => {
+    try {
+      const shareUrl = `${window.location.origin}/track/${track.id}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link Copied!",
+        description: "Track link has been copied to your clipboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Share Failed",
+        description: "Failed to copy link to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black/50 flex items-center justify-center">
@@ -593,6 +610,7 @@ export default function Home() {
                         <Button
                           variant="outline"
                           className="flex-1 border-gray-600 hover:border-music-accent"
+                          onClick={() => handleShare(currentGeneration)}
                           data-testid="button-share"
                         >
                           <Share className="mr-2 h-4 w-4" />

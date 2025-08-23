@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import type { MusicGeneration } from "@shared/schema";
 
 export default function MyLibrary() {
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -296,8 +298,20 @@ export default function MyLibrary() {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText(window.location.origin + '/track/' + generation.id);
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(window.location.origin + '/track/' + generation.id);
+                              toast({
+                                title: "Link Copied!",
+                                description: "Track link has been copied to your clipboard.",
+                              });
+                            } catch (error) {
+                              toast({
+                                title: "Share Failed",
+                                description: "Failed to copy link to clipboard.",
+                                variant: "destructive",
+                              });
+                            }
                           }}
                           className="text-green-400 hover:text-green-300"
                           data-testid={`button-share-${generation.id}`}

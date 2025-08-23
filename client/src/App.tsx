@@ -16,6 +16,7 @@ import Contact from "@/pages/contact";
 import Auth from "@/pages/auth";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
+import TrackPage from "@/pages/track";
 // Use direct path to video in public folder
 const backgroundVideo = "/background-video.mp4";
 
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/contact" component={Contact} />
       <Route path="/auth" component={Auth} />
+      <Route path="/track/:id" component={TrackPage} />
       
       {/* Main app routes */}
       {isLoading || !isAuthenticated ? (

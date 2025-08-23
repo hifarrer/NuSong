@@ -308,6 +308,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get individual track (public access)
+  app.get("/api/track/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const track = await storage.getMusicGeneration(id);
+      
+      if (!track) {
+        return res.status(404).json({ message: "Track not found" });
+      }
+      
+      // Only allow access to public tracks or if user owns the track
+      if (track.visibility === "private") {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+        
+        const user = req.user as any;
+        if (track.userId !== user.id) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+      
+      res.json(track);
+    } catch (error) {
+      console.error("Error fetching track:", error);
+      res.status(500).json({ message: "Failed to fetch track" });
+    }
+  });
+
   // Update track visibility and title
   app.patch("/api/generation/:id/visibility", requireAuth, async (req: any, res) => {
     try {
