@@ -985,7 +985,7 @@ function TrackCard({ track }: { track: MusicGeneration }) {
 
   const updateTitleMutation = useMutation({
     mutationFn: async (title: string) => {
-      const response = await apiRequest("PATCH", `/api/generation/${track.id}/visibility`, { 
+      const response = await apiRequest(`/api/generation/${track.id}/visibility`, "PATCH", { 
         title,
         visibility: track.visibility 
       });
@@ -1021,7 +1021,7 @@ function TrackCard({ track }: { track: MusicGeneration }) {
   
   const updateVisibilityMutation = useMutation({
     mutationFn: async (visibility: "public" | "private") => {
-      const response = await apiRequest("PATCH", `/api/generation/${track.id}/visibility`, { 
+      const response = await apiRequest(`/api/generation/${track.id}/visibility`, "PATCH", { 
         visibility,
         title: track.title 
       });
