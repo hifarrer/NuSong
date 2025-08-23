@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Music, Eye, EyeOff, Search, Filter, WandSparkles, AudioWaveform, Edit3, Check, X } from "lucide-react";
+import { Music, Eye, EyeOff, Search, Filter, WandSparkles, AudioWaveform, Edit3, Check, X, Download } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
 export function AdminMusicTracks() {
@@ -118,6 +118,39 @@ export function AdminMusicTracks() {
   const handleCancelEditTitle = () => {
     setEditingTitle(null);
     setEditTitleValue("");
+  };
+
+  // Download track function
+  const handleDownloadTrack = async (track: MusicGeneration) => {
+    if (!track.audioUrl || track.status !== "completed") {
+      toast({
+        title: "Download Failed",
+        description: "Track is not ready for download.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = track.audioUrl;
+      link.download = `${track.title || 'Untitled Track'}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Download Started",
+        description: `Downloading "${track.title || 'Untitled Track'}"...`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to download the track.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Filter tracks based on search and filters
@@ -368,20 +401,37 @@ export function AdminMusicTracks() {
                     </div>
                   </div>
 
-                  {/* Gallery Visibility Toggle */}
-                  {track.visibility === "public" && track.status === "completed" && (
-                    <div className="flex items-center space-x-3">
-                      <Label htmlFor={`gallery-${track.id}`} className="text-sm text-gray-400">
-                        Show in Gallery
-                      </Label>
-                      <Switch
-                        id={`gallery-${track.id}`}
-                        checked={track.showInGallery}
-                        onCheckedChange={() => handleToggleGallery(track.id, track.showInGallery)}
-                        disabled={toggleGalleryMutation.isPending}
-                      />
-                    </div>
-                  )}
+                  {/* Action Buttons */}
+                  <div className="flex items-center space-x-3">
+                    {/* Download Button */}
+                    {track.audioUrl && track.status === "completed" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownloadTrack(track)}
+                        className="text-blue-400 hover:text-blue-300 border-blue-400 hover:border-blue-300"
+                        data-testid={`button-download-${track.id}`}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </Button>
+                    )}
+                    
+                    {/* Gallery Visibility Toggle */}
+                    {track.visibility === "public" && track.status === "completed" && (
+                      <>
+                        <Label htmlFor={`gallery-${track.id}`} className="text-sm text-gray-400">
+                          Show in Gallery
+                        </Label>
+                        <Switch
+                          id={`gallery-${track.id}`}
+                          checked={track.showInGallery}
+                          onCheckedChange={() => handleToggleGallery(track.id, track.showInGallery)}
+                          disabled={toggleGalleryMutation.isPending}
+                        />
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Audio Player */}
