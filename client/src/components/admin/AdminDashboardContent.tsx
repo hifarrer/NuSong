@@ -81,7 +81,7 @@ export function AdminDashboardContent() {
       <div>
         <h1 className="text-3xl font-bold text-white">Dashboard</h1>
         <p className="text-gray-400 mt-2">
-          Welcome to the AI Music Studio admin dashboard
+          Welcome to the NuMusic admin dashboard
         </p>
       </div>
 

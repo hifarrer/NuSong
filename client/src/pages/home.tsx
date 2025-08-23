@@ -306,7 +306,7 @@ export default function Home() {
                 <Music className="text-white text-lg" />
               </div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-music-purple to-music-blue bg-clip-text text-transparent">
-                AI Music Studio
+                NuMusic
               </h1>
             </div>
             

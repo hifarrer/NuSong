@@ -1,8 +1,8 @@
-# AI Music Studio
+# NuMusic
 
 ## Overview
 
-AI Music Studio is a full-stack web application that enables users to generate AI-powered music using FAL.ai's music generation service. Users can input musical tags, lyrics, and specify duration to create custom audio tracks. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database integration.
+NuMusic is a full-stack web application that enables users to generate AI-powered music using ElevenLabs AI music generation service. Users can input musical tags, lyrics, and specify duration to create custom audio tracks. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database integration.
 
 ## User Preferences
 

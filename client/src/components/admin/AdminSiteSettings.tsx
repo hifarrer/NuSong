@@ -189,7 +189,7 @@ export function AdminSiteSettings() {
                       value={settingsData.site_name || getSetting("site_name")}
                       onChange={(e) => handleSettingChange("site_name", e.target.value)}
                       className="bg-gray-700 border-gray-600 text-white"
-                      placeholder="AI Music Studio"
+                      placeholder="NuMusic"
                       data-testid="input-site-name"
                     />
                     <Button

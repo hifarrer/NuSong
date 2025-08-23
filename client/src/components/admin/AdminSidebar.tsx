@@ -69,7 +69,7 @@ export function AdminSidebar() {
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="p-6 border-b border-gray-800">
-            <h1 className="text-xl font-bold text-white">AI Music Studio</h1>
+            <h1 className="text-xl font-bold text-white">NuMusic</h1>
             <p className="text-sm text-gray-400 mt-1">Admin Dashboard</p>
           </div>
 
