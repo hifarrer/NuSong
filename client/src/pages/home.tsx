@@ -1220,7 +1220,7 @@ function TrackCard({ track }: { track: MusicGeneration }) {
               variant="ghost"
               onClick={async () => {
                 try {
-                  await navigator.clipboard.writeText(window.location.origin + '/track/' + track.id);
+                  await navigator.clipboard.writeText('https://numusic.app/track/' + track.id);
                   toast({
                     title: "Link Copied!",
                     description: "Track link has been copied to your clipboard.",
