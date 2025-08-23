@@ -16,6 +16,7 @@ import Contact from "@/pages/contact";
 import Auth from "@/pages/auth";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
+import backgroundVideo from "@assets/robotmusic_1755913869566.mp4";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -53,8 +54,22 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        {/* Background Video */}
+        <video
+          className="fixed top-0 left-0 w-full h-full object-cover z-[-1]"
+          autoPlay
+          loop
+          muted
+          playsInline
+        >
+          <source src={backgroundVideo} type="video/mp4" />
+        </video>
+        
+        {/* Content overlay */}
+        <div className="relative z-10">
+          <Toaster />
+          <Router />
+        </div>
       </TooltipProvider>
     </QueryClientProvider>
   );
