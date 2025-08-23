@@ -56,24 +56,26 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         {/* Background Video */}
-        <video
-          className="fixed top-0 left-0 w-full h-full object-cover z-[-1]"
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          onError={(e) => console.error('Video error:', e)}
-          onLoadStart={() => console.log('Video loading started')}
-          onCanPlay={() => console.log('Video can play')}
-          onPlay={() => console.log('Video started playing')}
-        >
-          <source src={backgroundVideo} type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
+        <div className="fixed inset-0" style={{ zIndex: -10 }}>
+          <video
+            className="w-full h-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            onError={(e) => console.error('Video error:', e)}
+            onLoadStart={() => console.log('Video loading started')}
+            onCanPlay={() => console.log('Video can play')}
+            onPlay={() => console.log('Video started playing')}
+          >
+            <source src={backgroundVideo} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
         
-        {/* Content overlay */}
-        <div className="relative z-10 min-h-screen">
+        {/* Content overlay with semi-transparent background for readability */}
+        <div className="relative min-h-screen bg-black/40" style={{ zIndex: 1 }}>
           <Toaster />
           <Router />
         </div>

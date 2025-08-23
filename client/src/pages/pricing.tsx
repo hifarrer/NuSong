@@ -60,7 +60,7 @@ export default function Pricing() {
   };
 
   return (
-    <div className="min-h-screen bg-music-dark text-white">
+    <div className="min-h-screen text-white">
       {/* Header */}
       <header className="bg-music-secondary/80 backdrop-blur-lg border-b border-gray-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
