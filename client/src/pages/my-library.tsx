@@ -278,8 +278,8 @@ export default function MyLibrary() {
                     )}
 
                     {/* Action Buttons */}
-                    {generation.status === "completed" && generation.audioUrl && (
-                      <div className="flex justify-between items-center pt-3 border-t border-gray-700">
+                    <div className="flex gap-3 items-center pt-3 border-t border-gray-700">
+                      {generation.status === "completed" && generation.audioUrl && (
                         <Button 
                           variant="ghost" 
                           size="sm"
@@ -289,38 +289,38 @@ export default function MyLibrary() {
                             a.download = `${generation.title || 'track'}.wav`;
                             a.click();
                           }}
-                          className="text-blue-400 hover:text-blue-300"
+                          className="text-blue-400 hover:text-blue-300 flex-1"
                           data-testid={`button-download-${generation.id}`}
                         >
                           <Download className="w-4 h-4 mr-2" />
                           Download
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(window.location.origin + '/track/' + generation.id);
-                              toast({
-                                title: "Link Copied!",
-                                description: "Track link has been copied to your clipboard.",
-                              });
-                            } catch (error) {
-                              toast({
-                                title: "Share Failed",
-                                description: "Failed to copy link to clipboard.",
-                                variant: "destructive",
-                              });
-                            }
-                          }}
-                          className="text-green-400 hover:text-green-300"
-                          data-testid={`button-share-${generation.id}`}
-                        >
-                          <Share className="w-4 h-4 mr-2" />
-                          Share
-                        </Button>
-                      </div>
-                    )}
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(window.location.origin + '/track/' + generation.id);
+                            toast({
+                              title: "Link Copied!",
+                              description: "Track link has been copied to your clipboard.",
+                            });
+                          } catch (error) {
+                            toast({
+                              title: "Share Failed",
+                              description: "Failed to copy link to clipboard.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        className="text-green-400 hover:text-green-300 flex-1"
+                        data-testid={`button-share-${generation.id}`}
+                      >
+                        <Share className="w-4 h-4 mr-2" />
+                        Share
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
