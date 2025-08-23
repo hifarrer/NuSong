@@ -4,7 +4,7 @@ import { AudioPlayer } from "@/components/ui/audio-player";
 import { Music, Play, Headphones, WandSparkles, Lightbulb, Clock, Tags, AudioWaveform } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { MusicGeneration } from "@shared/schema";
-import heroImage from "@assets/MZVFGa87BRUKkOkO0cUlN_output_1755653603944.png";
+
 
 export default function Landing() {
   // Fetch public tracks for the gallery
@@ -91,19 +91,7 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Image Column */}
-            <div className="relative">
-              <div className="relative z-10">
-                <img 
-                  src={heroImage}
-                  alt="AI Music Generation - Futuristic robot with headphones creating music with sound waves"
-                  className="w-full h-auto rounded-lg shadow-2xl"
-                />
-              </div>
-              {/* Decorative elements around image */}
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-music-accent/20 rounded-full blur-2xl"></div>
-              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-music-blue/20 rounded-full blur-2xl"></div>
-            </div>
+
           </div>
         </div>
       </section>
