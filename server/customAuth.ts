@@ -158,7 +158,7 @@ export function setupCustomAuth(app: Express) {
         return res.status(500).json({ message: 'Failed to logout' });
       }
       res.clearCookie('connect.sid');
-      res.json({ message: 'Logged out successfully' });
+      res.redirect('/');
     });
   });
 
@@ -170,7 +170,7 @@ export function setupCustomAuth(app: Express) {
         return res.status(500).json({ message: 'Failed to logout' });
       }
       res.clearCookie('connect.sid');
-      res.json({ message: 'Logged out successfully' });
+      res.redirect('/');
     });
   });
 
