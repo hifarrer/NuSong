@@ -1,17 +1,37 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AudioPlayer } from "@/components/ui/audio-player";
-import { Music, Play, Headphones, WandSparkles, Lightbulb, Clock, Tags, AudioWaveform } from "lucide-react";
+import { Music, Play, Headphones, WandSparkles, Lightbulb, Clock, Tags, AudioWaveform, Share } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import type { MusicGeneration } from "@shared/schema";
 
 
 export default function Landing() {
+  const { toast } = useToast();
+  
   // Fetch public tracks for the gallery
   const { data: publicTracks } = useQuery({
     queryKey: ["/api/public-tracks"],
     retry: false,
   });
+
+  const handleShare = async (track: MusicGeneration) => {
+    try {
+      const shareUrl = `${window.location.origin}/track/${track.id}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link Copied!",
+        description: "Track link has been copied to your clipboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Share Failed",
+        description: "Failed to copy link to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen text-white">
@@ -109,7 +129,7 @@ export default function Landing() {
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {(publicTracks as MusicGeneration[]).slice(0, 6).map((track: MusicGeneration) => (
-                <PublicTrackCard key={track.id} track={track} />
+                <PublicTrackCard key={track.id} track={track} onShare={() => handleShare(track)} />
               ))}
             </div>
 
@@ -217,7 +237,7 @@ export default function Landing() {
   );
 }
 
-function PublicTrackCard({ track }: { track: MusicGeneration }): JSX.Element {
+function PublicTrackCard({ track, onShare }: { track: MusicGeneration; onShare: () => void }): JSX.Element {
   return (
     <Card className="bg-music-secondary border-gray-700 hover:border-gray-600 transition-colors">
       <CardHeader className="pb-3">
@@ -257,9 +277,20 @@ function PublicTrackCard({ track }: { track: MusicGeneration }): JSX.Element {
           />
         )}
         
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>{track.duration ? `${track.duration}s` : ""}</span>
-          <span className="capitalize">{track.type.replace("-", " ")}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-xs text-gray-500 space-x-4">
+            <span>{track.duration ? `${track.duration}s` : ""}</span>
+            <span className="capitalize">{track.type.replace("-", " ")}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onShare}
+            className="text-gray-400 hover:text-white h-8 w-8 p-0"
+            data-testid={`button-share-${track.id}`}
+          >
+            <Share className="w-4 h-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>
