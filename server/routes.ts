@@ -361,6 +361,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete music generation
+  app.delete("/api/generation/:id", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const generation = await storage.getMusicGeneration(id);
+      if (!generation || generation.userId !== userId) {
+        return res.status(404).json({ message: "Generation not found" });
+      }
+
+      await storage.deleteMusicGeneration(id);
+      res.status(200).json({ message: "Track deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting generation:", error);
+      res.status(500).json({ message: "Failed to delete track" });
+    }
+  });
+
   // ===== ADMIN ROUTES =====
   
   // Admin login

@@ -33,7 +33,8 @@ import {
   User,
   Edit2,
   Check,
-  X
+  X,
+  Trash2
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
@@ -993,6 +994,7 @@ function TrackCard({ track }: { track: MusicGeneration }) {
   const queryClient = useQueryClient();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(track.title || "");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const updateTitleMutation = useMutation({
     mutationFn: async (title: string) => {
@@ -1060,6 +1062,39 @@ function TrackCard({ track }: { track: MusicGeneration }) {
       toast({
         title: "Update failed",
         description: "Could not update track visibility.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest(`/api/generation/${track.id}`, "DELETE");
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-generations"] });
+      toast({
+        title: "Track deleted",
+        description: "Your track has been permanently deleted.",
+      });
+      setShowDeleteConfirm(false);
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Delete failed",
+        description: "Could not delete track. Please try again.",
         variant: "destructive",
       });
     },
@@ -1238,6 +1273,16 @@ function TrackCard({ track }: { track: MusicGeneration }) {
             >
               <Share className="w-4 h-4" />
             </Button>
+            
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-gray-400 hover:text-red-400"
+              data-testid={`button-delete-${track.id}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
@@ -1249,6 +1294,37 @@ function TrackCard({ track }: { track: MusicGeneration }) {
             </label>
             <div className="max-h-24 overflow-y-auto p-3 bg-music-secondary/50 rounded-lg border border-gray-600">
               <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{track.lyrics}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
+            <div className="bg-music-dark border border-gray-600 rounded-lg p-6 max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-white mb-2">Delete Track</h3>
+              <p className="text-gray-300 mb-4">
+                Are you sure you want to delete "{track.title || 'Untitled'}"? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="text-gray-400 hover:text-white"
+                  data-testid="button-cancel-delete"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  data-testid="button-confirm-delete"
+                >
+                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                </Button>
+              </div>
             </div>
           </div>
         )}

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AudioPlayer } from "@/components/ui/audio-player";
-import { Music, Search, Filter, WandSparkles, AudioWaveform, Download, Share, Eye, EyeOff } from "lucide-react";
+import { Music, Search, Filter, WandSparkles, AudioWaveform, Download, Share, Eye, EyeOff, Trash2 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
 export default function MyLibrary() {

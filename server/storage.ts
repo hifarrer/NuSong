@@ -39,6 +39,7 @@ export interface IStorage {
   getMusicGeneration(id: string): Promise<MusicGeneration | undefined>;
   getUserMusicGenerations(userId: string): Promise<MusicGeneration[]>;
   getPublicMusicGenerations(): Promise<MusicGeneration[]>;
+  deleteMusicGeneration(id: string): Promise<void>;
   
   // Admin operations
   getAdminUser(id: string): Promise<AdminUser | undefined>;
@@ -203,6 +204,10 @@ export class DatabaseStorage implements IStorage {
       ))
       .orderBy(desc(musicGenerations.createdAt))
       .limit(20);
+  }
+
+  async deleteMusicGeneration(id: string): Promise<void> {
+    await db.delete(musicGenerations).where(eq(musicGenerations.id, id));
   }
 
   // Admin operations
