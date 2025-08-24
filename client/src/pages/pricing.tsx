@@ -134,7 +134,7 @@ export default function Pricing() {
                   </div>
                 </CardHeader>
                 
-                <CardContent className="flex-1 pb-0">
+                <CardContent className="pb-24">
                   <ul className="space-y-3">
                     {features.map((feature, index) => (
                       <li key={index} className="flex items-start">
@@ -145,8 +145,8 @@ export default function Pricing() {
                   </ul>
                 </CardContent>
                 
-                {/* Button Footer - Fixed Position */}
-                <div className="p-6 pt-0 mt-auto">
+                {/* Button Footer - Absolutely Positioned */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gray-800/50">
                   <Button 
                     className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3`}
                     data-testid={`button-select-${plan.name.toLowerCase()}`}
