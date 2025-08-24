@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Music, Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import backgroundVideo from "/background-video.mp4";
 import { useForm } from "react-hook-form";
@@ -32,13 +33,19 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
 type LoginForm = z.infer<typeof loginSchema>;
 type RegisterForm = z.infer<typeof registerSchema>;
+type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
 
 export default function Auth() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAuthenticated, isLoading } = useAuth();
@@ -66,6 +73,13 @@ export default function Auth() {
       email: "",
       password: "",
       confirmPassword: "",
+    },
+  });
+
+  const forgotPasswordForm = useForm<ForgotPasswordForm>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
     },
   });
 
@@ -129,12 +143,38 @@ export default function Auth() {
     },
   });
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (data: ForgotPasswordForm) => {
+      const response = await apiRequest("/api/auth/request-password-reset", "POST", data);
+      return response.json();
+    },
+    onSuccess: (result) => {
+      toast({
+        title: "Reset Email Sent",
+        description: result.message || "If an account with that email exists, we've sent password reset instructions.",
+      });
+      setShowForgotPassword(false);
+      forgotPasswordForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Reset Failed",
+        description: error.message || "Failed to send reset email",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onLogin = (data: LoginForm) => {
     loginMutation.mutate(data);
   };
 
   const onRegister = (data: RegisterForm) => {
     registerMutation.mutate(data);
+  };
+
+  const onForgotPassword = (data: ForgotPasswordForm) => {
+    forgotPasswordMutation.mutate(data);
   };
 
   if (isLoading) {
@@ -261,6 +301,17 @@ export default function Auth() {
                         )}
                       </div>
                       
+                      <div className="flex items-center justify-between mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setShowForgotPassword(true)}
+                          className="text-sm text-purple-400 hover:text-purple-300 underline"
+                          data-testid="link-forgot-password"
+                        >
+                          Forgot Password?
+                        </button>
+                      </div>
+
                       <Button
                         type="submit"
                         className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
@@ -394,6 +445,58 @@ export default function Auth() {
         </div>
       </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Reset Your Password</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPassword)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email" className="text-gray-300">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  data-testid="input-forgot-email"
+                  {...forgotPasswordForm.register("email")}
+                />
+              </div>
+              {forgotPasswordForm.formState.errors.email && (
+                <p className="text-red-400 text-sm">{forgotPasswordForm.formState.errors.email.message}</p>
+              )}
+            </div>
+            
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowForgotPassword(false)}
+                className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                data-testid="button-cancel-forgot"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={forgotPasswordMutation.isPending}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                data-testid="button-submit-forgot"
+              >
+                {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Link"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -36,6 +36,8 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   emailVerificationToken: varchar("email_verification_token"),
   emailVerificationExpiry: timestamp("email_verification_expiry"),
+  passwordResetToken: varchar("password_reset_token"),
+  passwordResetExpiry: timestamp("password_reset_expiry"),
   subscriptionPlanId: varchar("subscription_plan_id").references(() => subscriptionPlans.id),
   planStatus: varchar("plan_status").notNull().default("free"), // free, active, expired, cancelled
   generationsUsedThisMonth: integer("generations_used_this_month").notNull().default(0),

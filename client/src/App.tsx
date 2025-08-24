@@ -19,6 +19,7 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import TrackPage from "@/pages/track";
 import CheckEmailPage from "@/pages/check-email";
 import VerifyEmailPage from "@/pages/verify-email";
+import ResetPasswordPage from "@/pages/reset-password";
 // Use direct path to video in public folder
 const backgroundVideo = "/background-video.mp4";
 
@@ -32,9 +33,10 @@ function Router() {
       <Route path="/admin/:page*" component={AdminDashboard} />
       <Route path="/admin" component={AdminDashboard} />
       
-      {/* Email verification routes */}
+      {/* Email verification and password reset routes */}
       <Route path="/check-email" component={CheckEmailPage} />
       <Route path="/verify-email/:token" component={VerifyEmailPage} />
+      <Route path="/reset-password/:token" component={ResetPasswordPage} />
       
       {/* Public routes */}
       <Route path="/pricing" component={Pricing} />

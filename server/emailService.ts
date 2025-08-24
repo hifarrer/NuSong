@@ -8,6 +8,10 @@ export class EmailService {
     return randomBytes(32).toString('hex');
   }
 
+  static generatePasswordResetToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+
   static async sendVerificationEmail(
     email: string, 
     firstName: string, 
@@ -197,6 +201,115 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
     } catch (error) {
       console.error('Failed to send welcome email:', error);
       // Don't throw error for welcome email failures
+    }
+  }
+
+  static async sendPasswordResetEmail(
+    email: string, 
+    firstName: string, 
+    resetToken: string
+  ): Promise<void> {
+    const resetUrl = `https://numusic.app/reset-password/${resetToken}`;
+    
+    const emailHtml = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Reset Your NuMusic Password</title>
+      <style>
+        body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #0a0a0a; color: #ffffff; }
+        .container { max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1a 0%, #2d1b69 100%); }
+        .header { padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%); }
+        .logo { font-size: 32px; font-weight: bold; color: #ffffff; margin: 0; letter-spacing: -1px; }
+        .content { padding: 40px 30px; }
+        .welcome { font-size: 24px; font-weight: bold; margin: 0 0 16px 0; color: #ffffff; }
+        .message { font-size: 16px; line-height: 1.6; margin: 0 0 32px 0; color: #e2e8f0; }
+        .button-container { text-align: center; margin: 32px 0; }
+        .reset-button { 
+          display: inline-block; 
+          padding: 16px 32px; 
+          background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); 
+          color: #ffffff; 
+          text-decoration: none; 
+          border-radius: 8px; 
+          font-size: 16px; 
+          font-weight: 600; 
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+        .reset-button:hover { background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%); }
+        .fallback { margin: 32px 0; padding: 20px; background: #1e293b; border-radius: 8px; border-left: 4px solid #dc2626; }
+        .fallback-text { font-size: 14px; color: #cbd5e1; margin: 0 0 12px 0; }
+        .fallback-link { word-break: break-all; color: #ef4444; text-decoration: none; font-family: monospace; font-size: 12px; }
+        .footer { padding: 30px; text-align: center; border-top: 1px solid #374151; background: #111827; }
+        .footer-text { font-size: 12px; color: #9ca3af; margin: 0; }
+        .security-note { margin: 24px 0; padding: 16px; background: #7f1d1d; border-radius: 6px; font-size: 14px; color: #fecaca; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 class="logo">🎵 NuMusic</h1>
+        </div>
+        <div class="content">
+          <h2 class="welcome">Reset Your Password</h2>
+          <p class="message">
+            Hi ${firstName},<br><br>
+            We received a request to reset your password for your NuMusic account. 
+            Click the button below to create a new password.
+          </p>
+          
+          <div class="button-container">
+            <a href="${resetUrl}" class="reset-button">Reset My Password</a>
+          </div>
+          
+          <div class="fallback">
+            <p class="fallback-text">If the button doesn't work, copy and paste this link:</p>
+            <a href="${resetUrl}" class="fallback-link">${resetUrl}</a>
+          </div>
+          
+          <div class="security-note">
+            <strong>Important:</strong> This link will expire in 1 hour. If you didn't request a password reset, 
+            you can safely ignore this email. Your password won't be changed until you access the link above.
+          </div>
+        </div>
+        <div class="footer">
+          <p class="footer-text">
+            © 2025 NuMusic. All rights reserved.<br>
+            If you have any questions, please contact our support team.
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    const emailText = `
+Reset Your NuMusic Password
+
+Hi ${firstName},
+
+We received a request to reset your password for your NuMusic account. Visit the following link to create a new password:
+
+${resetUrl}
+
+This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.
+
+© 2025 NuMusic. All rights reserved.
+    `;
+
+    try {
+      await resend.emails.send({
+        from: 'NuMusic <noreply@numusic.app>',
+        to: email,
+        subject: 'Reset Your NuMusic Password',
+        html: emailHtml,
+        text: emailText,
+      });
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      throw new Error('Failed to send password reset email');
     }
   }
 }

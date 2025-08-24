@@ -271,6 +271,80 @@ export function setupCustomAuth(app: Express) {
     }
   });
 
+  // Request password reset
+  app.post('/api/auth/request-password-reset', async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        return res.json({ 
+          message: 'If an account with that email exists, we\'ve sent password reset instructions.' 
+        });
+      }
+
+      if (!user.emailVerified) {
+        return res.status(400).json({ 
+          message: 'Please verify your email address first before resetting your password.' 
+        });
+      }
+
+      // Generate password reset token
+      const resetToken = EmailService.generatePasswordResetToken();
+      const tokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await storage.setPasswordResetToken(user.id, resetToken, tokenExpiry);
+
+      // Send password reset email
+      await EmailService.sendPasswordResetEmail(user.email, user.firstName, resetToken);
+
+      res.json({ 
+        message: 'If an account with that email exists, we\'ve sent password reset instructions.'
+      });
+    } catch (error) {
+      console.error('Password reset request error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Reset password with token
+  app.post('/api/auth/reset-password', async (req: Request, res: Response) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: 'Token and new password are required' });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+      }
+
+      // Hash new password
+      const passwordHash = await hashPassword(newPassword);
+
+      // Reset password using token
+      const updatedUser = await storage.resetUserPassword(token, passwordHash);
+      if (!updatedUser) {
+        return res.status(400).json({ 
+          message: 'Invalid or expired reset token. Please request a new password reset.' 
+        });
+      }
+
+      res.json({ 
+        message: 'Password reset successfully. You can now log in with your new password.',
+        email: updatedUser.email
+      });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Update user email route
   app.put('/api/user/email', requireAuth, async (req: Request, res: Response) => {
     try {
