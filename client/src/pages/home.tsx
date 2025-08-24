@@ -620,7 +620,7 @@ export default function Home() {
 
                       {/* Action Buttons */}
                       <div className="flex space-x-3">
-                        {(user as any)?.planStatus !== "free" ? (
+                        {user?.planStatus !== "free" ? (
                           <Button
                             onClick={() => handleDownload(currentGeneration.audioUrl!)}
                             className="flex-1 bg-music-purple hover:bg-purple-600"
@@ -925,7 +925,7 @@ export default function Home() {
 
                       {/* Action Buttons */}
                       <div className="flex space-x-3">
-                        {(user as any)?.planStatus !== "free" ? (
+                        {user?.planStatus !== "free" ? (
                           <Button
                             onClick={() => handleDownload(currentGeneration.audioUrl!)}
                             className="flex-1 bg-music-purple hover:bg-purple-600"
@@ -1028,7 +1028,7 @@ export default function Home() {
                   ) : (
                     <div className="grid gap-3 sm:gap-4">
                       {(generations as MusicGeneration[]).map((track: MusicGeneration) => (
-                        <TrackCard key={track.id} track={track} />
+                        <TrackCard key={track.id} track={track} user={user} />
                       ))}
                     </div>
                   )}
@@ -1050,7 +1050,7 @@ export default function Home() {
   );
 }
 
-function TrackCard({ track }: { track: MusicGeneration }) {
+function TrackCard({ track, user }: { track: MusicGeneration; user: any }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -1299,7 +1299,7 @@ function TrackCard({ track }: { track: MusicGeneration }) {
             
             <div className="flex items-center justify-center gap-2 sm:gap-1">
               {track.status === "completed" && track.audioUrl && (
-                (user as any)?.planStatus !== "free" ? (
+                user?.planStatus !== "free" ? (
                   <Button
                     size="sm"
                     variant="ghost"
