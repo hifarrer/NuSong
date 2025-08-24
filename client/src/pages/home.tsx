@@ -365,7 +365,7 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
         {/* Tab Navigation */}
         <Tabs defaultValue="textToMusic" className="mb-8">
           <TabsList className="bg-music-secondary p-2 border border-gray-700 grid w-full grid-cols-3 h-12">
@@ -395,8 +395,8 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="textToMusic" className="space-y-8">
-            <div className="grid lg:grid-cols-2 gap-8">
+          <TabsContent value="textToMusic" className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
               {/* Input Form */}
               <div className="space-y-6">
                 <Card className="bg-music-secondary border-gray-700">
@@ -683,8 +683,8 @@ export default function Home() {
             </div>
           </TabsContent>
 
-          <TabsContent value="audioToMusic" className="space-y-8">
-            <div className="grid lg:grid-cols-2 gap-8">
+          <TabsContent value="audioToMusic" className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
               {/* Audio Upload Form */}
               <div className="space-y-6">
                 <Card className="bg-music-secondary border-gray-700">
@@ -710,13 +710,13 @@ export default function Home() {
                           onGetUploadParameters={handleGetUploadParameters}
                           onComplete={handleUploadComplete}
                           acceptedFileTypes={['.mp3', '.wav', '.m4a', '.aac', '.ogg']}
-                          buttonClassName="w-full bg-music-dark border-2 border-dashed border-gray-600 hover:border-music-accent text-gray-300 hover:text-white py-8 rounded-lg transition-all"
+                          buttonClassName="w-full bg-music-dark border-2 border-dashed border-gray-600 hover:border-music-accent text-gray-300 hover:text-white py-6 sm:py-8 rounded-lg transition-all"
                         >
-                          <div className="flex flex-col items-center space-y-3">
-                            <AudioWaveform className="h-8 w-8 text-music-accent" />
+                          <div className="flex flex-col items-center space-y-2 sm:space-y-3 px-4">
+                            <AudioWaveform className="h-6 w-6 sm:h-8 sm:w-8 text-music-accent flex-shrink-0" />
                             <div className="text-center">
-                              <p className="font-semibold">Click to upload audio file</p>
-                              <p className="text-sm text-gray-400">Supports MP3, WAV, M4A, AAC, OGG (max 50MB)</p>
+                              <p className="text-sm sm:text-base font-semibold">Click to upload audio file</p>
+                              <p className="text-xs sm:text-sm text-gray-400">Supports MP3, WAV, M4A, AAC, OGG (max 50MB)</p>
                             </div>
                           </div>
                         </ObjectUploader>
@@ -743,7 +743,7 @@ export default function Home() {
                         {/* Popular Tag Bubbles */}
                         <div className="mt-3">
                           <p className="text-xs text-gray-400 mb-2">Popular tags (click to add):</p>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1.5 sm:gap-2">
                             {[
                               "female singer", "male singer", "pop", "electronic", "hip hop",
                               "ad jingle", "synthwave", "lo-fi", "energetic", "upbeat"
@@ -757,7 +757,7 @@ export default function Home() {
                                     setAudioTags(currentTags.length > 0 ? `${audioTags}, ${tag}` : tag);
                                   }
                                 }}
-                                className="px-3 py-1 text-xs bg-gray-700 hover:bg-music-purple hover:text-white text-gray-300 rounded-full transition-colors border border-gray-600 hover:border-music-purple"
+                                className="px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-music-purple hover:text-white text-gray-300 rounded-full transition-colors border border-gray-600 hover:border-music-purple whitespace-nowrap"
                                 data-testid={`audio-tag-bubble-${tag.replace(/\s+/g, '-')}`}
                               >
                                 {tag}
@@ -976,26 +976,26 @@ export default function Home() {
             </div>
           </TabsContent>
 
-          <TabsContent value="myLibrary" className="space-y-8">
+          <TabsContent value="myLibrary" className="space-y-6 sm:space-y-8">
             <div>
               <Card className="bg-music-secondary border-gray-700">
-                <CardHeader>
+                <CardHeader className="pb-4 sm:pb-6">
                   <CardTitle className="flex items-center">
-                    <div className="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center mr-3">
-                      <Music className="text-sm text-white" />
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                      <Music className="text-xs sm:text-sm text-white" />
                     </div>
-                    <span className="text-music-blue">My Music Library ({Array.isArray(generations) ? generations.length : 0} tracks)</span>
+                    <span className="text-music-blue text-sm sm:text-base truncate">My Music Library ({Array.isArray(generations) ? generations.length : 0} tracks)</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                   {!generations || !Array.isArray(generations) || generations.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Music className="h-16 w-16 text-gray-600 mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold text-gray-400 mb-2">No tracks yet</h3>
-                      <p className="text-gray-500 mb-6">Create your first AI-generated track to start your music library.</p>
+                    <div className="text-center py-8 sm:py-12">
+                      <Music className="h-12 w-12 sm:h-16 sm:w-16 text-gray-600 mx-auto mb-4" />
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-400 mb-2">No tracks yet</h3>
+                      <p className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6 px-4">Create your first AI-generated track to start your music library.</p>
                       <Button
                         onClick={() => (document.querySelector('[data-testid="tab-text-to-music"]') as HTMLElement)?.click()}
-                        className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
+                        className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-sm sm:text-base"
                         data-testid="button-create-first-track"
                       >
                         <WandSparkles className="mr-2 h-4 w-4" />
@@ -1003,7 +1003,7 @@ export default function Home() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3 sm:gap-4">
                       {(generations as MusicGeneration[]).map((track: MusicGeneration) => (
                         <TrackCard key={track.id} track={track} />
                       ))}
@@ -1140,125 +1140,128 @@ function TrackCard({ track }: { track: MusicGeneration }) {
 
   return (
     <Card className="bg-music-dark border-gray-600 hover:border-gray-500 transition-colors">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-music-purple to-music-blue rounded flex items-center justify-center">
-                {track.type === "text-to-music" ? (
-                  <WandSparkles className="w-3 h-3 text-white" />
-                ) : (
-                  <AudioWaveform className="w-3 h-3 text-white" />
-                )}
-              </div>
-              {isEditingTitle ? (
-                <div className="flex items-center space-x-2 flex-1">
-                  <Input
-                    value={editedTitle}
-                    onChange={(e) => setEditedTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        updateTitleMutation.mutate(editedTitle);
-                      } else if (e.key === 'Escape') {
-                        setIsEditingTitle(false);
-                        setEditedTitle(track.title || "");
-                      }
-                    }}
-                    className="text-lg font-semibold bg-music-secondary border-gray-600 text-white"
-                    placeholder="Enter track title"
-                    autoFocus
-                    data-testid={`input-edit-title-${track.id}`}
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => updateTitleMutation.mutate(editedTitle)}
-                    disabled={updateTitleMutation.isPending}
-                    className="text-music-green hover:text-music-green"
-                    data-testid={`button-save-title-${track.id}`}
-                  >
-                    <Check className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
+      <CardContent className="p-4 sm:p-6">
+        {/* Mobile-first responsive layout */}
+        <div className="space-y-4">
+          {/* Title and Type Row */}
+          <div className="flex items-center space-x-3">
+            <div className="w-6 h-6 bg-gradient-to-br from-music-purple to-music-blue rounded flex items-center justify-center flex-shrink-0">
+              {track.type === "text-to-music" ? (
+                <WandSparkles className="w-3 h-3 text-white" />
+              ) : (
+                <AudioWaveform className="w-3 h-3 text-white" />
+              )}
+            </div>
+            {isEditingTitle ? (
+              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                <Input
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      updateTitleMutation.mutate(editedTitle);
+                    } else if (e.key === 'Escape') {
                       setIsEditingTitle(false);
                       setEditedTitle(track.title || "");
-                    }}
-                    className="text-gray-400 hover:text-white"
-                    data-testid={`button-cancel-title-${track.id}`}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2 flex-1">
-                  <h3 className="text-lg font-semibold text-white">
-                    {track.title || `Untitled Track`}
-                  </h3>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setIsEditingTitle(true);
-                      setEditedTitle(track.title || "");
-                    }}
-                    className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 h-8 w-8 opacity-70 hover:opacity-100 transition-all"
-                    data-testid={`button-edit-title-${track.id}`}
-                    title="Edit track title"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                track.visibility === "public" 
-                  ? "bg-music-green/20 text-music-green" 
-                  : "bg-gray-600/20 text-gray-400"
-              }`}>
-                {track.visibility}
-              </span>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 mb-3">
-              {track.tags && (
-                <div className="flex items-center">
-                  <Tags className="w-4 h-4 mr-1" />
-                  {track.tags}
-                </div>
-              )}
-              <div className="flex items-center">
-                <Clock className="w-4 h-4 mr-1" />
-                {track.duration ? `${track.duration}s` : "N/A"}
-              </div>
-              <div className="flex items-center">
-                <span className={`w-2 h-2 rounded-full mr-2 ${
-                  track.status === "completed" ? "bg-music-green" :
-                  track.status === "processing" ? "bg-music-blue animate-pulse" :
-                  track.status === "failed" ? "bg-red-500" : "bg-gray-500"
-                }`} />
-                {track.status}
-              </div>
-            </div>
-
-            {track.status === "completed" && track.audioUrl && (
-              <div className="mb-4">
-                <AudioPlayer 
-                  src={track.audioUrl}
-                  className="w-full"
+                    }
+                  }}
+                  className="text-sm sm:text-lg font-semibold bg-music-secondary border-gray-600 text-white flex-1 min-w-0"
+                  placeholder="Enter track title"
+                  autoFocus
+                  data-testid={`input-edit-title-${track.id}`}
                 />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => updateTitleMutation.mutate(editedTitle)}
+                  disabled={updateTitleMutation.isPending}
+                  className="text-music-green hover:text-music-green flex-shrink-0"
+                  data-testid={`button-save-title-${track.id}`}
+                >
+                  <Check className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsEditingTitle(false);
+                    setEditedTitle(track.title || "");
+                  }}
+                  className="text-gray-400 hover:text-white flex-shrink-0"
+                  data-testid={`button-cancel-title-${track.id}`}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                <h3 className="text-sm sm:text-lg font-semibold text-white truncate">
+                  {track.title || `Untitled Track`}
+                </h3>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsEditingTitle(true);
+                    setEditedTitle(track.title || "");
+                  }}
+                  className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 h-8 w-8 opacity-70 hover:opacity-100 transition-all flex-shrink-0"
+                  data-testid={`button-edit-title-${track.id}`}
+                  title="Edit track title"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </Button>
               </div>
             )}
+            <span className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${
+              track.visibility === "public" 
+                ? "bg-music-green/20 text-music-green" 
+                : "bg-gray-600/20 text-gray-400"
+            }`}>
+              {track.visibility}
+            </span>
           </div>
           
-          <div className="flex items-center space-x-2 ml-4">
+          {/* Track Metadata */}
+          <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-400">
+            {track.tags && (
+              <div className="flex items-center">
+                <Tags className="w-4 h-4 mr-1 flex-shrink-0" />
+                <span className="truncate">{track.tags}</span>
+              </div>
+            )}
+            <div className="flex items-center">
+              <Clock className="w-4 h-4 mr-1 flex-shrink-0" />
+              {track.duration ? `${track.duration}s` : "N/A"}
+            </div>
+            <div className="flex items-center">
+              <span className={`w-2 h-2 rounded-full mr-2 flex-shrink-0 ${
+                track.status === "completed" ? "bg-music-green" :
+                track.status === "processing" ? "bg-music-blue animate-pulse" :
+                track.status === "failed" ? "bg-red-500" : "bg-gray-500"
+              }`} />
+              {track.status}
+            </div>
+          </div>
+
+          {/* Audio Player */}
+          {track.status === "completed" && track.audioUrl && (
+            <div>
+              <AudioPlayer 
+                src={track.audioUrl}
+                className="w-full"
+              />
+            </div>
+          )}
+
+          {/* Actions - Mobile responsive */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <Select 
               value={track.visibility} 
               onValueChange={(value: "public" | "private") => updateVisibilityMutation.mutate(value)}
               disabled={updateVisibilityMutation.isPending}
             >
-              <SelectTrigger className="w-32 bg-music-secondary border-gray-600 text-white text-xs">
+              <SelectTrigger className="w-full sm:w-32 bg-music-secondary border-gray-600 text-white text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-music-dark border-gray-600">
@@ -1271,56 +1274,58 @@ function TrackCard({ track }: { track: MusicGeneration }) {
               </SelectContent>
             </Select>
             
-            {track.status === "completed" && track.audioUrl && (
+            <div className="flex items-center justify-center gap-2 sm:gap-1">
+              {track.status === "completed" && track.audioUrl && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = track.audioUrl!;
+                    link.download = `${track.title || 'track'}.wav`;
+                    link.click();
+                  }}
+                  className="text-gray-400 hover:text-white flex-1 sm:flex-initial"
+                  data-testid={`button-download-${track.id}`}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+              )}
+              
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  const link = document.createElement('a');
-                  link.href = track.audioUrl!;
-                  link.download = `${track.title || 'track'}.wav`;
-                  link.click();
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText('https://numusic.app/track/' + track.id);
+                    toast({
+                      title: "Link Copied!",
+                      description: "Track link has been copied to your clipboard.",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Share Failed",
+                      description: "Failed to copy link to clipboard.",
+                      variant: "destructive",
+                    });
+                  }
                 }}
-                className="text-gray-400 hover:text-white"
-                data-testid={`button-download-${track.id}`}
+                className="text-gray-400 hover:text-white flex-1 sm:flex-initial"
+                data-testid={`button-share-${track.id}`}
               >
-                <Download className="w-4 h-4" />
+                <Share className="w-4 h-4" />
               </Button>
-            )}
-            
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText('https://numusic.app/track/' + track.id);
-                  toast({
-                    title: "Link Copied!",
-                    description: "Track link has been copied to your clipboard.",
-                  });
-                } catch (error) {
-                  toast({
-                    title: "Share Failed",
-                    description: "Failed to copy link to clipboard.",
-                    variant: "destructive",
-                  });
-                }
-              }}
-              className="text-gray-400 hover:text-white"
-              data-testid={`button-share-${track.id}`}
-            >
-              <Share className="w-4 h-4" />
-            </Button>
-            
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-gray-400 hover:text-red-400"
-              data-testid={`button-delete-${track.id}`}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-gray-400 hover:text-red-400 flex-1 sm:flex-initial"
+                data-testid={`button-delete-${track.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
