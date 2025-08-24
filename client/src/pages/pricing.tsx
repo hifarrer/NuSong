@@ -80,7 +80,7 @@ export default function Pricing() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto items-stretch">
+        <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
           {plans.map((plan) => {
             const IconComponent = getPlanIcon(plan.name);
             const gradientColor = getPlanColor(plan.name);
@@ -89,8 +89,8 @@ export default function Pricing() {
             
             return (
               <Card 
-                key={plan.id} 
-                className={`bg-gray-800/50 border-gray-700 backdrop-blur-sm relative flex flex-col h-full ${
+                key={plan.id}
+                className={`bg-gray-800/50 border-gray-700 backdrop-blur-sm relative flex flex-col min-h-[750px] ${
                   isPopular ? 'ring-2 ring-purple-500 scale-105' : ''
                 }`}
                 data-testid={`card-plan-${plan.name.toLowerCase()}`}
@@ -134,17 +134,19 @@ export default function Pricing() {
                   </div>
                 </CardHeader>
                 
-                <CardContent className="flex flex-col flex-grow">
-                  <ul className="space-y-3 mb-8 flex-grow">
-                    {features.map((feature, index) => (
-                      <li key={index} className="flex items-start">
-                        <Check className="w-5 h-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
-                        <span className="text-gray-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <CardContent className="flex flex-col flex-1">
+                  <div className="flex-1">
+                    <ul className="space-y-3 mb-8">
+                      {features.map((feature, index) => (
+                        <li key={index} className="flex items-start">
+                          <Check className="w-5 h-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
+                          <span className="text-gray-300">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                   
-                  <div className="mt-auto">
+                  <div className="mt-auto pt-4">
                     <Button 
                       className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3`}
                       data-testid={`button-select-${plan.name.toLowerCase()}`}
