@@ -722,13 +722,13 @@ export default function Home() {
                           onGetUploadParameters={handleGetUploadParameters}
                           onComplete={handleUploadComplete}
                           acceptedFileTypes={['.mp3', '.wav', '.m4a', '.aac', '.ogg']}
-                          buttonClassName="w-full bg-music-dark border-2 border-dashed border-gray-600 hover:border-music-accent text-gray-300 hover:text-white py-6 sm:py-8 rounded-lg transition-all"
+                          buttonClassName="w-full bg-music-dark border-2 border-dashed border-gray-600 hover:border-music-accent text-gray-300 hover:text-white min-h-[120px] rounded-lg transition-all flex items-center justify-center"
                         >
-                          <div className="flex flex-col items-center space-y-2 sm:space-y-3 px-4">
-                            <AudioWaveform className="h-6 w-6 sm:h-8 sm:w-8 text-music-accent flex-shrink-0" />
-                            <div className="text-center">
-                              <p className="text-sm sm:text-base font-semibold">Click to upload audio file</p>
-                              <p className="text-xs sm:text-sm text-gray-400">Supports MP3, WAV, M4A, AAC, OGG (max 50MB)</p>
+                          <div className="flex flex-col items-center justify-center space-y-3 px-4 py-4">
+                            <AudioWaveform className="h-8 w-8 text-music-accent flex-shrink-0" />
+                            <div className="text-center space-y-1">
+                              <p className="text-base font-semibold">Click to upload audio file</p>
+                              <p className="text-sm text-gray-400">Supports MP3, WAV, M4A, AAC, OGG (max 50MB)</p>
                             </div>
                           </div>
                         </ObjectUploader>
