@@ -368,10 +368,10 @@ export default function Home() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Tab Navigation */}
         <Tabs defaultValue="textToMusic" className="mb-8">
-          <TabsList className="bg-music-secondary p-2 border border-gray-700 grid w-full grid-cols-3">
+          <TabsList className="bg-music-secondary p-2 border border-gray-700 grid w-full grid-cols-3 h-12">
             <TabsTrigger 
               value="textToMusic"
-              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white"
+              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white flex items-center justify-center h-8 rounded-md transition-all"
               data-testid="tab-text-to-music"
             >
               <WandSparkles className="mr-2 h-4 w-4" />
@@ -379,7 +379,7 @@ export default function Home() {
             </TabsTrigger>
             <TabsTrigger 
               value="audioToMusic"
-              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white"
+              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white flex items-center justify-center h-8 rounded-md transition-all"
               data-testid="tab-audio-to-music"
             >
               <AudioWaveform className="mr-2 h-4 w-4" />
@@ -387,7 +387,7 @@ export default function Home() {
             </TabsTrigger>
             <TabsTrigger 
               value="myLibrary"
-              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white"
+              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white flex items-center justify-center h-8 rounded-md transition-all"
               data-testid="tab-my-library"
             >
               <Music className="mr-2 h-4 w-4" />
