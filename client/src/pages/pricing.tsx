@@ -134,33 +134,34 @@ export default function Pricing() {
                   </div>
                 </CardHeader>
                 
-                <CardContent className="flex flex-col flex-1">
-                  <div className="flex-1">
-                    <ul className="space-y-3 mb-8">
-                      {features.map((feature, index) => (
-                        <li key={index} className="flex items-start">
-                          <Check className="w-5 h-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
-                          <span className="text-gray-300">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div className="mt-auto pt-4">
-                    <Button 
-                      className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3`}
-                      data-testid={`button-select-${plan.name.toLowerCase()}`}
-                    >
-                      {plan.name === 'Free' ? 'Get Started Free' : `Choose ${plan.name}`}
-                    </Button>
-                    
-                    {plan.name !== 'Free' && (
-                      <p className="text-xs text-gray-500 text-center mt-3">
-                        Cancel anytime. No hidden fees.
-                      </p>
-                    )}
-                  </div>
+                <CardContent className="flex-1 pb-0">
+                  <ul className="space-y-3">
+                    {features.map((feature, index) => (
+                      <li key={index} className="flex items-start">
+                        <Check className="w-5 h-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
+                        <span className="text-gray-300">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </CardContent>
+                
+                {/* Button Footer - Fixed Position */}
+                <div className="p-6 pt-0 mt-auto">
+                  <Button 
+                    className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3`}
+                    data-testid={`button-select-${plan.name.toLowerCase()}`}
+                  >
+                    {plan.name === 'Free' ? 'Get Started Free' : `Choose ${plan.name}`}
+                  </Button>
+                  
+                  {plan.name !== 'Free' ? (
+                    <p className="text-xs text-gray-500 text-center mt-3">
+                      Cancel anytime. No hidden fees.
+                    </p>
+                  ) : (
+                    <div className="h-6 mt-3"></div>
+                  )}
+                </div>
               </Card>
             );
           })}
