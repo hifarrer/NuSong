@@ -64,7 +64,7 @@ export default function AdminUserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string>("");
+  const [selectedPlan, setSelectedPlan] = useState<string>("free");
   const [planStatus, setPlanStatus] = useState<string>("active");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -198,7 +198,7 @@ export default function AdminUserManagement() {
 
   const handleManagePlan = (user: User) => {
     setSelectedUser(user);
-    setSelectedPlan(user.subscriptionPlanId || "");
+    setSelectedPlan(user.subscriptionPlanId || "free");
     setPlanStatus(user.planStatus || "free");
     setPlanDialogOpen(true);
   };
@@ -208,8 +208,8 @@ export default function AdminUserManagement() {
     
     updatePlanMutation.mutate({
       id: selectedUser.id,
-      planId: selectedPlan === "" ? null : selectedPlan,
-      status: selectedPlan === "" ? "free" : planStatus,
+      planId: selectedPlan === "free" ? null : selectedPlan,
+      status: selectedPlan === "free" ? "free" : planStatus,
     });
   };
 
@@ -541,7 +541,7 @@ export default function AdminUserManagement() {
                   <SelectValue placeholder="Select a plan" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
-                  <SelectItem value="" className="text-gray-300">Free Plan</SelectItem>
+                  <SelectItem value="free" className="text-gray-300">Free Plan</SelectItem>
                   {subscriptionPlans
                     .filter((plan: SubscriptionPlan) => plan.isActive)
                     .map((plan: SubscriptionPlan) => (
@@ -554,7 +554,7 @@ export default function AdminUserManagement() {
             </div>
 
             {/* Plan Status */}
-            {selectedPlan && (
+            {selectedPlan && selectedPlan !== "free" && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-300">Plan Status</label>
                 <Select value={planStatus} onValueChange={setPlanStatus}>
