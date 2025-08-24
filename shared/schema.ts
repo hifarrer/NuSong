@@ -206,6 +206,14 @@ export const updateSiteSettingSchema = insertSiteSettingSchema.partial().omit({
   key: true,
 });
 
+// Admin user management schemas
+export const updateUserSchema = z.object({
+  firstName: z.string().min(1, "First name is required").optional(),
+  lastName: z.string().min(1, "Last name is required").optional(),
+  email: z.string().email("Invalid email address").optional(),
+  emailVerified: z.boolean().optional(),
+});
+
 export type AdminLogin = z.infer<typeof adminLoginSchema>;
 export type InsertAdminUserForm = z.infer<typeof insertAdminUserSchema>;
 export type UpdateAdminUserForm = z.infer<typeof updateAdminUserSchema>;
@@ -213,3 +221,4 @@ export type InsertSubscriptionPlanForm = z.infer<typeof insertSubscriptionPlanSc
 export type UpdateSubscriptionPlanForm = z.infer<typeof updateSubscriptionPlanSchema>;
 export type InsertSiteSettingForm = z.infer<typeof insertSiteSettingSchema>;
 export type UpdateSiteSettingForm = z.infer<typeof updateSiteSettingSchema>;
+export type UpdateUser = z.infer<typeof updateUserSchema>;

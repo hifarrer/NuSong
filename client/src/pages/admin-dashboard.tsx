@@ -2,7 +2,7 @@ import { useLocation } from "wouter";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminDashboardContent } from "@/components/admin/AdminDashboardContent";
-import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
+import AdminUserManagement from "@/components/admin/AdminUserManagement";
 import { AdminPlanManagement } from "@/components/admin/AdminPlanManagement";
 import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings";
 import { AdminMusicTracks } from "@/components/admin/AdminMusicTracks";

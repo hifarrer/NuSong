@@ -1,411 +1,371 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { apiRequest } from "@/lib/queryClient";
-import { 
-  insertAdminUserSchema, 
-  updateAdminUserSchema,
-  type AdminUser,
-  type InsertAdminUserForm,
-  type UpdateAdminUserForm
-} from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { UserPlus, Edit, Trash2, Check, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Edit, Trash2, UserCheck, UserX, Mail, Calendar, Music } from "lucide-react";
+import { format } from "date-fns";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
-export function AdminUserManagement() {
-  const queryClient = useQueryClient();
+const updateUserSchema = z.object({
+  firstName: z.string().min(1, "First name is required").optional(),
+  lastName: z.string().min(1, "Last name is required").optional(),
+  email: z.string().email("Invalid email address").optional(),
+  emailVerified: z.boolean().optional(),
+});
+
+type UpdateUserForm = z.infer<typeof updateUserSchema>;
+
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  generationCount?: number;
+}
+
+export default function AdminUserManagement() {
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const queryClient = useQueryClient();
 
-  const { data: users, isLoading } = useQuery<AdminUser[]>({
-    queryKey: ["/api/admin/users"],
-  });
-
-  const createForm = useForm<InsertAdminUserForm>({
-    resolver: zodResolver(insertAdminUserSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-      email: "",
-      role: "admin",
-      isActive: true,
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ["/api/admin/regular-users"],
+    queryFn: async () => {
+      const response = await apiRequest("/api/admin/regular-users", "GET");
+      return response.json();
     },
   });
 
-  const editForm = useForm<UpdateAdminUserForm>({
-    resolver: zodResolver(updateAdminUserSchema),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: InsertAdminUserForm) => {
-      return apiRequest("/api/admin/users", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: UpdateUserForm }) => {
+      const response = await apiRequest(`/api/admin/regular-users/${id}`, "PUT", updates);
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      setIsCreateDialogOpen(false);
-      createForm.reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/regular-users"] });
+      setEditDialogOpen(false);
+      setSelectedUser(null);
       toast({
-        title: "Success",
-        description: "Admin user created successfully",
+        title: "User Updated",
+        description: "User has been updated successfully.",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create user",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: UpdateAdminUserForm }) => {
-      return apiRequest(`/api/admin/users/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      setEditingUser(null);
-      editForm.reset();
-      toast({
-        title: "Success",
-        description: "Admin user updated successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
+        title: "Update Failed",
         description: error.message || "Failed to update user",
         variant: "destructive",
       });
     },
   });
 
-  const onCreateSubmit = (data: InsertAdminUserForm) => {
-    createMutation.mutate(data);
-  };
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest(`/api/admin/regular-users/${id}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/regular-users"] });
+      toast({
+        title: "User Deleted",
+        description: "User and all their data have been permanently deleted.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const onEditSubmit = (data: UpdateAdminUserForm) => {
-    if (editingUser) {
-      updateMutation.mutate({ id: editingUser.id, data });
-    }
-  };
+  const editForm = useForm<UpdateUserForm>({
+    resolver: zodResolver(updateUserSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      emailVerified: false,
+    },
+  });
 
-  const startEdit = (user: AdminUser) => {
-    setEditingUser(user);
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
     editForm.reset({
-      email: user.email || "",
-      role: user.role,
-      isActive: user.isActive,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      emailVerified: user.emailVerified,
     });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateUser = (data: UpdateUserForm) => {
+    if (!selectedUser) return;
+    
+    // Only send changed fields
+    const changes: UpdateUserForm = {};
+    if (data.firstName !== selectedUser.firstName) changes.firstName = data.firstName;
+    if (data.lastName !== selectedUser.lastName) changes.lastName = data.lastName;
+    if (data.email !== selectedUser.email) changes.email = data.email;
+    if (data.emailVerified !== selectedUser.emailVerified) changes.emailVerified = data.emailVerified;
+
+    if (Object.keys(changes).length === 0) {
+      setEditDialogOpen(false);
+      return;
+    }
+
+    updateUserMutation.mutate({ id: selectedUser.id, updates: changes });
+  };
+
+  const handleDeleteUser = (id: string) => {
+    deleteUserMutation.mutate(id);
   };
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-800 rounded w-1/4" />
-          <div className="h-32 bg-gray-800 rounded" />
-        </div>
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-400">Loading users...</div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white">User Management</h1>
-          <p className="text-gray-400 mt-2">Manage admin users and permissions</p>
+          <h2 className="text-2xl font-bold text-white">User Management</h2>
+          <p className="text-gray-400">Manage regular users, edit their information, and handle subscriptions</p>
         </div>
-        
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-create-user">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Admin User
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-800">
-            <DialogHeader>
-              <DialogTitle className="text-white">Create Admin User</DialogTitle>
-              <DialogDescription className="text-gray-400">
-                Add a new admin user to the system
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username" className="text-gray-300">Username</Label>
-                <Input
-                  id="username"
-                  placeholder="Enter username"
-                  className="bg-gray-800 border-gray-700 text-gray-300"
-                  {...createForm.register("username")}
-                  data-testid="input-create-username"
-                />
-                {createForm.formState.errors.username && (
-                  <p className="text-sm text-red-400">
-                    {createForm.formState.errors.username.message}
-                  </p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-300">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter password"
-                  className="bg-gray-800 border-gray-700 text-gray-300"
-                  {...createForm.register("password")}
-                  data-testid="input-create-password"
-                />
-                {createForm.formState.errors.password && (
-                  <p className="text-sm text-red-400">
-                    {createForm.formState.errors.password.message}
-                  </p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-300">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter email"
-                  className="bg-gray-800 border-gray-700 text-gray-300"
-                  {...createForm.register("email")}
-                  data-testid="input-create-email"
-                />
-                {createForm.formState.errors.email && (
-                  <p className="text-sm text-red-400">
-                    {createForm.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-gray-300">Role</Label>
-                <Select 
-                  value={createForm.watch("role")} 
-                  onValueChange={(value) => createForm.setValue("role", value as "admin" | "super_admin")}
-                >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-300" data-testid="select-create-role">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="super_admin">Super Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsCreateDialogOpen(false)}
-                  data-testid="button-cancel-create"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createMutation.isPending}
-                  className="bg-purple-600 hover:bg-purple-700"
-                  data-testid="button-submit-create"
-                >
-                  {createMutation.isPending ? "Creating..." : "Create User"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Badge variant="outline" className="text-purple-400 border-purple-500">
+          {users.length} Total Users
+        </Badge>
       </div>
 
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900/50 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white">Admin Users</CardTitle>
+          <CardTitle className="text-white">All Users</CardTitle>
           <CardDescription className="text-gray-400">
-            List of all admin users in the system
+            View and manage all registered users on the platform
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-800">
-                <TableHead className="text-gray-300">Username</TableHead>
-                <TableHead className="text-gray-300">Email</TableHead>
-                <TableHead className="text-gray-300">Role</TableHead>
-                <TableHead className="text-gray-300">Status</TableHead>
-                <TableHead className="text-gray-300">Last Login</TableHead>
-                <TableHead className="text-gray-300">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users?.map((user) => (
-                <TableRow key={user.id} className="border-gray-800">
-                  <TableCell className="text-white font-medium">
-                    {user.username}
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    {user.email || "-"}
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      user.role === "super_admin" 
-                        ? "bg-purple-500/20 text-purple-400" 
-                        : "bg-blue-500/20 text-blue-400"
-                    }`}>
-                      {user.role === "super_admin" ? "Super Admin" : "Admin"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      user.isActive 
-                        ? "bg-green-500/20 text-green-400" 
-                        : "bg-red-500/20 text-red-400"
-                    }`}>
-                      {user.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    {user.lastLoginAt 
-                      ? new Date(user.lastLoginAt).toLocaleDateString()
-                      : "Never"
-                    }
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startEdit(user)}
-                        className="text-blue-400 hover:bg-blue-500/10"
-                        data-testid={`button-edit-${user.id}`}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-700">
+                  <TableHead className="text-gray-300">User</TableHead>
+                  <TableHead className="text-gray-300">Email Status</TableHead>
+                  <TableHead className="text-gray-300">Generations</TableHead>
+                  <TableHead className="text-gray-300">Joined</TableHead>
+                  <TableHead className="text-gray-300">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((user: User) => (
+                  <TableRow key={user.id} className="border-gray-700">
+                    <TableCell>
+                      <div>
+                        <div className="font-medium text-white">
+                          {user.firstName} {user.lastName}
+                        </div>
+                        <div className="text-sm text-gray-400">{user.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {user.emailVerified ? (
+                          <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                            <UserCheck className="w-3 h-3 mr-1" />
+                            Verified
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-orange-400 border-orange-500">
+                            <UserX className="w-3 h-3 mr-1" />
+                            Unverified
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-gray-300">
+                        <Music className="w-4 h-4" />
+                        <span>{user.generationCount || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-gray-400">
+                        <Calendar className="w-4 h-4" />
+                        {format(new Date(user.createdAt), 'MMM d, yyyy')}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                          className="text-blue-400 border-blue-500 hover:bg-blue-500/10"
+                          data-testid={`button-edit-user-${user.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-400 border-red-500 hover:bg-red-500/10"
+                              data-testid={`button-delete-user-${user.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-gray-900 border-gray-700">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-white">Delete User</AlertDialogTitle>
+                              <AlertDialogDescription className="text-gray-400">
+                                Are you sure you want to delete <strong>{user.firstName} {user.lastName}</strong>?
+                                This will permanently delete their account and all associated data including their music generations.
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="bg-gray-700 text-white border-gray-600">
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                                data-testid={`confirm-delete-user-${user.id}`}
+                              >
+                                Delete User
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            
+            {users.length === 0 && (
+              <div className="text-center py-8 text-gray-400">
+                No users found
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent className="bg-gray-900 border-gray-800">
+      {/* Edit User Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700">
           <DialogHeader>
-            <DialogTitle className="text-white">Edit Admin User</DialogTitle>
+            <DialogTitle className="text-white">Edit User</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Update admin user information
+              Update user information and account settings
             </DialogDescription>
           </DialogHeader>
-          {editingUser && (
-            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-email" className="text-gray-300">Email</Label>
+          
+          <form onSubmit={editForm.handleSubmit(handleUpdateUser)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName" className="text-gray-300">First Name</Label>
                 <Input
-                  id="edit-email"
-                  type="email"
-                  placeholder="Enter email"
-                  className="bg-gray-800 border-gray-700 text-gray-300"
-                  {...editForm.register("email")}
-                  data-testid="input-edit-email"
+                  id="firstName"
+                  {...editForm.register("firstName")}
+                  className="bg-gray-800 border-gray-600 text-white"
+                  data-testid="input-edit-firstName"
                 />
+                {editForm.formState.errors.firstName && (
+                  <p className="text-red-400 text-sm mt-1">
+                    {editForm.formState.errors.firstName.message}
+                  </p>
+                )}
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-gray-300">Role</Label>
-                <Select 
-                  value={editForm.watch("role")} 
-                  onValueChange={(value) => editForm.setValue("role", value as "admin" | "super_admin")}
-                >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-300" data-testid="select-edit-role">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="super_admin">Super Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-new-password" className="text-gray-300">New Password (optional)</Label>
+              
+              <div>
+                <Label htmlFor="lastName" className="text-gray-300">Last Name</Label>
                 <Input
-                  id="edit-new-password"
-                  type="password"
-                  placeholder="Enter new password"
-                  className="bg-gray-800 border-gray-700 text-gray-300"
-                  {...editForm.register("newPassword")}
-                  data-testid="input-edit-password"
+                  id="lastName"
+                  {...editForm.register("lastName")}
+                  className="bg-gray-800 border-gray-600 text-white"
+                  data-testid="input-edit-lastName"
                 />
+                {editForm.formState.errors.lastName && (
+                  <p className="text-red-400 text-sm mt-1">
+                    {editForm.formState.errors.lastName.message}
+                  </p>
+                )}
               </div>
+            </div>
 
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setEditingUser(null)}
-                  data-testid="button-cancel-edit"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={updateMutation.isPending}
-                  className="bg-purple-600 hover:bg-purple-700"
-                  data-testid="button-submit-edit"
-                >
-                  {updateMutation.isPending ? "Updating..." : "Update User"}
-                </Button>
-              </div>
-            </form>
-          )}
+            <div>
+              <Label htmlFor="email" className="text-gray-300">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                {...editForm.register("email")}
+                className="bg-gray-800 border-gray-600 text-white"
+                data-testid="input-edit-email"
+              />
+              {editForm.formState.errors.email && (
+                <p className="text-red-400 text-sm mt-1">
+                  {editForm.formState.errors.email.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="emailVerified"
+                checked={editForm.watch("emailVerified")}
+                onCheckedChange={(checked) => editForm.setValue("emailVerified", checked)}
+                data-testid="switch-email-verified"
+              />
+              <Label htmlFor="emailVerified" className="text-gray-300">
+                Email Verified
+              </Label>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+                className="border-gray-600 text-gray-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateUserMutation.isPending}
+                className="bg-purple-600 hover:bg-purple-700"
+                data-testid="button-save-user-changes"
+              >
+                {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

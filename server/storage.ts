@@ -35,6 +35,12 @@ export interface IStorage {
   verifyUserEmail(token: string): Promise<User | null>;
   getUserByVerificationToken(token: string): Promise<User | undefined>;
   
+  // Admin user management operations
+  getAllUsers(): Promise<User[]>;
+  updateUser(userId: string, updates: Partial<User>): Promise<User>;
+  deleteUser(userId: string): Promise<void>;
+  getUserWithGenerationCount(userId: string): Promise<User & { generationCount: number } | undefined>;
+  
   // Music generation operations
   createTextToMusicGeneration(userId: string, data: InsertTextToMusic): Promise<MusicGeneration>;
   createAudioToMusicGeneration(userId: string, data: InsertAudioToMusic): Promise<MusicGeneration>;
@@ -195,6 +201,63 @@ export class DatabaseStorage implements IStorage {
         )
       );
     return user;
+  }
+
+  // Admin user management operations
+  async getAllUsers(): Promise<User[]> {
+    const allUsers = await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt));
+    return allUsers;
+  }
+
+  async updateUser(userId: string, updates: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    // First delete all user's music generations
+    await db.delete(musicGenerations).where(eq(musicGenerations.userId, userId));
+    
+    // Then delete the user
+    await db.delete(users).where(eq(users.id, userId));
+  }
+
+  async getUserWithGenerationCount(userId: string): Promise<User & { generationCount: number } | undefined> {
+    const result = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        passwordHash: users.passwordHash,
+        profileImageUrl: users.profileImageUrl,
+        emailVerified: users.emailVerified,
+        emailVerificationToken: users.emailVerificationToken,
+        emailVerificationExpiry: users.emailVerificationExpiry,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        generationCount: count(musicGenerations.id).as("generationCount"),
+      })
+      .from(users)
+      .leftJoin(musicGenerations, eq(users.id, musicGenerations.userId))
+      .where(eq(users.id, userId))
+      .groupBy(users.id);
+
+    const [user] = result;
+    return user ? {
+      ...user,
+      generationCount: Number(user.generationCount)
+    } : undefined;
   }
 
   // Music generation operations

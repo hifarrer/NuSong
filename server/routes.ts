@@ -14,6 +14,7 @@ import {
   updateSubscriptionPlanSchema,
   insertSiteSettingSchema,
   updateSiteSettingSchema,
+  updateUserSchema,
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { z } from "zod";
@@ -670,6 +671,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error changing admin password:', error);
       res.status(500).json({ message: 'Failed to change password' });
+    }
+  });
+
+  // ===== REGULAR USER MANAGEMENT ROUTES (Admin Only) =====
+  
+  // Get all regular users
+  app.get('/api/admin/regular-users', isAdminAuthenticated, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Remove password hash from response for security
+      const userList = users.map(({ passwordHash, ...user }) => user);
+      res.json(userList);
+    } catch (error) {
+      console.error('Error fetching regular users:', error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+
+  // Get single regular user with generation count
+  app.get('/api/admin/regular-users/:id', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await storage.getUserWithGenerationCount(id);
+      
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Remove password hash from response
+      const { passwordHash, ...userResponse } = user;
+      res.json(userResponse);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      res.status(500).json({ message: 'Failed to fetch user' });
+    }
+  });
+
+  // Update regular user
+  app.put('/api/admin/regular-users/:id', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = updateUserSchema.parse(req.body);
+
+      // Check if user exists
+      const existingUser = await storage.getUserById(id);
+      if (!existingUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // If email is being updated, check for conflicts
+      if (updates.email && updates.email !== existingUser.email) {
+        const emailConflict = await storage.getUserByEmail(updates.email);
+        if (emailConflict && emailConflict.id !== id) {
+          return res.status(400).json({ message: 'Email already in use' });
+        }
+      }
+
+      const updatedUser = await storage.updateUser(id, updates);
+      
+      // Remove password hash from response
+      const { passwordHash, ...userResponse } = updatedUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid input data' });
+      }
+      res.status(500).json({ message: 'Failed to update user' });
+    }
+  });
+
+  // Delete regular user
+  app.delete('/api/admin/regular-users/:id', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Check if user exists
+      const existingUser = await storage.getUserById(id);
+      if (!existingUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      await storage.deleteUser(id);
+      res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      res.status(500).json({ message: 'Failed to delete user' });
     }
   });
 
