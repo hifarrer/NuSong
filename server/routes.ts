@@ -693,6 +693,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user subscription plan
+  app.put('/api/admin/regular-users/:id/plan', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { planId, status } = req.body;
+
+      // Check if user exists
+      const existingUser = await storage.getUserById(id);
+      if (!existingUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Validate plan if provided
+      if (planId) {
+        const plan = await storage.getSubscriptionPlan(planId);
+        if (!plan) {
+          return res.status(400).json({ message: 'Invalid subscription plan' });
+        }
+      }
+
+      // Prepare update data
+      const updates: any = {
+        subscriptionPlanId: planId || null,
+        planStatus: status || (planId ? 'active' : 'free'),
+        generationsUsedThisMonth: 0, // Reset usage when changing plans
+      };
+
+      // Set plan dates if activating a plan
+      if (planId && status === 'active') {
+        updates.planStartDate = new Date();
+        // Set end date 30 days from now
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + 30);
+        updates.planEndDate = endDate;
+      } else if (!planId || status === 'free') {
+        updates.planStartDate = null;
+        updates.planEndDate = null;
+      }
+
+      const updatedUser = await storage.updateUser(id, updates);
+      
+      // Remove password hash from response
+      const { passwordHash, ...userResponse } = updatedUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error('Error updating user plan:', error);
+      res.status(500).json({ message: 'Failed to update user plan' });
+    }
+  });
+
   // ===== REGULAR USER MANAGEMENT ROUTES (Admin Only) =====
   
   // Get all regular users

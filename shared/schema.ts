@@ -36,6 +36,11 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   emailVerificationToken: varchar("email_verification_token"),
   emailVerificationExpiry: timestamp("email_verification_expiry"),
+  subscriptionPlanId: varchar("subscription_plan_id").references(() => subscriptionPlans.id),
+  planStatus: varchar("plan_status").notNull().default("free"), // free, active, expired, cancelled
+  generationsUsedThisMonth: integer("generations_used_this_month").notNull().default(0),
+  planStartDate: timestamp("plan_start_date"),
+  planEndDate: timestamp("plan_end_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -212,6 +217,10 @@ export const updateUserSchema = z.object({
   lastName: z.string().min(1, "Last name is required").optional(),
   email: z.string().email("Invalid email address").optional(),
   emailVerified: z.boolean().optional(),
+  subscriptionPlanId: z.string().optional(),
+  planStatus: z.enum(["free", "active", "expired", "cancelled"]).optional(),
+  planStartDate: z.string().optional(), // ISO string date
+  planEndDate: z.string().optional(), // ISO string date
 });
 
 export type AdminLogin = z.infer<typeof adminLoginSchema>;

@@ -232,7 +232,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(users).where(eq(users.id, userId));
   }
 
-  async getUserWithGenerationCount(userId: string): Promise<User & { generationCount: number } | undefined> {
+  async getUserWithGenerationCount(userId: string): Promise<User & { generationCount: number, subscriptionPlan?: SubscriptionPlan } | undefined> {
     const result = await db
       .select({
         id: users.id,
@@ -244,20 +244,57 @@ export class DatabaseStorage implements IStorage {
         emailVerified: users.emailVerified,
         emailVerificationToken: users.emailVerificationToken,
         emailVerificationExpiry: users.emailVerificationExpiry,
+        subscriptionPlanId: users.subscriptionPlanId,
+        planStatus: users.planStatus,
+        generationsUsedThisMonth: users.generationsUsedThisMonth,
+        planStartDate: users.planStartDate,
+        planEndDate: users.planEndDate,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         generationCount: count(musicGenerations.id).as("generationCount"),
+        planName: subscriptionPlans.name,
+        planDescription: subscriptionPlans.description,
+        maxGenerations: subscriptionPlans.maxGenerations,
       })
       .from(users)
       .leftJoin(musicGenerations, eq(users.id, musicGenerations.userId))
+      .leftJoin(subscriptionPlans, eq(users.subscriptionPlanId, subscriptionPlans.id))
       .where(eq(users.id, userId))
-      .groupBy(users.id);
+      .groupBy(
+        users.id,
+        users.email,
+        users.firstName,
+        users.lastName,
+        users.passwordHash,
+        users.profileImageUrl,
+        users.emailVerified,
+        users.emailVerificationToken,
+        users.emailVerificationExpiry,
+        users.subscriptionPlanId,
+        users.planStatus,
+        users.generationsUsedThisMonth,
+        users.planStartDate,
+        users.planEndDate,
+        users.createdAt,
+        users.updatedAt,
+        subscriptionPlans.name,
+        subscriptionPlans.description,
+        subscriptionPlans.maxGenerations
+      );
 
     const [user] = result;
-    return user ? {
+    if (!user) return undefined;
+
+    return {
       ...user,
-      generationCount: Number(user.generationCount)
-    } : undefined;
+      generationCount: Number(user.generationCount),
+      subscriptionPlan: user.planName ? {
+        id: user.subscriptionPlanId!,
+        name: user.planName,
+        description: user.planDescription,
+        maxGenerations: user.maxGenerations,
+      } as any : undefined
+    };
   }
 
   // Music generation operations
