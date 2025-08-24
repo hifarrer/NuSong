@@ -583,6 +583,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to update track title' });
     }
   });
+
+  // Delete track endpoint
+  app.delete('/api/admin/tracks/:id', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if track exists
+      const existingTrack = await storage.getMusicGeneration(id);
+      if (!existingTrack) {
+        return res.status(404).json({ message: 'Track not found' });
+      }
+      
+      await storage.deleteMusicGeneration(id);
+      res.json({ message: 'Track deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting track:', error);
+      res.status(500).json({ message: 'Failed to delete track' });
+    }
+  });
   
   // Site settings management
   app.get('/api/admin/settings', isAdminAuthenticated, async (req, res) => {

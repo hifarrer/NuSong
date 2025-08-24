@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Music, Eye, EyeOff, Search, Filter, WandSparkles, AudioWaveform, Edit3, Check, X, Download } from "lucide-react";
+import { Music, Eye, EyeOff, Search, Filter, WandSparkles, AudioWaveform, Edit3, Check, X, Download, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { MusicGeneration } from "@shared/schema";
 
 export function AdminMusicTracks() {
@@ -73,6 +74,27 @@ export function AdminMusicTracks() {
       toast({
         title: "Update Failed",
         description: "Failed to update track title.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete track mutation
+  const deleteTrackMutation = useMutation({
+    mutationFn: async (trackId: string) => {
+      await apiRequest(`/api/admin/tracks/${trackId}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tracks"] });
+      toast({
+        title: "Track Deleted",
+        description: "Track has been permanently deleted.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete track.",
         variant: "destructive",
       });
     },
@@ -151,6 +173,10 @@ export function AdminMusicTracks() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleDeleteTrack = (trackId: string) => {
+    deleteTrackMutation.mutate(trackId);
   };
 
   // Filter tracks based on search and filters
@@ -416,6 +442,42 @@ export function AdminMusicTracks() {
                         Download
                       </Button>
                     )}
+
+                    {/* Delete Button */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-400 hover:text-red-300 border-red-400 hover:border-red-300"
+                          data-testid={`button-delete-track-${track.id}`}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-gray-900 border-gray-700">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-white">Delete Track</AlertDialogTitle>
+                          <AlertDialogDescription className="text-gray-400">
+                            Are you sure you want to delete <strong>"{track.title || 'Untitled Track'}"</strong>?
+                            This will permanently remove the track and cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-gray-700 text-white border-gray-600">
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteTrack(track.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                            data-testid={`confirm-delete-track-${track.id}`}
+                          >
+                            Delete Track
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                     
                     {/* Gallery Visibility Toggle */}
                     {track.visibility === "public" && track.status === "completed" && (
