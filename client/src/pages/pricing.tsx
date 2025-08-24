@@ -80,7 +80,7 @@ export default function Pricing() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
+        <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto items-stretch">
           {plans.map((plan) => {
             const IconComponent = getPlanIcon(plan.name);
             const gradientColor = getPlanColor(plan.name);
@@ -90,7 +90,7 @@ export default function Pricing() {
             return (
               <Card 
                 key={plan.id} 
-                className={`bg-gray-800/50 border-gray-700 backdrop-blur-sm relative ${
+                className={`bg-gray-800/50 border-gray-700 backdrop-blur-sm relative flex flex-col h-full ${
                   isPopular ? 'ring-2 ring-purple-500 scale-105' : ''
                 }`}
                 data-testid={`card-plan-${plan.name.toLowerCase()}`}
@@ -134,8 +134,8 @@ export default function Pricing() {
                   </div>
                 </CardHeader>
                 
-                <CardContent>
-                  <ul className="space-y-3 mb-8">
+                <CardContent className="flex flex-col flex-grow">
+                  <ul className="space-y-3 mb-8 flex-grow">
                     {features.map((feature, index) => (
                       <li key={index} className="flex items-start">
                         <Check className="w-5 h-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
@@ -144,18 +144,20 @@ export default function Pricing() {
                     ))}
                   </ul>
                   
-                  <Button 
-                    className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3`}
-                    data-testid={`button-select-${plan.name.toLowerCase()}`}
-                  >
-                    {plan.name === 'Free' ? 'Get Started Free' : `Choose ${plan.name}`}
-                  </Button>
-                  
-                  {plan.name !== 'Free' && (
-                    <p className="text-xs text-gray-500 text-center mt-3">
-                      Cancel anytime. No hidden fees.
-                    </p>
-                  )}
+                  <div className="mt-auto">
+                    <Button 
+                      className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3`}
+                      data-testid={`button-select-${plan.name.toLowerCase()}`}
+                    >
+                      {plan.name === 'Free' ? 'Get Started Free' : `Choose ${plan.name}`}
+                    </Button>
+                    
+                    {plan.name !== 'Free' && (
+                      <p className="text-xs text-gray-500 text-center mt-3">
+                        Cancel anytime. No hidden fees.
+                      </p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
