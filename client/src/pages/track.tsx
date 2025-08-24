@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AudioPlayer } from "@/components/ui/audio-player";
-import { Music, Share2, Download, Home, Clock, Tags, User, Eye } from "lucide-react";
+import { Music, Share2, Home, Clock, Tags, User, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { MusicGeneration } from "@shared/schema";
@@ -41,29 +41,7 @@ export default function TrackPage() {
     }
   };
 
-  const handleDownload = () => {
-    if (!track?.audioUrl) return;
-    
-    try {
-      const link = document.createElement('a');
-      link.href = track.audioUrl;
-      link.download = `${track.title || 'Untitled Track'}.mp3`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast({
-        title: "Download Started",
-        description: `Downloading "${track.title || 'Untitled Track'}"...`,
-      });
-    } catch (error) {
-      toast({
-        title: "Download Failed",
-        description: "Failed to download the track.",
-        variant: "destructive",
-      });
-    }
-  };
+
 
   if (isLoading) {
     return (
@@ -197,19 +175,6 @@ export default function TrackPage() {
                       <Share2 className="w-4 h-4 mr-2" />
                       Share
                     </Button>
-                    
-                    {track.audioUrl && track.status === "completed" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleDownload}
-                        className="text-green-400 hover:text-green-300 border-green-400 hover:border-green-300"
-                        data-testid="button-download-track"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </Button>
-                    )}
                   </div>
                 </div>
               </CardHeader>
