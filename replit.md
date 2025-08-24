@@ -60,6 +60,7 @@ The platform offers three subscription tiers:
 - **AI Service**: FAL.ai for music generation using the ace-step model
 - **Database**: Neon PostgreSQL for data persistence
 - **Authentication**: Custom database-driven auth system with bcrypt password hashing
+- **Email Service**: Resend for transactional email delivery (verification and welcome emails)
 - **Font Services**: Google Fonts for typography (Inter, Architects Daughter, DM Sans, Fira Code, Geist Mono)
 - **Development**: Replit-specific tooling for development environment integration
 
@@ -73,7 +74,9 @@ The platform offers three subscription tiers:
 
 **Database Design**: Normalized schema with separate tables for users, sessions, music generations, admin users, subscription plans, and site settings to support scalability.
 
-**Authentication System**: Custom-built authentication with secure password hashing, session management, and comprehensive form validation.
+**Authentication System**: Custom-built authentication with secure password hashing, session management, email verification requirements, and comprehensive form validation.
+
+**Email Verification**: Mandatory email verification system using Resend service with professional branded email templates, token-based verification, and automated welcome emails.
 
 **Error Handling**: Centralized error handling with structured responses and proper HTTP status codes.
 

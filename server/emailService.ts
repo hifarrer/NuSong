@@ -1,0 +1,202 @@
+import { Resend } from 'resend';
+import { randomBytes } from 'crypto';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export class EmailService {
+  static generateVerificationToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+
+  static async sendVerificationEmail(
+    email: string, 
+    firstName: string, 
+    verificationToken: string
+  ): Promise<void> {
+    const verificationUrl = `https://numusic.app/verify-email/${verificationToken}`;
+    
+    const emailHtml = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Verify Your NuMusic Account</title>
+      <style>
+        body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #0a0a0a; color: #ffffff; }
+        .container { max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1a 0%, #2d1b69 100%); }
+        .header { padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%); }
+        .logo { font-size: 32px; font-weight: bold; color: #ffffff; margin: 0; letter-spacing: -1px; }
+        .content { padding: 40px 30px; }
+        .welcome { font-size: 24px; font-weight: bold; margin: 0 0 16px 0; color: #ffffff; }
+        .message { font-size: 16px; line-height: 1.6; margin: 0 0 32px 0; color: #e2e8f0; }
+        .button-container { text-align: center; margin: 32px 0; }
+        .verify-button { 
+          display: inline-block; 
+          padding: 16px 32px; 
+          background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); 
+          color: #ffffff; 
+          text-decoration: none; 
+          border-radius: 8px; 
+          font-size: 16px; 
+          font-weight: 600; 
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+          border: none;
+        }
+        .verify-button:hover { background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%); }
+        .fallback { margin: 32px 0; padding: 20px; background: #1e293b; border-radius: 8px; border-left: 4px solid #7c3aed; }
+        .fallback-text { font-size: 14px; color: #cbd5e1; margin: 0 0 12px 0; }
+        .fallback-link { word-break: break-all; color: #a855f7; text-decoration: none; font-family: monospace; font-size: 12px; }
+        .footer { padding: 30px; text-align: center; border-top: 1px solid #374151; background: #111827; }
+        .footer-text { font-size: 12px; color: #9ca3af; margin: 0; }
+        .security-note { margin: 24px 0; padding: 16px; background: #1f2937; border-radius: 6px; font-size: 14px; color: #d1d5db; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 class="logo">🎵 NuMusic</h1>
+        </div>
+        <div class="content">
+          <h2 class="welcome">Welcome to NuMusic, ${firstName}!</h2>
+          <p class="message">
+            Thank you for joining NuMusic, the AI-powered music generation platform. 
+            To complete your registration and start creating amazing music, please verify your email address.
+          </p>
+          
+          <div class="button-container">
+            <a href="${verificationUrl}" class="verify-button">Verify Email Address</a>
+          </div>
+          
+          <div class="fallback">
+            <p class="fallback-text">
+              If the button above doesn't work, copy and paste this link into your browser:
+            </p>
+            <a href="${verificationUrl}" class="fallback-link">${verificationUrl}</a>
+          </div>
+          
+          <div class="security-note">
+            <strong>Security Note:</strong> This verification link will expire in 24 hours. 
+            If you didn't create a NuMusic account, you can safely ignore this email.
+          </div>
+        </div>
+        <div class="footer">
+          <p class="footer-text">
+            © 2025 NuMusic. All rights reserved.<br>
+            This email was sent to ${email} because you signed up for a NuMusic account.
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    const emailText = `
+Welcome to NuMusic, ${firstName}!
+
+Thank you for joining NuMusic, the AI-powered music generation platform. To complete your registration and start creating amazing music, please verify your email address.
+
+Verify your email: ${verificationUrl}
+
+This verification link will expire in 24 hours. If you didn't create a NuMusic account, you can safely ignore this email.
+
+© 2025 NuMusic. All rights reserved.
+    `;
+
+    try {
+      await resend.emails.send({
+        from: 'NuMusic <noreply@numusic.app>',
+        to: email,
+        subject: 'Verify Your NuMusic Account',
+        html: emailHtml,
+        text: emailText,
+      });
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+      throw new Error('Failed to send verification email');
+    }
+  }
+
+  static async sendWelcomeEmail(email: string, firstName: string): Promise<void> {
+    const emailHtml = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Welcome to NuMusic!</title>
+      <style>
+        body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #0a0a0a; color: #ffffff; }
+        .container { max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1a 0%, #2d1b69 100%); }
+        .header { padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%); }
+        .logo { font-size: 32px; font-weight: bold; color: #ffffff; margin: 0; letter-spacing: -1px; }
+        .content { padding: 40px 30px; }
+        .welcome { font-size: 24px; font-weight: bold; margin: 0 0 16px 0; color: #ffffff; }
+        .message { font-size: 16px; line-height: 1.6; margin: 0 0 24px 0; color: #e2e8f0; }
+        .feature-list { list-style: none; padding: 0; margin: 24px 0; }
+        .feature-item { padding: 12px 0; color: #d1d5db; font-size: 16px; }
+        .feature-item:before { content: "🎵 "; margin-right: 8px; }
+        .button-container { text-align: center; margin: 32px 0; }
+        .get-started-button { 
+          display: inline-block; 
+          padding: 16px 32px; 
+          background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); 
+          color: #ffffff; 
+          text-decoration: none; 
+          border-radius: 8px; 
+          font-size: 16px; 
+          font-weight: 600; 
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+        .footer { padding: 30px; text-align: center; border-top: 1px solid #374151; background: #111827; }
+        .footer-text { font-size: 12px; color: #9ca3af; margin: 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 class="logo">🎵 NuMusic</h1>
+        </div>
+        <div class="content">
+          <h2 class="welcome">Welcome to NuMusic, ${firstName}!</h2>
+          <p class="message">
+            Your email has been verified and your account is now active! 
+            You're ready to start creating amazing AI-powered music.
+          </p>
+          
+          <ul class="feature-list">
+            <li class="feature-item">Generate music from text descriptions</li>
+            <li class="feature-item">Transform existing audio into new compositions</li>
+            <li class="feature-item">Create custom lyrics with AI assistance</li>
+            <li class="feature-item">Share your creations with the community</li>
+            <li class="feature-item">Build your personal music library</li>
+          </ul>
+          
+          <div class="button-container">
+            <a href="https://numusic.app/" class="get-started-button">Start Creating Music</a>
+          </div>
+        </div>
+        <div class="footer">
+          <p class="footer-text">
+            © 2025 NuMusic. All rights reserved.<br>
+            Happy music making!
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    try {
+      await resend.emails.send({
+        from: 'NuMusic <noreply@numusic.app>',
+        to: email,
+        subject: 'Welcome to NuMusic - Your Account is Ready!',
+        html: emailHtml,
+      });
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+      // Don't throw error for welcome email failures
+    }
+  }
+}

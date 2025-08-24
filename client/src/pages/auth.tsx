@@ -83,11 +83,22 @@ export default function Auth() {
       setLocation("/");
     },
     onError: (error: any) => {
-      toast({
-        title: "Login failed",
-        description: error.message || "Invalid email or password",
-        variant: "destructive",
-      });
+      // Handle email verification required case
+      if (error.message && error.message.includes("verify your email")) {
+        toast({
+          title: "Email Verification Required",
+          description: "Please check your email and click the verification link before logging in.",
+          variant: "destructive",
+        });
+        // Redirect to check-email page so user can resend if needed
+        setLocation("/check-email");
+      } else {
+        toast({
+          title: "Login failed",
+          description: error.message || "Invalid email or password",
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -96,13 +107,18 @@ export default function Auth() {
       const response = await apiRequest("/api/auth/register", "POST", data);
       return response.json();
     },
-    onSuccess: (user) => {
-      queryClient.setQueryData(["/api/auth/user"], user);
+    onSuccess: (result) => {
+      // Registration successful - redirect to check email page
+      // Save user info temporarily for the check-email page
+      localStorage.setItem("pendingVerificationEmail", result.email || "");
+      localStorage.setItem("pendingVerificationFirstName", result.firstName || "");
+      
       toast({
-        title: "Welcome!",
-        description: "Your account has been created successfully.",
+        title: "Registration Successful!",
+        description: "Please check your email to verify your account.",
       });
-      setLocation("/");
+      
+      setLocation("/check-email");
     },
     onError: (error: any) => {
       toast({

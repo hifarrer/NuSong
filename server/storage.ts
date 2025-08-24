@@ -31,6 +31,9 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserEmail(userId: string, newEmail: string): Promise<User | undefined>;
   updateUserPassword(userId: string, newPasswordHash: string): Promise<User | undefined>;
+  setEmailVerificationToken(userId: string, token: string, expiry: Date): Promise<void>;
+  verifyUserEmail(token: string): Promise<User | null>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
   
   // Music generation operations
   createTextToMusicGeneration(userId: string, data: InsertTextToMusic): Promise<MusicGeneration>;
@@ -136,6 +139,61 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(users.id, userId))
       .returning();
+    return user;
+  }
+
+  async setEmailVerificationToken(userId: string, token: string, expiry: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        emailVerificationToken: token,
+        emailVerificationExpiry: expiry,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async verifyUserEmail(token: string): Promise<User | null> {
+    // Find user with valid token
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.emailVerificationToken, token),
+          sql`${users.emailVerificationExpiry} > NOW()`
+        )
+      );
+
+    if (!user) {
+      return null;
+    }
+
+    // Update user to verified and clear token
+    const [verifiedUser] = await db
+      .update(users)
+      .set({
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpiry: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, user.id))
+      .returning();
+
+    return verifiedUser;
+  }
+
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.emailVerificationToken, token),
+          sql`${users.emailVerificationExpiry} > NOW()`
+        )
+      );
     return user;
   }
 

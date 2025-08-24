@@ -4,6 +4,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { storage } from './storage';
 import type { User } from '@shared/schema';
+import { EmailService } from './emailService';
 
 declare module 'express-session' {
   interface SessionData {
@@ -94,21 +95,35 @@ export function setupCustomAuth(app: Express) {
         return res.status(400).json({ message: 'Email already registered' });
       }
 
-      // Hash password and create user
+      // Hash password and create user (NOT verified by default)
       const passwordHash = await hashPassword(password);
       const user = await storage.createUser({
         firstName,
         lastName,
         email,
         passwordHash,
+        emailVerified: false,
       });
 
-      // Create session
-      req.session.userId = user.id;
+      // Generate and set verification token
+      const verificationToken = EmailService.generateVerificationToken();
+      const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      await storage.setEmailVerificationToken(user.id, verificationToken, tokenExpiry);
 
-      // Return user without password hash
-      const { passwordHash: _, ...userWithoutPassword } = user;
-      res.status(201).json(userWithoutPassword);
+      // Send verification email
+      try {
+        await EmailService.sendVerificationEmail(email, firstName, verificationToken);
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError);
+        // Still return success - user can request resend
+      }
+
+      // DO NOT create session - user must verify email first
+      res.status(201).json({ 
+        message: 'Registration successful. Please check your email to verify your account.',
+        email,
+        firstName
+      });
     } catch (error) {
       console.error('Registration error:', error);
       if (error instanceof z.ZodError) {
@@ -133,6 +148,14 @@ export function setupCustomAuth(app: Express) {
       const isValidPassword = await verifyPassword(password, user.passwordHash);
       if (!isValidPassword) {
         return res.status(401).json({ message: 'Invalid email or password' });
+      }
+
+      // Check if email is verified
+      if (!user.emailVerified) {
+        return res.status(403).json({ 
+          message: 'Please verify your email address before logging in. Check your inbox for the verification link.',
+          emailVerificationRequired: true
+        });
       }
 
       // Create session
@@ -172,6 +195,80 @@ export function setupCustomAuth(app: Express) {
       res.clearCookie('connect.sid');
       res.redirect('/');
     });
+  });
+
+  // Email verification route
+  app.get('/api/auth/verify-email/:token', async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+      
+      if (!token) {
+        return res.status(400).json({ message: 'Verification token is required' });
+      }
+
+      const verifiedUser = await storage.verifyUserEmail(token);
+      if (!verifiedUser) {
+        return res.status(400).json({ 
+          message: 'Invalid or expired verification token. Please request a new verification email.',
+          expired: true
+        });
+      }
+
+      // Send welcome email
+      try {
+        await EmailService.sendWelcomeEmail(verifiedUser.email, verifiedUser.firstName);
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        // Continue - verification was successful
+      }
+
+      // Return success with user info
+      const { passwordHash: _, ...userWithoutPassword } = verifiedUser;
+      res.json({ 
+        message: 'Email verified successfully! You can now log in to your account.',
+        user: userWithoutPassword,
+        verified: true
+      });
+    } catch (error) {
+      console.error('Email verification error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Resend verification email route
+  app.post('/api/auth/resend-verification', async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ message: 'Email is already verified' });
+      }
+
+      // Generate new verification token
+      const verificationToken = EmailService.generateVerificationToken();
+      const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      await storage.setEmailVerificationToken(user.id, verificationToken, tokenExpiry);
+
+      // Send verification email
+      await EmailService.sendVerificationEmail(user.email, user.firstName, verificationToken);
+
+      res.json({ 
+        message: 'Verification email sent. Please check your inbox.',
+        email: user.email
+      });
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      res.status(500).json({ message: 'Failed to send verification email' });
+    }
   });
 
   // Update user email route

@@ -33,6 +33,9 @@ export const users = pgTable("users", {
   lastName: varchar("last_name").notNull(),
   passwordHash: varchar("password_hash").notNull(),
   profileImageUrl: varchar("profile_image_url"),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  emailVerificationToken: varchar("email_verification_token"),
+  emailVerificationExpiry: timestamp("email_verification_expiry"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
