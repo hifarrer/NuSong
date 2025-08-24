@@ -549,8 +549,12 @@ export default function Home() {
                         className="w-full bg-gradient-to-r from-music-purple via-music-blue to-music-green hover:from-purple-600 hover:via-blue-600 hover:to-green-600 text-white py-4 text-lg font-bold transition-all transform hover:scale-[1.02] shadow-2xl disabled:opacity-50"
                         data-testid="button-generate"
                       >
-                        <WandSparkles className="mr-2 h-5 w-5" />
-                        Generate Music Track
+                        {generateTextToMusicMutation.isPending || isGenerating ? (
+                          <LoadingSpinner className="mr-2 h-5 w-5" />
+                        ) : (
+                          <WandSparkles className="mr-2 h-5 w-5" />
+                        )}
+                        {generateTextToMusicMutation.isPending || isGenerating ? "Generating..." : "Generate Music Track"}
                       </Button>
                     </form>
                   </CardContent>
@@ -561,16 +565,31 @@ export default function Home() {
               <div className="space-y-6">
                 {/* Loading State */}
                 {isGenerating && (
-                  <Card className="bg-music-secondary border-gray-700">
+                  <Card className="bg-music-secondary border-gray-700 border-2 border-music-purple/30 shadow-xl shadow-music-purple/20">
                     <CardContent className="pt-6 text-center">
-                      <div className="space-y-4">
-                        <div className="w-16 h-16 bg-gradient-to-br from-music-purple to-music-blue rounded-full flex items-center justify-center mx-auto animate-bounce">
-                          <WandSparkles className="text-2xl text-white" />
+                      <div className="space-y-6">
+                        <div className="relative">
+                          <div className="w-20 h-20 bg-gradient-to-br from-music-purple via-music-blue to-music-green rounded-full flex items-center justify-center mx-auto animate-pulse shadow-lg">
+                            <WandSparkles className="text-3xl text-white animate-spin" style={{animationDuration: '2s'}} />
+                          </div>
+                          <div className="absolute -inset-2 bg-gradient-to-r from-music-purple to-music-blue rounded-full blur opacity-20 animate-pulse"></div>
                         </div>
-                        <h3 className="text-xl font-bold">Creating Your Music...</h3>
-                        <p className="text-gray-400">This usually takes 30-60 seconds</p>
-                        <LoadingSpinner />
-                        <p className="text-sm text-gray-400">Processing your creative vision...</p>
+                        <div className="space-y-2">
+                          <h3 className="text-2xl font-bold text-white">Creating Your Music...</h3>
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="flex space-x-1">
+                              <div className="w-2 h-2 bg-music-purple rounded-full animate-bounce"></div>
+                              <div className="w-2 h-2 bg-music-blue rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                              <div className="w-2 h-2 bg-music-green rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 font-medium">This usually takes 30-60 seconds</p>
+                        </div>
+                        <div className="bg-gray-800/50 rounded-lg p-4">
+                          <p className="text-sm text-gray-400">🎵 Analyzing your inputs...</p>
+                          <p className="text-sm text-gray-400">🎼 Generating musical patterns...</p>
+                          <p className="text-sm text-gray-400">🎹 Composing your unique track...</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -824,8 +843,12 @@ export default function Home() {
                         className="w-full bg-gradient-to-r from-music-accent via-music-purple to-music-blue hover:from-purple-600 hover:via-blue-600 hover:to-green-600 text-white py-4 text-lg font-bold transition-all transform hover:scale-[1.02] shadow-2xl disabled:opacity-50"
                         data-testid="button-generate-audio"
                       >
-                        <AudioWaveform className="mr-2 h-5 w-5" />
-                        Transform Audio
+                        {generateAudioToMusicMutation.isPending || isGenerating ? (
+                          <LoadingSpinner className="mr-2 h-5 w-5" />
+                        ) : (
+                          <AudioWaveform className="mr-2 h-5 w-5" />
+                        )}
+                        {generateAudioToMusicMutation.isPending || isGenerating ? "Transforming..." : "Transform Audio"}
                       </Button>
                     </form>
                   </CardContent>
@@ -836,16 +859,31 @@ export default function Home() {
               <div className="space-y-6">
                 {/* Loading State */}
                 {isGenerating && (
-                  <Card className="bg-music-secondary border-gray-700">
+                  <Card className="bg-music-secondary border-gray-700 border-2 border-music-accent/30 shadow-xl shadow-music-accent/20">
                     <CardContent className="pt-6 text-center">
-                      <div className="space-y-4">
-                        <div className="w-16 h-16 bg-gradient-to-br from-music-accent to-music-blue rounded-full flex items-center justify-center mx-auto animate-bounce">
-                          <AudioWaveform className="text-2xl text-white" />
+                      <div className="space-y-6">
+                        <div className="relative">
+                          <div className="w-20 h-20 bg-gradient-to-br from-music-accent via-music-purple to-music-blue rounded-full flex items-center justify-center mx-auto animate-pulse shadow-lg">
+                            <AudioWaveform className="text-3xl text-white animate-bounce" />
+                          </div>
+                          <div className="absolute -inset-2 bg-gradient-to-r from-music-accent to-music-blue rounded-full blur opacity-20 animate-pulse"></div>
                         </div>
-                        <h3 className="text-xl font-bold">Transforming Your Audio...</h3>
-                        <p className="text-gray-400">This usually takes 30-60 seconds</p>
-                        <LoadingSpinner />
-                        <p className="text-sm text-gray-400">Processing your audio transformation...</p>
+                        <div className="space-y-2">
+                          <h3 className="text-2xl font-bold text-white">Transforming Your Audio...</h3>
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="flex space-x-1">
+                              <div className="w-2 h-2 bg-music-accent rounded-full animate-bounce"></div>
+                              <div className="w-2 h-2 bg-music-purple rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                              <div className="w-2 h-2 bg-music-blue rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 font-medium">This usually takes 30-60 seconds</p>
+                        </div>
+                        <div className="bg-gray-800/50 rounded-lg p-4">
+                          <p className="text-sm text-gray-400">🎵 Processing your audio file...</p>
+                          <p className="text-sm text-gray-400">🎼 Analyzing musical elements...</p>
+                          <p className="text-sm text-gray-400">🎹 Creating your transformation...</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
