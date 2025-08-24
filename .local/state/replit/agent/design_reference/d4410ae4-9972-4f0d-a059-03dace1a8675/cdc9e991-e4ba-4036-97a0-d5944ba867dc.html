@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Music Studio - Create Music with AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'music-dark': '#0A0A0A',
+                        'music-secondary': '#1A1A1A',
+                        'music-purple': '#7C3AED',
+                        'music-blue': '#3B82F6',
+                        'music-green': '#10B981',
+                        'music-accent': '#A855F7'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-gentle': 'bounce 2s infinite'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-music-dark text-white font-sans">
+    <!-- Header Navigation -->
+    <header class="bg-music-secondary/80 backdrop-blur-lg border-b border-gray-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-music-purple to-music-blue rounded-xl flex items-center justify-center">
+                        <i class="fas fa-music text-white text-lg"></i>
+                    </div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-music-purple to-music-blue bg-clip-text text-transparent">
+                        AI Music Studio
+                    </h1>
+                </div>
+                
+                <!-- Navigation -->
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">Home</a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">Pricing</a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">Community</a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">Help</a>
+                </nav>
+                
+                <!-- Auth Buttons -->
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-300 hover:text-white transition-colors px-4 py-2">
+                        Sign In
+                    </button>
+                    <button class="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-all transform hover:scale-105">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative py-20 overflow-hidden">
+        <!-- Background Elements -->
+        <div class="absolute inset-0 bg-gradient-to-br from-music-purple/10 via-music-dark to-music-blue/10"></div>
+        <div class="absolute top-20 left-10 w-72 h-72 bg-music-purple/20 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div class="absolute bottom-20 right-10 w-96 h-96 bg-music-blue/20 rounded-full blur-3xl animate-pulse-slow"></div>
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-music-accent to-music-green bg-clip-text text-transparent leading-tight">
+                Create Music with AI
+            </h2>
+            <p class="text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+                Transform your ideas into professional music tracks. Generate songs from text prompts or enhance existing audio with our cutting-edge AI technology.
+            </p>
+            
+            <!-- Hero CTA -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+                <button class="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 shadow-2xl">
+                    <i class="fas fa-play mr-2"></i>
+                    Start Creating Music
+                </button>
+                <button class="border border-gray-600 hover:border-music-accent text-gray-300 hover:text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all">
+                    <i class="fas fa-headphones mr-2"></i>
+                    Listen to Examples
+                </button>
+            </div>
+
+            <!-- Waveform Visualization -->
+            <div class="flex justify-center items-center space-x-1 mb-8 opacity-60">
+                <!-- Static waveform bars -->
+                <div class="w-1 bg-gradient-to-t from-music-purple to-music-accent rounded-full animate-pulse" style="height: 20px;"></div>
+                <div class="w-1 bg-gradient-to-t from-music-blue to-music-green rounded-full animate-pulse" style="height: 35px; animation-delay: 0.1s;"></div>
+                <div class="w-1 bg-gradient-to-t from-music-purple to-music-accent rounded-full animate-pulse" style="height: 15px; animation-delay: 0.2s;"></div>
+                <div class="w-1 bg-gradient-to-t from-music-green to-music-blue rounded-full animate-pulse" style="height: 45px; animation-delay: 0.3s;"></div>
+                <div class="w-1 bg-gradient-to-t from-music-accent to-music-purple rounded-full animate-pulse" style="height: 25px; animation-delay: 0.4s;"></div>
+                <div class="w-1 bg-gradient-to-t from-music-blue to-music-green rounded-full animate-pulse" style="height: 40px; animation-delay: 0.5s;"></div>
+                <div class="w-1 bg-gradient-to-t from-music-purple to-music-accent rounded-full animate-pulse" style="height: 30px; animation-delay: 0.6s;"></div>
+                <div class="w-1 bg-gradient-to-t from-music-green to-music-blue rounded-full animate-pulse" style="height: 20px; animation-delay: 0.7s;"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Login Required Modal (Initially Hidden) -->
+    <div id="loginModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div class="bg-music-secondary rounded-2xl p-8 max-w-md w-full mx-4 border border-gray-700">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-gradient-to-br from-music-purple to-music-blue rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-lock text-2xl text-white"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-2">Login Required</h3>
+                <p class="text-gray-300">Sign in to access the AI Music Studio and start creating amazing tracks.</p>
+            </div>
+            
+            <div class="space-y-4">
+                <button class="w-full bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white py-3 rounded-lg font-medium transition-all">
+                    <i class="fas fa-user mr-2"></i>
+                    Sign In
+                </button>
+                <button class="w-full border border-gray-600 hover:border-music-accent text-gray-300 hover:text-white py-3 rounded-lg font-medium transition-all">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Create Account
+                </button>
+                <button onclick="closeLoginModal()" class="w-full text-gray-400 hover:text-white py-2 transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Tab Navigation -->
+        <div class="bg-music-secondary rounded-2xl p-2 mb-8 border border-gray-700">
+            <div class="flex space-x-1">
+                <button onclick="showTab('textToMusic')" id="textToMusicTab" class="flex-1 py-4 px-6 rounded-xl font-semibold transition-all bg-gradient-to-r from-music-purple to-music-blue text-white">
+                    <i class="fas fa-magic mr-2"></i>
+                    Text to Music
+                </button>
+                <button onclick="showTab('audioToMusic')" id="audioToMusicTab" class="flex-1 py-4 px-6 rounded-xl font-semibold transition-all text-gray-400 hover:text-white hover:bg-gray-700">
+                    <i class="fas fa-waveform-lines mr-2"></i>
+                    Audio to Music
+                    <span class="ml-2 text-xs bg-music-accent px-2 py-1 rounded-full">Coming Soon</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Text to Music Tab Content -->
+        <div id="textToMusicContent" class="tab-content">
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Input Form -->
+                <div class="space-y-6">
+                    <div class="bg-music-secondary rounded-2xl p-8 border border-gray-700">
+                        <h3 class="text-2xl font-bold mb-6 flex items-center">
+                            <div class="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-edit text-sm text-white"></i>
+                            </div>
+                            Create Your Track
+                        </h3>
+                        
+                        <form onsubmit="generateMusic(event)" class="space-y-6">
+                            <!-- Tags Field -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-300 mb-3">
+                                    <i class="fas fa-tags mr-2 text-music-accent"></i>
+                                    Music Genres & Style Tags
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="tagsInput"
+                                    placeholder="e.g., lofi, hiphop, electronic, chill, trap"
+                                    class="w-full bg-music-dark border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-music-purple focus:ring-2 focus:ring-music-purple/50 transition-all"
+                                    data-mock="true"
+                                    data-bind="form.tags"
+                                    required
+                                />
+                                <p class="text-xs text-gray-400 mt-2">Separate multiple genres with commas</p>
+                            </div>
+
+                            <!-- Lyrics Field -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-300 mb-3">
+                                    <i class="fas fa-microphone mr-2 text-music-green"></i>
+                                    Lyrics (Optional)
+                                </label>
+                                <textarea 
+                                    id="lyricsInput"
+                                    placeholder="[Verse 1]&#10;Walking down the street tonight&#10;City lights are shining bright&#10;&#10;[Chorus]&#10;This is my moment to shine&#10;Everything's gonna be fine"
+                                    rows="6"
+                                    class="w-full bg-music-dark border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-music-green focus:ring-2 focus:ring-music-green/50 transition-all resize-none"
+                                    data-mock="true"
+                                    data-bind="form.lyrics"
+                                ></textarea>
+                                <p class="text-xs text-gray-400 mt-2">Use [verse], [chorus], [bridge] to structure your song. Leave empty for instrumental.</p>
+                            </div>
+
+                            <!-- Duration Slider -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-300 mb-3">
+                                    <i class="fas fa-clock mr-2 text-music-blue"></i>
+                                    Duration: <span id="durationValue" class="text-music-blue font-bold">60</span> seconds
+                                </label>
+                                <div class="relative">
+                                    <input 
+                                        type="range" 
+                                        id="durationSlider"
+                                        min="5" 
+                                        max="240" 
+                                        value="60" 
+                                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                                        oninput="updateDuration(this.value)"
+                                        data-bind="form.duration"
+                                    />
+                                    <div class="flex justify-between text-xs text-gray-400 mt-2">
+                                        <span>5s</span>
+                                        <span>240s (4 min)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Generate Button -->
+                            <button 
+                                type="submit" 
+                                class="w-full bg-gradient-to-r from-music-purple via-music-blue to-music-green hover:from-purple-600 hover:via-blue-600 hover:to-green-600 text-white py-4 rounded-xl font-bold text-lg transition-all transform hover:scale-[1.02] shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                data-event="click:generateMusic"
+                                data-implementation="Should validate form, show loading state, and call FAL.ai API"
+                            >
+                                <i class="fas fa-magic mr-2"></i>
+                                Generate Music Track
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="space-y-6">
+                    <!-- Preview Player (Initially Hidden) -->
+                    <div id="musicPlayer" class="bg-music-secondary rounded-2xl p-8 border border-gray-700 hidden">
+                        <h3 class="text-xl font-bold mb-6 flex items-center">
+                            <div class="w-8 h-8 bg-gradient-to-br from-music-green to-music-blue rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-play text-sm text-white"></i>
+                            </div>
+                            Your Generated Track
+                        </h3>
+                        
+                        <!-- Audio Player -->
+                        <div class="bg-music-dark rounded-xl p-6 mb-4">
+                            <audio controls class="w-full" data-mock="true">
+                                <source src="#" type="audio/mpeg" data-implementation="Generated audio URL from FAL.ai API">
+                                Your browser does not support the audio element.
+                            </audio>
+                            
+                            <!-- Track Info -->
+                            <div class="mt-4 pt-4 border-t border-gray-700">
+                                <div class="flex justify-between text-sm text-gray-400">
+                                    <span>Duration: <span id="trackDuration" data-bind="result.duration">--:--</span></span>
+                                    <span>Genre: <span id="trackGenre" data-bind="result.tags" data-mock="true">lofi, chill</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex space-x-3">
+                            <button class="flex-1 bg-music-purple hover:bg-purple-600 text-white py-3 rounded-lg font-medium transition-all" data-event="click:downloadTrack">
+                                <i class="fas fa-download mr-2"></i>
+                                Download
+                            </button>
+                            <button class="flex-1 border border-gray-600 hover:border-music-accent text-gray-300 hover:text-white py-3 rounded-lg font-medium transition-all" data-event="click:shareTrack">
+                                <i class="fas fa-share mr-2"></i>
+                                Share
+                            </button>
+                            <button class="px-4 border border-gray-600 hover:border-music-green text-gray-300 hover:text-white py-3 rounded-lg transition-all" data-event="click:regenerateTrack">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Loading State (Initially Hidden) -->
+                    <div id="loadingState" class="bg-music-secondary rounded-2xl p-8 border border-gray-700 text-center hidden">
+                        <div class="space-y-4">
+                            <div class="w-16 h-16 bg-gradient-to-br from-music-purple to-music-blue rounded-full flex items-center justify-center mx-auto animate-bounce-gentle">
+                                <i class="fas fa-magic text-2xl text-white"></i>
+                            </div>
+                            <h3 class="text-xl font-bold">Creating Your Music...</h3>
+                            <p class="text-gray-400">This usually takes 30-60 seconds</p>
+                            
+                            <!-- Progress Bar -->
+                            <div class="w-full bg-gray-700 rounded-full h-2 mt-4">
+                                <div class="bg-gradient-to-r from-music-purple to-music-blue h-2 rounded-full transition-all duration-1000" style="width: 0%" id="progressBar"></div>
+                            </div>
+                            <p class="text-sm text-gray-400">Processing your creative vision...</p>
+                        </div>
+                    </div>
+
+                    <!-- Info Card -->
+                    <div class="bg-gradient-to-br from-music-secondary to-gray-800 rounded-2xl p-8 border border-gray-700">
+                        <h3 class="text-xl font-bold mb-4 flex items-center">
+                            <i class="fas fa-lightbulb text-music-accent mr-3"></i>
+                            Tips for Better Results
+                        </h3>
+                        <ul class="space-y-3 text-gray-300">
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-music-green mr-3 mt-1 text-sm"></i>
+                                <span>Use specific genre tags like "synthwave", "lo-fi hip hop", or "ambient electronic"</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-music-green mr-3 mt-1 text-sm"></i>
+                                <span>Structure lyrics with [verse], [chorus], and [bridge] markers for better flow</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-music-green mr-3 mt-1 text-sm"></i>
+                                <span>Longer durations allow for more complex musical development</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-music-green mr-3 mt-1 text-sm"></i>
+                                <span>Leave lyrics empty or use "[instrumental]" for instrumental tracks</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio to Music Tab Content (Placeholder) -->
+        <div id="audioToMusicContent" class="tab-content hidden">
+            <div class="text-center py-20">
+                <div class="w-24 h-24 bg-gradient-to-br from-music-accent to-music-blue rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-waveform-lines text-3xl text-white"></i>
+                </div>
+                <h3 class="text-3xl font-bold mb-4">Audio to Music</h3>
+                <p class="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
+                    Transform existing audio files into new musical arrangements. This feature is coming soon!
+                </p>
+                <button class="bg-gradient-to-r from-music-accent to-music-blue text-white px-8 py-4 rounded-xl font-semibold opacity-50 cursor-not-allowed">
+                    Coming Soon
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-music-secondary border-t border-gray-800 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Brand -->
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center">
+                            <i class="fas fa-music text-white text-sm"></i>
+                        </div>
+                        <span class="text-lg font-bold">AI Music Studio</span>
+                    </div>
+                    <p class="text-gray-400">Create professional music with the power of artificial intelligence.</p>
+                </div>
+
+                <!-- Product -->
+                <div>
+                    <h4 class="font-semibold mb-4">Product</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Text to Music</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Audio to Music</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">API Access</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Mobile App</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support -->
+                <div>
+                    <h4 class="font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Documentation</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Tutorials</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Community</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+
+                <!-- Legal -->
+                <div>
+                    <h4 class="font-semibold mb-4">Legal</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Copyright</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Licensing</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 AI Music Studio. All rights reserved. Powered by FAL.ai</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        (function() {
+            // Tab switching functionality
+            window.showTab = function(tabName) {
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                // Remove active styling from all tabs
+                document.querySelectorAll('[id$="Tab"]').forEach(tab => {
+                    tab.classList.remove('bg-gradient-to-r', 'from-music-purple', 'to-music-blue', 'text-white');
+                    tab.classList.add('text-gray-400', 'hover:text-white', 'hover:bg-gray-700');
+                });
+                
+                // Show selected tab content
+                document.getElementById(tabName + 'Content').classList.remove('hidden');
+                
+                // Style active tab
+                const activeTab = document.getElementById(tabName + 'Tab');
+                activeTab.classList.add('bg-gradient-to-r', 'from-music-purple', 'to-music-blue', 'text-white');
+                activeTab.classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-gray-700');
+            };
+
+            // Duration slider update
+            window.updateDuration = function(value) {
+                document.getElementById('durationValue').textContent = value;
+                
+                // Update slider gradient
+                const slider = document.getElementById('durationSlider');
+                const percentage = ((value - 5) / (240 - 5)) * 100;
+                slider.style.background = `linear-gradient(to right, #7C3AED 0%, #3B82F6 ${percentage}%, #374151 ${percentage}%, #374151 100%)`;
+            };
+
+            // Initialize slider styling
+            updateDuration(60);
+
+            // Login modal functions
+            window.showLoginModal = function() {
+                document.getElementById('loginModal').classList.remove('hidden');
+                document.getElementById('loginModal').classList.add('flex');
+            };
+
+            window.closeLoginModal = function() {
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('loginModal').classList.remove('flex');
+            };
+
+            // Music generation function (mockup - no actual API call)
+            window.generateMusic = function(event) {
+                event.preventDefault();
+                
+                // TODO: Implement user authentication check
+                // For now, show login modal to simulate login requirement
+                showLoginModal();
+                return;
+
+                // The following would be the actual implementation after authentication:
+                /*
+                const tags = document.getElementById('tagsInput').value;
+                const lyrics = document.getElementById('lyricsInput').value;
+                const duration = document.getElementById('durationSlider').value;
+                
+                if (!tags.trim()) {
+                    alert('Please enter at least one genre tag');
+                    return;
+                }
+
+                // Show loading state
+                document.getElementById('loadingState').classList.remove('hidden');
+                document.getElementById('musicPlayer').classList.add('hidden');
+
+                // Simulate progress
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress > 100) progress = 100;
+                    
+                    document.getElementById('progressBar').style.width = progress + '%';
+                    
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                        // TODO: Implement actual FAL.ai API call here
+                        // Example: callFalAIAPI(tags, lyrics, duration);
+                        setTimeout(showMockResult, 1000);
+                    }
+                }, 800);
+                */
+            };
+
+            // Mock result display (for demo purposes)
+            function showMockResult() {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('musicPlayer').classList.remove('hidden');
+                
+                // Update track info with form data
+                const tags = document.getElementById('tagsInput').value || 'lofi, chill';
+                const duration = document.getElementById('durationSlider').value;
+                
+                document.getElementById('trackGenre').textContent = tags;
+                document.getElementById('trackDuration').textContent = formatDuration(duration);
+            }
+
+            function formatDuration(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            // Custom slider styling
+            document.addEventListener('DOMContentLoaded', function() {
+                const style = document.createElement('style');
+                style.textContent = `
+                    .slider::-webkit-slider-thumb {
+                        appearance: none;
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        background: linear-gradient(135deg, #7C3AED, #3B82F6);
+                        cursor: pointer;
+                        border: 2px solid white;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                    }
+                    
+                    .slider::-moz-range-thumb {
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        background: linear-gradient(135deg, #7C3AED, #3B82F6);
+                        cursor: pointer;
+                        border: 2px solid white;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                    }
+                `;
+                document.head.appendChild(style);
+            });
+        })();
+    </script>
+</body>
+</html>
