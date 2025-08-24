@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AudioPlayer } from "@/components/ui/audio-player";
-import { Music, Share2, Home, Clock, Tags, User, Eye } from "lucide-react";
+import { Music, Share2, Clock, Tags, User, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { MusicGeneration } from "@shared/schema";
@@ -90,7 +90,7 @@ export default function TrackPage() {
               <p className="text-gray-400 mb-6">The track you're looking for doesn't exist or has been removed.</p>
               <Link href="/">
                 <Button className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600">
-                  <Home className="w-4 h-4 mr-2" />
+                  <Music className="w-4 h-4 mr-2" />
                   Go Home
                 </Button>
               </Link>
@@ -119,22 +119,15 @@ export default function TrackPage() {
       <div className="relative z-10 bg-black/40 min-h-screen">
         <div className="container mx-auto px-4 py-8">
           {/* Header Navigation */}
-          <div className="flex items-center justify-between mb-8">
-            <Link href="/">
-              <Button variant="outline" className="border-gray-600 text-white hover:bg-gray-700">
-                <Home className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
-            
-            <div className="flex items-center space-x-3">
+          <div className="flex items-center justify-end mb-8">
+            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
               <div className="w-10 h-10 bg-gradient-to-br from-music-purple to-music-blue rounded-xl flex items-center justify-center">
                 <Music className="text-white text-lg" />
               </div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-music-purple to-music-blue bg-clip-text text-transparent">
                 NuMusic
               </h1>
-            </div>
+            </Link>
           </div>
 
           {/* Track Card */}
