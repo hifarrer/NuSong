@@ -34,7 +34,8 @@ import {
   Edit2,
   Check,
   X,
-  Trash2
+  Trash2,
+  Star
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
@@ -619,14 +620,25 @@ export default function Home() {
 
                       {/* Action Buttons */}
                       <div className="flex space-x-3">
-                        <Button
-                          onClick={() => handleDownload(currentGeneration.audioUrl!)}
-                          className="flex-1 bg-music-purple hover:bg-purple-600"
-                          data-testid="button-download"
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download
-                        </Button>
+                        {(user as any)?.planStatus !== "free" ? (
+                          <Button
+                            onClick={() => handleDownload(currentGeneration.audioUrl!)}
+                            className="flex-1 bg-music-purple hover:bg-purple-600"
+                            data-testid="button-download"
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Download
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => window.location.href = "/pricing"}
+                            className="flex-1 bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
+                            data-testid="button-upgrade-to-download"
+                          >
+                            <Star className="mr-2 h-4 w-4" />
+                            Upgrade to Download
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           className="flex-1 border-gray-600 hover:border-music-accent"
@@ -913,14 +925,25 @@ export default function Home() {
 
                       {/* Action Buttons */}
                       <div className="flex space-x-3">
-                        <Button
-                          onClick={() => handleDownload(currentGeneration.audioUrl!)}
-                          className="flex-1 bg-music-purple hover:bg-purple-600"
-                          data-testid="button-download-audio"
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download
-                        </Button>
+                        {(user as any)?.planStatus !== "free" ? (
+                          <Button
+                            onClick={() => handleDownload(currentGeneration.audioUrl!)}
+                            className="flex-1 bg-music-purple hover:bg-purple-600"
+                            data-testid="button-download-audio"
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Download
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => window.location.href = "/pricing"}
+                            className="flex-1 bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
+                            data-testid="button-upgrade-to-download-audio"
+                          >
+                            <Star className="mr-2 h-4 w-4" />
+                            Upgrade to Download
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           className="flex-1 border-gray-600 hover:border-music-accent"
@@ -1276,20 +1299,33 @@ function TrackCard({ track }: { track: MusicGeneration }) {
             
             <div className="flex items-center justify-center gap-2 sm:gap-1">
               {track.status === "completed" && track.audioUrl && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = track.audioUrl!;
-                    link.download = `${track.title || 'track'}.wav`;
-                    link.click();
-                  }}
-                  className="text-gray-400 hover:text-white flex-1 sm:flex-initial"
-                  data-testid={`button-download-${track.id}`}
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
+                (user as any)?.planStatus !== "free" ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = track.audioUrl!;
+                      link.download = `${track.title || 'track'}.wav`;
+                      link.click();
+                    }}
+                    className="text-gray-400 hover:text-white flex-1 sm:flex-initial"
+                    data-testid={`button-download-${track.id}`}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => window.location.href = "/pricing"}
+                    className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-1 sm:flex-initial"
+                    data-testid={`button-upgrade-download-${track.id}`}
+                    title="Upgrade to download tracks"
+                  >
+                    <Star className="w-4 h-4" />
+                  </Button>
+                )
               )}
               
               <Button
