@@ -91,13 +91,13 @@ export default function Pricing() {
               <Card 
                 key={plan.id}
                 className={`bg-gray-800/50 border-gray-700 backdrop-blur-sm relative flex flex-col min-h-[750px] ${
-                  isPopular ? 'ring-2 ring-purple-500 scale-105' : ''
+                  isPopular ? 'ring-2 ring-purple-500' : ''
                 }`}
                 data-testid={`card-plan-${plan.name.toLowerCase()}`}
               >
                 {isPopular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                    <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-medium">
                       Most Popular
                     </span>
                   </div>
