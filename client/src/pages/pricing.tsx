@@ -90,7 +90,7 @@ export default function Pricing() {
             return (
               <Card 
                 key={plan.id}
-                className={`bg-gray-800/50 border-gray-700 backdrop-blur-sm relative flex flex-col min-h-[750px] ${
+                className={`bg-gray-800/50 border-gray-700 backdrop-blur-sm relative h-[750px] grid grid-rows-[auto_1fr_auto] ${
                   isPopular ? 'ring-2 ring-purple-500' : ''
                 }`}
                 data-testid={`card-plan-${plan.name.toLowerCase()}`}
@@ -134,7 +134,7 @@ export default function Pricing() {
                   </div>
                 </CardHeader>
                 
-                <CardContent className="pb-24">
+                <CardContent className="overflow-y-auto">
                   <ul className="space-y-3">
                     {features.map((feature, index) => (
                       <li key={index} className="flex items-start">
@@ -145,8 +145,8 @@ export default function Pricing() {
                   </ul>
                 </CardContent>
                 
-                {/* Button Footer - Absolutely Positioned */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gray-800/50">
+                {/* Button Footer - Grid Row */}
+                <div className="p-6 bg-gray-800/30 border-t border-gray-700">
                   <Button 
                     className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3`}
                     data-testid={`button-select-${plan.name.toLowerCase()}`}
@@ -154,13 +154,13 @@ export default function Pricing() {
                     {plan.name === 'Free' ? 'Get Started Free' : `Choose ${plan.name}`}
                   </Button>
                   
-                  {plan.name !== 'Free' ? (
-                    <p className="text-xs text-gray-500 text-center mt-3">
-                      Cancel anytime. No hidden fees.
-                    </p>
-                  ) : (
-                    <div className="h-6 mt-3"></div>
-                  )}
+                  <div className="h-8 flex items-center justify-center mt-3">
+                    {plan.name !== 'Free' && (
+                      <p className="text-xs text-gray-500 text-center">
+                        Cancel anytime. No hidden fees.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </Card>
             );
