@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AudioPlayer } from "@/components/ui/audio-player";
+import { Header } from "@/components/Header";
 import { Music, Share2, Clock, Tags, User, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
@@ -118,17 +119,7 @@ export default function TrackPage() {
       {/* Content overlay */}
       <div className="relative z-10 bg-black/40 min-h-screen">
         <div className="container mx-auto px-4 py-8">
-          {/* Header Navigation */}
-          <div className="flex items-center justify-end mb-8">
-            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <div className="w-10 h-10 bg-gradient-to-br from-music-purple to-music-blue rounded-xl flex items-center justify-center">
-                <Music className="text-white text-lg" />
-              </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-music-purple to-music-blue bg-clip-text text-transparent">
-                NuMusic
-              </h1>
-            </Link>
-          </div>
+          <Header currentPage="track" />
 
           {/* Track Card */}
           <div className="max-w-4xl mx-auto">

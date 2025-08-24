@@ -1,11 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Header } from "@/components/Header";
 import { ArrowLeft } from "lucide-react";
 
 export default function Privacy() {
   return (
     <div className="min-h-screen text-white">
-      {/* Header */}
+      <Header currentPage="privacy" />
+      
+      {/* Page Header */}
       <header className="bg-music-secondary border-b border-gray-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">

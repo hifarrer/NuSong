@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Header } from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -148,50 +149,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-music-dark text-white">
-      {/* Header Navigation */}
-      <header className="bg-music-secondary/80 backdrop-blur-lg border-b border-gray-800 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-music-purple to-music-blue rounded-xl flex items-center justify-center">
-                <Music className="text-white text-lg" />
-              </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-music-purple to-music-blue bg-clip-text text-transparent">
-                NuMusic
-              </h1>
-            </div>
-            
-            {/* Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <a href="/" className="text-gray-300 hover:text-white transition-colors">Create</a>
-              <a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
-              <a href="/contact" className="text-gray-300 hover:text-white transition-colors">Contact</a>
-            </nav>
-            
-            {/* User Menu */}
-            <div className="flex items-center space-x-4">
-              <a href="/profile" className="flex items-center space-x-3 hover:bg-gray-800/50 rounded-lg px-3 py-2 transition-colors bg-gray-800/30 border border-gray-700">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-music-purple to-music-blue flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-sm text-white font-medium">
-                  {(user as any)?.firstName || (user as any)?.email || "User"}
-                </span>
-              </a>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.location.href = "/api/auth/logout"}
-                data-testid="button-logout"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header currentPage="profile" />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Profile Header */}
