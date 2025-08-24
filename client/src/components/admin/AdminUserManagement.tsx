@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, UserCheck, UserX, Mail, Calendar, Music, CreditCard, Crown } from "lucide-react";
+import { Edit, Trash2, UserCheck, UserX, Mail, MailCheck, Calendar, Music, CreditCard, Crown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
@@ -153,6 +153,28 @@ export default function AdminUserManagement() {
     },
   });
 
+  // Toggle email verification mutation
+  const toggleEmailVerificationMutation = useMutation({
+    mutationFn: async ({ id, emailVerified }: { id: string; emailVerified: boolean }) => {
+      const response = await apiRequest(`/api/admin/regular-users/${id}`, "PUT", { emailVerified });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/regular-users"] });
+      toast({
+        title: "Email Status Updated",
+        description: "User email verification status has been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update email verification status",
+        variant: "destructive",
+      });
+    },
+  });
+
   const editForm = useForm<UpdateUserForm>({
     resolver: zodResolver(updateUserSchema),
     defaultValues: {
@@ -210,6 +232,13 @@ export default function AdminUserManagement() {
       id: selectedUser.id,
       planId: selectedPlan === "free" ? null : selectedPlan,
       status: selectedPlan === "free" ? "free" : planStatus,
+    });
+  };
+
+  const handleToggleEmailVerification = (user: User) => {
+    toggleEmailVerificationMutation.mutate({
+      id: user.id,
+      emailVerified: !user.emailVerified,
     });
   };
 
@@ -337,6 +366,21 @@ export default function AdminUserManagement() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleToggleEmailVerification(user)}
+                          className={user.emailVerified 
+                            ? "text-green-400 border-green-500 hover:bg-green-500/10" 
+                            : "text-gray-400 border-gray-500 hover:bg-gray-500/10"
+                          }
+                          disabled={toggleEmailVerificationMutation.isPending}
+                          title={user.emailVerified ? "Mark email as unverified" : "Mark email as verified"}
+                          data-testid={`button-toggle-email-${user.id}`}
+                        >
+                          {user.emailVerified ? <MailCheck className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleManagePlan(user)}
                           className="text-yellow-400 border-yellow-500 hover:bg-yellow-500/10"
                           data-testid={`button-manage-plan-${user.id}`}
@@ -453,16 +497,30 @@ export default function AdminUserManagement() {
               )}
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-full ${editForm.watch("emailVerified") ? 'bg-green-500/20' : 'bg-gray-600/20'}`}>
+                  {editForm.watch("emailVerified") ? (
+                    <MailCheck className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <Mail className="w-4 h-4 text-gray-400" />
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="emailVerified" className="text-gray-300 font-medium">
+                    Email Verification Status
+                  </Label>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {editForm.watch("emailVerified") ? "Email is verified" : "Email is not verified"}
+                  </p>
+                </div>
+              </div>
               <Switch
                 id="emailVerified"
                 checked={editForm.watch("emailVerified")}
                 onCheckedChange={(checked) => editForm.setValue("emailVerified", checked)}
                 data-testid="switch-email-verified"
               />
-              <Label htmlFor="emailVerified" className="text-gray-300">
-                Email Verified
-              </Label>
             </div>
 
             <DialogFooter>
