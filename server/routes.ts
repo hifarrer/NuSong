@@ -928,7 +928,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid billing cycle" });
       }
 
-      const successUrl = `${req.protocol}://${req.get('host')}/profile?success=true`;
+      const successUrl = `${req.protocol}://${req.get('host')}/profile?success=true&session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${req.protocol}://${req.get('host')}/pricing?canceled=true`;
 
       const session = await createCheckoutSession({
@@ -975,18 +975,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Stripe webhook endpoint
   app.post("/api/webhooks/stripe", async (req, res) => {
+    console.log('=== STRIPE WEBHOOK RECEIVED ===');
+    console.log('Headers:', req.headers);
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+    
     try {
       const signature = req.headers['stripe-signature'] as string;
       
       if (!signature) {
+        console.log('Missing Stripe signature');
         return res.status(400).json({ message: "Missing Stripe signature" });
       }
 
       const payload = JSON.stringify(req.body);
       const event = await verifyWebhookSignature(payload, signature);
       
+      console.log('Webhook event type:', event.type);
+      console.log('Webhook event data:', JSON.stringify(event.data, null, 2));
+      
       await handleWebhookEvent(event);
       
+      console.log('Webhook processed successfully');
       res.json({ received: true });
     } catch (error) {
       console.error("Webhook error:", error);

@@ -63,6 +63,28 @@ export default function ProfilePage() {
     },
   });
 
+  // Cancel subscription mutation
+  const cancelSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("/api/stripe/cancel-subscription", "POST");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Subscription Cancelled",
+        description: "Your subscription has been cancelled and will end at the current billing period.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel subscription",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Update email mutation
   const updateEmailMutation = useMutation({
     mutationFn: async (data: { newEmail: string }) => {
@@ -160,6 +182,7 @@ export default function ProfilePage() {
   const currentPlan = getCurrentPlan();
   const userPlanStatus = (user as any)?.planStatus || 'free';
   const hasActiveSubscription = userPlanStatus === 'active' && currentPlan?.name !== 'Free';
+  const canCancelSubscription = hasActiveSubscription && (user as any)?.stripeSubscriptionId;
 
   if (!user) {
     return (
@@ -189,7 +212,7 @@ export default function ProfilePage() {
           {/* Profile Information */}
           <Card className="bg-music-secondary border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <User className="mr-2 h-5 w-5 text-music-accent" />
                 Profile Information
               </CardTitle>
@@ -222,7 +245,7 @@ export default function ProfilePage() {
           {/* Current Subscription */}
           <Card className="bg-music-secondary border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <Crown className="mr-2 h-5 w-5 text-music-accent" />
                 Current Subscription
               </CardTitle>
@@ -299,38 +322,64 @@ export default function ProfilePage() {
 
                   <Separator className="bg-gray-600" />
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-400">
-                        {hasActiveSubscription 
-                          ? "Manage your subscription, billing, and payment methods"
-                          : "Want to upgrade or change your plan?"
-                        }
-                      </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-400">
+                          {hasActiveSubscription 
+                            ? "Manage your subscription, billing, and payment methods"
+                            : "Want to upgrade or change your plan?"
+                          }
+                        </p>
+                      </div>
+                      {hasActiveSubscription ? (
+                        <Button
+                          variant="outline"
+                          className="border-music-accent text-music-accent hover:bg-music-accent hover:text-white"
+                          onClick={() => portalMutation.mutate()}
+                          disabled={portalMutation.isPending}
+                          data-testid="button-manage-subscription"
+                        >
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          {portalMutation.isPending ? "Loading..." : "Manage Subscription"}
+                          <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          className="border-music-accent text-music-accent hover:bg-music-accent hover:text-white"
+                          onClick={() => window.location.href = "/pricing"}
+                          data-testid="button-change-plan"
+                        >
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Change Plan
+                          <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    {hasActiveSubscription ? (
-                      <Button
-                        variant="outline"
-                        className="border-music-accent text-music-accent hover:bg-music-accent hover:text-white"
-                        onClick={() => portalMutation.mutate()}
-                        disabled={portalMutation.isPending}
-                        data-testid="button-manage-subscription"
-                      >
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        {portalMutation.isPending ? "Loading..." : "Manage Subscription"}
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        className="border-music-accent text-music-accent hover:bg-music-accent hover:text-white"
-                        onClick={() => window.location.href = "/pricing"}
-                        data-testid="button-change-plan"
-                      >
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Change Plan
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </Button>
+                    
+                    {canCancelSubscription && (
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-600">
+                        <div>
+                          <p className="text-sm text-gray-400">
+                            Cancel your subscription (will end at current billing period)
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                          onClick={() => {
+                            if (confirm("Are you sure you want to cancel your subscription? You'll continue to have access until the end of your current billing period.")) {
+                              cancelSubscriptionMutation.mutate();
+                            }
+                          }}
+                          disabled={cancelSubscriptionMutation.isPending}
+                          data-testid="button-cancel-subscription"
+                        >
+                          <LogOut className="mr-2 h-4 w-4" />
+                          {cancelSubscriptionMutation.isPending ? "Cancelling..." : "Cancel Subscription"}
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -343,7 +392,7 @@ export default function ProfilePage() {
           {/* Update Email */}
           <Card className="bg-music-secondary border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <Mail className="mr-2 h-5 w-5 text-music-blue" />
                 Update Email Address
               </CardTitle>
@@ -376,7 +425,7 @@ export default function ProfilePage() {
           {/* Update Password */}
           <Card className="bg-music-secondary border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <Key className="mr-2 h-5 w-5 text-music-green" />
                 Update Password
               </CardTitle>
@@ -433,7 +482,7 @@ export default function ProfilePage() {
           {/* Account Security */}
           <Card className="bg-music-secondary border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <Shield className="mr-2 h-5 w-5 text-music-purple" />
                 Account Security
               </CardTitle>

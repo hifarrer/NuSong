@@ -14,14 +14,14 @@ export function Header({ currentPage }: HeaderProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
+          <a href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <div className="w-10 h-10 bg-gradient-to-br from-music-purple to-music-blue rounded-xl flex items-center justify-center">
               <Music className="text-white text-lg" />
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-music-purple to-music-blue bg-clip-text text-transparent">
               NuMusic
             </h1>
-          </div>
+          </a>
           
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
