@@ -1,4 +1,6 @@
-DATABASE_URL=postgresql://numusicuser:7w3PcD7S0u3xkhMlZyRRQtWCU6rVXtAQ@dpg-d2lpkeruibrs73fh0ar0-a.oregon-postgres.render.com/numusicdb
+import { writeFileSync } from 'fs';
+
+const envContent = `DATABASE_URL=postgresql://numusicuser:7w3PcD7S0u3xkhMlZyRRQtWCU6rVXtAQ@dpg-d2lpkeruibrs73fh0ar0-a.oregon-postgres.render.com/numusicdb
 PGHOST=dpg-d2lpkeruibrs73fh0ar0-a.oregon-postgres.render.com
 PGDATABASE=numusicdb
 PGPASSWORD=7w3PcD7S0u3xkhMlZyRRQtWCU6rVXtAQ
@@ -10,3 +12,7 @@ SESSION_SECRET=/Xo/SxhdskQPXm0M5wUCpibXOSsIrwsuKuOeUmUI3LMyy1AyPlBexfKncj8cd9Ipb
 DEFAULT_OBJECT_STORAGE_BUCKET_ID=replit-objstore-2325db84-4326-4ff5-8712-7f1e59d7edff
 PRIVATE_OBJECT_DIR=/replit-objstore-2325db84-4326-4ff5-8712-7f1e59d7edff/.private
 PUBLIC_OBJECT_SEARCH_PATHS=/replit-objstore-2325db84-4326-4ff5-8712-7f1e59d7edff/public
+`;
+
+writeFileSync('.env', envContent, 'utf8');
+console.log('✅ .env file created successfully with all production variables!');

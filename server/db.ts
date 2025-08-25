@@ -1,15 +1,24 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
+// Use environment variables
+const dbConfig = {
+  host: process.env.PGHOST,
+  port: parseInt(process.env.PGPORT || '5432'),
+  database: process.env.PGDATABASE,
+  user: 'numusicuser',
+  password: process.env.PGPASSWORD,
+  ssl: {
+    rejectUnauthorized: false
+  }
+};
 
-if (!process.env.DATABASE_URL) {
+if (!dbConfig.host || !dbConfig.database || !dbConfig.password) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "Database configuration incomplete. Please check PGHOST, PGDATABASE, and PGPASSWORD environment variables.",
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool(dbConfig);
 export const db = drizzle({ client: pool, schema });
