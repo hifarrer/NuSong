@@ -39,6 +39,7 @@ import {
   reactivateSubscription
 } from "./stripeService";
 import Stripe from 'stripe';
+import type { Request } from 'express';
 
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
 
@@ -929,7 +930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid billing cycle" });
       }
 
-      const successUrl = `${req.protocol}://${req.get('host')}/profile?success=true&session_id={CHECKOUT_SESSION_ID}`;
+      const successUrl = `${req.protocol}://${req.get('host')}/profile?success=true`;
       const cancelUrl = `${req.protocol}://${req.get('host')}/pricing?canceled=true`;
 
       const session = await createCheckoutSession({
@@ -975,7 +976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe webhook endpoint
-  app.post("/api/webhooks/stripe", async (req, res) => {
+  app.post("/api/webhooks/stripe", async (req: Request & { rawBody?: string }, res) => {
     console.log('=== STRIPE WEBHOOK RECEIVED ===');
     console.log('Headers:', req.headers);
     console.log('Body:', JSON.stringify(req.body, null, 2));
@@ -988,7 +989,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Missing Stripe signature" });
       }
 
-      const payload = JSON.stringify(req.body);
+      // Use raw body for Stripe signature verification
+      const payload = req.rawBody ?? JSON.stringify(req.body);
       const event = await verifyWebhookSignature(payload, signature);
       
       console.log('Webhook event type:', event.type);
