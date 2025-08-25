@@ -79,9 +79,9 @@ export default function Terms() {
                 <p>NuMusic offers the following subscription tiers:</p>
                 <div className="bg-music-dark p-4 rounded-lg border border-gray-600 my-4">
                   <ul className="space-y-2">
-                    <li><strong>Free Plan:</strong> Up to 5 songs per month, standard quality, public sharing only</li>
-                    <li><strong>Basic Plan:</strong> Up to 30 songs per month, high quality, private/public sharing ($9/month or $90/year)</li>
-                    <li><strong>Premium Plan:</strong> Up to 200 songs per month, ultra-high quality, priority generation, commercial license ($19/month or $190/year)</li>
+                    <li><strong>Free Plan:</strong> Up to 5 songs per week, standard quality, public sharing only</li>
+                    <li><strong>Basic Plan:</strong> Up to 30 songs per week, high quality, private/public sharing ($2.08/week, $9/month, or $90/year)</li>
+                    <li><strong>Premium Plan:</strong> Up to 100 songs per week, ultra-high quality, priority generation, commercial license ($4.39/week, $19/month, or $190/year)</li>
                   </ul>
                 </div>
                 <p>

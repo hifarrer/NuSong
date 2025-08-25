@@ -18,9 +18,9 @@ Preferred communication style: Simple, everyday language.
 
 The platform offers three subscription tiers:
 
-- **Free Plan**: Up to 5 songs per month, standard quality, public sharing only
-- **Basic Plan**: Up to 30 songs per month, high quality, private/public sharing ($9/month or $90/year)
-- **Premium Plan**: Up to 200 songs per month, ultra-high quality, priority generation, commercial license ($19/month or $190/year)
+- **Free Plan**: Up to 5 songs per week, standard quality, public sharing only
+- **Basic Plan**: Up to 30 songs per week, high quality, private/public sharing ($2.08/week, $9/month, or $90/year)
+- **Premium Plan**: Up to 100 songs per week, ultra-high quality, priority generation, commercial license ($4.39/week, $19/month, or $190/year)
 
 ## System Architecture
 

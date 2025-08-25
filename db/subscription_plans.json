@@ -1,1 +1,75 @@
-[{"id":"7198a543-8d4a-4966-83ed-5504d3047c2c","name":"Basic","description":"Great for hobbyists and content creators","max_generations":30,"features":["Up to 30 AI-generated songs per month","Private and public sharing","Priority generation queue","Email support","Commercial use for personal projects"],"is_active":true,"sort_order":2,"created_at":"2025-08-21T14:34:45.887Z","updated_at":"2025-08-21T14:34:45.887Z","monthly_price":"9.00","yearly_price":"90.00","monthly_price_id":null,"yearly_price_id":null,"generations_number":30},{"id":"826cbd06-fa20-4f75-972e-9cb89c1cb137","name":"Premium","description":"Ideal for professionals and businesses","max_generations":100,"features":"[\n  \"Up to 100 AI-generated songs per month\",\n  \"Private and public sharing\",\n  \"Priority generation queue\",\n  \"Advanced customization options\",\n  \"Dedicated support channel\",\n  \"Full commercial license\",\n]","is_active":true,"sort_order":3,"created_at":"2025-08-21T14:34:45.887Z","updated_at":"2025-08-21T14:34:45.887Z","monthly_price":"19.00","yearly_price":"190.00","monthly_price_id":null,"yearly_price_id":null,"generations_number":100},{"id":"9d02a106-3f69-4e03-aa9d-895efde40238","name":"Free","description":"Perfect for getting started with AI music creation","max_generations":5,"features":["Up to 5 AI-generated songs per month","Standard audio quality (MP3)","Public sharing only","Basic music generation models","Community support"],"is_active":true,"sort_order":1,"created_at":"2025-08-21T14:34:45.887Z","updated_at":"2025-08-21T14:34:45.887Z","monthly_price":"0.00","yearly_price":"0.00","monthly_price_id":null,"yearly_price_id":null,"generations_number":5}]
+[
+  {
+    "id": "9d02a106-3f69-4e03-aa9d-895efde40238",
+    "name": "Free",
+    "description": "Perfect for getting started with AI music creation",
+    "max_generations": 5,
+    "features": [
+      "Up to 5 AI-generated songs per week",
+      "Standard audio quality (MP3)",
+      "Public sharing only",
+      "Basic music generation models",
+      "Community support"
+    ],
+    "is_active": true,
+    "sort_order": 1,
+    "created_at": "2025-08-21T14:34:45.887Z",
+    "updated_at": "2025-08-21T14:34:45.887Z",
+    "weekly_price": "0.00",
+    "monthly_price": "0.00",
+    "yearly_price": "0.00",
+    "weekly_price_id": null,
+    "monthly_price_id": null,
+    "yearly_price_id": null,
+    "generations_number": 5
+  },
+  {
+    "id": "7198a543-8d4a-4966-83ed-5504d3047c2c",
+    "name": "Basic",
+    "description": "Great for hobbyists and content creators",
+    "max_generations": 30,
+    "features": [
+      "Up to 30 AI-generated songs per week",
+      "Private and public sharing",
+      "Priority generation queue",
+      "Email support",
+      "Commercial use for personal projects"
+    ],
+    "is_active": true,
+    "sort_order": 2,
+    "created_at": "2025-08-21T14:34:45.887Z",
+    "updated_at": "2025-08-21T14:34:45.887Z",
+    "weekly_price": "2.08",
+    "monthly_price": "9.00",
+    "yearly_price": "90.00",
+    "weekly_price_id": null,
+    "monthly_price_id": null,
+    "yearly_price_id": null,
+    "generations_number": 30
+  },
+  {
+    "id": "826cbd06-fa20-4f75-972e-9cb89c1cb137",
+    "name": "Premium",
+    "description": "Ideal for professionals and businesses",
+    "max_generations": 100,
+    "features": [
+      "Up to 100 AI-generated songs per week",
+      "Private and public sharing",
+      "Priority generation queue",
+      "Advanced customization options",
+      "Dedicated support channel",
+      "Full commercial license"
+    ],
+    "is_active": true,
+    "sort_order": 3,
+    "created_at": "2025-08-21T14:34:45.887Z",
+    "updated_at": "2025-08-21T14:34:45.887Z",
+    "weekly_price": "4.39",
+    "monthly_price": "19.00",
+    "yearly_price": "190.00",
+    "weekly_price_id": null,
+    "monthly_price_id": null,
+    "yearly_price_id": null,
+    "generations_number": 100
+  }
+]

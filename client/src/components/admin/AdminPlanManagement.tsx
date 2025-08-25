@@ -14,8 +14,10 @@ interface PlanFormData {
   name: string;
   description: string;
   features: string[];
+  weeklyPrice: string;
   monthlyPrice: string;
   yearlyPrice: string;
+  weeklyPriceId: string;
   monthlyPriceId: string;
   yearlyPriceId: string;
   maxGenerations: number;
@@ -32,8 +34,10 @@ export function AdminPlanManagement() {
     name: "",
     description: "",
     features: [],
+    weeklyPrice: "0",
     monthlyPrice: "0",
     yearlyPrice: "0",
+    weeklyPriceId: "",
     monthlyPriceId: "",
     yearlyPriceId: "",
     maxGenerations: 5,
@@ -118,8 +122,10 @@ export function AdminPlanManagement() {
       name: "",
       description: "",
       features: [],
+      weeklyPrice: "0",
       monthlyPrice: "0",
       yearlyPrice: "0",
+      weeklyPriceId: "",
       monthlyPriceId: "",
       yearlyPriceId: "",
       maxGenerations: 5,
@@ -147,8 +153,10 @@ export function AdminPlanManagement() {
       name: plan.name,
       description: plan.description || "",
       features: Array.isArray(plan.features) ? plan.features : [],
+      weeklyPrice: plan.weeklyPrice || "0",
       monthlyPrice: plan.monthlyPrice || "0",
       yearlyPrice: plan.yearlyPrice || "0",
+      weeklyPriceId: plan.weeklyPriceId || "",
       monthlyPriceId: plan.monthlyPriceId || "",
       yearlyPriceId: plan.yearlyPriceId || "",
       maxGenerations: plan.maxGenerations || 5,
@@ -246,7 +254,19 @@ export function AdminPlanManagement() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-gray-200 text-sm font-medium">Weekly Price ($)</label>
+                  <Input 
+                    type="number"
+                    step="0.01"
+                    value={formData.weeklyPrice}
+                    onChange={(e) => setFormData({ ...formData, weeklyPrice: e.target.value })}
+                    className="bg-gray-800 border-gray-600 text-white mt-1"
+                    placeholder="2.99"
+                    data-testid="input-weekly-price"
+                  />
+                </div>
                 <div>
                   <label className="text-gray-200 text-sm font-medium">Monthly Price ($)</label>
                   <Input 
@@ -300,7 +320,17 @@ export function AdminPlanManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-gray-200 text-sm font-medium">Weekly Stripe Price ID</label>
+                  <Input 
+                    value={formData.weeklyPriceId}
+                    onChange={(e) => setFormData({ ...formData, weeklyPriceId: e.target.value })}
+                    className="bg-gray-800 border-gray-600 text-white mt-1"
+                    placeholder="price_..."
+                    data-testid="input-weekly-price-id"
+                  />
+                </div>
                 <div>
                   <label className="text-gray-200 text-sm font-medium">Monthly Stripe Price ID</label>
                   <Input 
@@ -393,6 +423,15 @@ export function AdminPlanManagement() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400 flex items-center">
+                    <DollarSign className="w-4 h-4 mr-1" />
+                    Weekly
+                  </span>
+                  <span className="text-white font-semibold" data-testid={`text-weekly-price-${plan.id}`}>
+                    ${plan.weeklyPrice}/wk
+                  </span>
+                </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-400 flex items-center">
                     <DollarSign className="w-4 h-4 mr-1" />
@@ -497,7 +536,19 @@ export function AdminPlanManagement() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-gray-200 text-sm font-medium">Weekly Price ($)</label>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  value={formData.weeklyPrice}
+                  onChange={(e) => setFormData({ ...formData, weeklyPrice: e.target.value })}
+                  className="bg-gray-800 border-gray-600 text-white mt-1"
+                  placeholder="2.99"
+                  data-testid="input-edit-weekly-price"
+                />
+              </div>
               <div>
                 <label className="text-gray-200 text-sm font-medium">Monthly Price ($)</label>
                 <Input 
@@ -547,7 +598,17 @@ export function AdminPlanManagement() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-gray-200 text-sm font-medium">Weekly Stripe Price ID</label>
+                <Input 
+                  value={formData.weeklyPriceId}
+                  onChange={(e) => setFormData({ ...formData, weeklyPriceId: e.target.value })}
+                  className="bg-gray-800 border-gray-600 text-white mt-1"
+                  placeholder="price_..."
+                  data-testid="input-edit-weekly-price-id"
+                />
+              </div>
               <div>
                 <label className="text-gray-200 text-sm font-medium">Monthly Stripe Price ID</label>
                 <Input 

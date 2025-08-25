@@ -112,9 +112,9 @@ async function importSubscriptionPlans() {
       const query = `
         INSERT INTO subscription_plans (
           id, name, description, max_generations, features, is_active, sort_order,
-          created_at, updated_at, monthly_price, yearly_price, monthly_price_id,
-          yearly_price_id, generations_number
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          created_at, updated_at, weekly_price, monthly_price, yearly_price, weekly_price_id,
+          monthly_price_id, yearly_price_id, generations_number
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
           description = EXCLUDED.description,
@@ -123,8 +123,10 @@ async function importSubscriptionPlans() {
           is_active = EXCLUDED.is_active,
           sort_order = EXCLUDED.sort_order,
           updated_at = EXCLUDED.updated_at,
+          weekly_price = EXCLUDED.weekly_price,
           monthly_price = EXCLUDED.monthly_price,
           yearly_price = EXCLUDED.yearly_price,
+          weekly_price_id = EXCLUDED.weekly_price_id,
           monthly_price_id = EXCLUDED.monthly_price_id,
           yearly_price_id = EXCLUDED.yearly_price_id,
           generations_number = EXCLUDED.generations_number
@@ -136,8 +138,8 @@ async function importSubscriptionPlans() {
         plan.id, plan.name, plan.description, plan.max_generations,
         JSON.stringify(fixedFeatures),
         plan.is_active, plan.sort_order, plan.created_at, plan.updated_at,
-        plan.monthly_price, plan.yearly_price, plan.monthly_price_id,
-        plan.yearly_price_id, plan.generations_number
+        plan.weekly_price, plan.monthly_price, plan.yearly_price, plan.weekly_price_id,
+        plan.monthly_price_id, plan.yearly_price_id, plan.generations_number
       ]);
     } catch (error) {
       console.error(`Error importing plan ${plan.name}:`, error.message);

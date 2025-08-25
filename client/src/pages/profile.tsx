@@ -221,13 +221,13 @@ export default function ProfilePage() {
                   
                   <div className="grid md:grid-cols-2 gap-4 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Monthly Generations:</span>
+                      <span className="text-gray-400">Weekly Generations:</span>
                       <span className="text-white font-medium">{currentPlan.maxGenerations}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Monthly Price:</span>
+                      <span className="text-gray-400">Weekly Price:</span>
                       <span className="text-white font-medium">
-                        {(currentPlan.monthlyPrice && parseFloat(currentPlan.monthlyPrice) > 0) ? `$${currentPlan.monthlyPrice}/mo` : "Free"}
+                        {(currentPlan.weeklyPrice && parseFloat(currentPlan.weeklyPrice) > 0) ? `$${currentPlan.weeklyPrice}/wk` : "Free"}
                       </span>
                     </div>
                   </div>

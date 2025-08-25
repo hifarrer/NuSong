@@ -121,11 +121,13 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   description: text("description"),
+  weeklyPrice: decimal("weekly_price", { precision: 10, scale: 2 }),
   monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }),
   yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }),
+  weeklyPriceId: varchar("weekly_price_id"), // Stripe price ID for weekly billing
   monthlyPriceId: varchar("monthly_price_id"), // Stripe price ID for monthly billing
   yearlyPriceId: varchar("yearly_price_id"), // Stripe price ID for yearly billing
-  maxGenerations: integer("max_generations").notNull().default(5), // monthly generation limit
+  maxGenerations: integer("max_generations").notNull().default(5), // weekly generation limit
   generationsNumber: integer("generations_number").notNull().default(5), // number of generations allowed
   features: jsonb("features").default(sql`'[]'::jsonb`), // array of feature strings
   isActive: boolean("is_active").notNull().default(true),
@@ -197,6 +199,7 @@ export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans
   updatedAt: true,
 }).extend({
   features: z.array(z.string()).default([]),
+  weeklyPrice: z.string().optional(),
   monthlyPrice: z.string().optional(),
   yearlyPrice: z.string().optional(),
 });

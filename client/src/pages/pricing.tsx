@@ -118,16 +118,21 @@ export default function Pricing() {
                   
                   <div className="text-center">
                     <div className="text-4xl font-bold text-white mb-2">
-                      {formatPrice(plan.monthlyPrice || '0')}
-                      {parseFloat(plan.monthlyPrice || '0') > 0 && (
-                        <span className="text-lg text-gray-400 font-normal">/month</span>
+                      {formatPrice(plan.weeklyPrice || '0')}
+                      {parseFloat(plan.weeklyPrice || '0') > 0 && (
+                        <span className="text-lg text-gray-400 font-normal">/week</span>
                       )}
                     </div>
+                    {parseFloat(plan.monthlyPrice || '0') > 0 && (
+                      <div className="text-sm text-gray-400">
+                        or {formatPrice(plan.monthlyPrice || '0')} monthly
+                      </div>
+                    )}
                     {parseFloat(plan.yearlyPrice || '0') > 0 && (
                       <div className="text-sm text-gray-400">
                         or {formatPrice(plan.yearlyPrice || '0')} yearly
                         <span className="text-green-400 ml-1">
-                          (Save {Math.round((1 - (parseFloat(plan.yearlyPrice || '0') / (parseFloat(plan.monthlyPrice || '0') * 12))) * 100)}%)
+                          (Save {Math.round((1 - (parseFloat(plan.yearlyPrice || '0') / (parseFloat(plan.weeklyPrice || '0') * 52))) * 100)}%)
                         </span>
                       </div>
                     )}
