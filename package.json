@@ -12,8 +12,9 @@
             "db:setup": "node scripts/setup-database.js",
         "db:import": "node scripts/import-data.js",
         "db:create-tables": "node scripts/create-tables-manually.js",
-        "db:verify": "node scripts/verify-import.js",
-        "db:migrate-weekly": "node scripts/migrate-to-weekly.js"
+            "db:verify": "node scripts/verify-import.js",
+    "db:migrate-weekly": "node scripts/migrate-to-weekly.js",
+    "test:gcs": "tsx test-gcs.js"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.12.0",

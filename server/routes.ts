@@ -19,6 +19,7 @@ import {
 import { ObjectStorageService } from "./objectStorage";
 import { LocalStorageService } from "./localStorage";
 import { RenderStorageService } from "./renderStorage";
+import { GCSStorageService } from "./gcsStorage";
 import { z } from "zod";
 import { 
   isAdminAuthenticated, 
@@ -42,10 +43,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Object storage routes
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
     try {
-      // Use local storage for development, Render storage for production
-      const storageService = process.env.NODE_ENV === "development" 
-        ? new LocalStorageService() 
-        : new RenderStorageService();
+      // Use GCS storage if configured, otherwise fall back to local/Render storage
+      const storageService = (() => {
+        if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+          return new GCSStorageService();
+        }
+        return process.env.NODE_ENV === "development" 
+          ? new LocalStorageService() 
+          : new RenderStorageService();
+      })();
       
       const uploadURL = await storageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
@@ -62,10 +68,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Upload URL is required" });
       }
       
-      // Use local storage for development, Render storage for production
-      const storageService = process.env.NODE_ENV === "development" 
-        ? new LocalStorageService() 
-        : new RenderStorageService();
+      // Use GCS storage if configured, otherwise fall back to local/Render storage
+      const storageService = (() => {
+        if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+          return new GCSStorageService();
+        }
+        return process.env.NODE_ENV === "development" 
+          ? new LocalStorageService() 
+          : new RenderStorageService();
+      })();
       
       const objectPath = storageService.normalizeObjectEntityPath(uploadURL);
       res.json({ objectPath });
@@ -124,10 +135,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         offset += chunk.length;
       }
 
-      // Upload to storage (local for development, Render storage for production)
-      const storageService = process.env.NODE_ENV === "development" 
-        ? new LocalStorageService() 
-        : new RenderStorageService();
+      // Upload to storage (GCS if configured, otherwise local/Render storage)
+      const storageService = (() => {
+        if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+          return new GCSStorageService();
+        }
+        return process.env.NODE_ENV === "development" 
+          ? new LocalStorageService() 
+          : new RenderStorageService();
+      })();
       
       const filename = `generated-music-${generation.id}.mp3`;
       const uploadUrl = await storageService.uploadAudioBuffer(audioBuffer, filename);
@@ -172,9 +188,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get publicly accessible URL for the audio file
-      const storageService = process.env.NODE_ENV === "development" 
-        ? new LocalStorageService() 
-        : new RenderStorageService();
+      const storageService = (() => {
+        if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+          return new GCSStorageService();
+        }
+        return process.env.NODE_ENV === "development" 
+          ? new LocalStorageService() 
+          : new RenderStorageService();
+      })();
       
       const publicAudioUrl = await storageService.getObjectEntityPublicUrl(validation.inputAudioUrl, 7200); // 2 hours
       
@@ -868,9 +889,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve generated audio files from storage
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
-      const storageService = process.env.NODE_ENV === "development" 
-        ? new LocalStorageService() 
-        : new RenderStorageService();
+      const storageService = (() => {
+        if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+          return new GCSStorageService();
+        }
+        return process.env.NODE_ENV === "development" 
+          ? new LocalStorageService() 
+          : new RenderStorageService();
+      })();
       
       const objectFile = await storageService.getObjectEntityFile(req.path);
       
