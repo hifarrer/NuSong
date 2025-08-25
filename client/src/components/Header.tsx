@@ -92,7 +92,7 @@ export function Header({ currentPage }: HeaderProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => window.location.href = "/api/auth/logout"}
+                  onClick={() => window.location.href = "/api/logout"}
                   data-testid="button-logout"
                 >
                   <LogOut className="w-4 h-4 mr-2" />

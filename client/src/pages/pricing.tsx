@@ -1,17 +1,81 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Header } from "@/components/Header";
-import { Check, Music, Zap, Crown, User, LogOut } from "lucide-react";
-import { Link } from "wouter";
+import { Check, Music, Zap, Crown, User, LogOut, CreditCard } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { SubscriptionPlan } from "@shared/schema";
 
 export default function Pricing() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  
   const { data: plans = [], isLoading } = useQuery<SubscriptionPlan[]>({
     queryKey: ["/api/plans"],
   });
+
+  // Stripe checkout mutation
+  const checkoutMutation = useMutation({
+    mutationFn: async ({ planId, billingCycle }: { planId: string; billingCycle: 'weekly' | 'monthly' | 'yearly' }) => {
+      const response = await apiRequest("/api/stripe/create-checkout-session", "POST", {
+        planId,
+        billingCycle,
+      });
+      return response;
+    },
+    onSuccess: (data) => {
+      // Redirect to Stripe checkout
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create checkout session",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubscribe = (planId: string, billingCycle: 'weekly' | 'monthly' | 'yearly') => {
+    if (!user) {
+      setLocation("/auth");
+      return;
+    }
+
+    // Check if plan has price ID for the selected billing cycle
+    const plan = plans.find(p => p.id === planId);
+    if (!plan) return;
+
+    let hasPriceId = false;
+    switch (billingCycle) {
+      case 'weekly':
+        hasPriceId = !!plan.weeklyPriceId;
+        break;
+      case 'monthly':
+        hasPriceId = !!plan.monthlyPriceId;
+        break;
+      case 'yearly':
+        hasPriceId = !!plan.yearlyPriceId;
+        break;
+    }
+
+    if (!hasPriceId) {
+      toast({
+        title: "Configuration Error",
+        description: `This plan is not configured for ${billingCycle} billing. Please contact support.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    checkoutMutation.mutate({ planId, billingCycle });
+  };
 
   if (isLoading) {
     return (
@@ -152,12 +216,72 @@ export default function Pricing() {
                 
                 {/* Button Footer - Grid Row */}
                 <div className="p-6 bg-gray-800/30 border-t border-gray-700">
-                  <Button 
-                    className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3`}
-                    data-testid={`button-select-${plan.name.toLowerCase()}`}
-                  >
-                    {plan.name === 'Free' ? 'Get Started Free' : `Choose ${plan.name}`}
-                  </Button>
+                  {plan.name === 'Free' ? (
+                    <Button 
+                      className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3`}
+                      data-testid={`button-select-${plan.name.toLowerCase()}`}
+                      onClick={() => !user ? setLocation("/auth") : setLocation("/")}
+                    >
+                      Get Started Free
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      {/* Billing Cycle Selection */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {parseFloat(plan.weeklyPrice || '0') > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
+                            onClick={() => handleSubscribe(plan.id, 'weekly')}
+                            disabled={checkoutMutation.isPending}
+                          >
+                            Weekly
+                          </Button>
+                        )}
+                        {parseFloat(plan.monthlyPrice || '0') > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
+                            onClick={() => handleSubscribe(plan.id, 'monthly')}
+                            disabled={checkoutMutation.isPending}
+                          >
+                            Monthly
+                          </Button>
+                        )}
+                        {parseFloat(plan.yearlyPrice || '0') > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
+                            onClick={() => handleSubscribe(plan.id, 'yearly')}
+                            disabled={checkoutMutation.isPending}
+                          >
+                            Yearly
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <Button 
+                        className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3 flex items-center justify-center`}
+                        data-testid={`button-select-${plan.name.toLowerCase()}`}
+                        disabled={checkoutMutation.isPending}
+                      >
+                        {checkoutMutation.isPending ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="w-4 h-4 mr-2" />
+                            Subscribe with Stripe
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                   
                   <div className="h-8 flex items-center justify-center mt-3">
                     {plan.name !== 'Free' && (

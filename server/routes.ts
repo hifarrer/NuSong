@@ -30,6 +30,14 @@ import {
 import { generateLyrics } from "./openaiService";
 import { generateMusic } from "./elevenLabsService";
 import { ObjectNotFoundError } from "./objectStorage";
+import { 
+  createCheckoutSession, 
+  createCustomerPortalSession, 
+  handleWebhookEvent, 
+  verifyWebhookSignature,
+  cancelSubscription,
+  reactivateSubscription
+} from "./stripeService";
 
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
 
@@ -891,6 +899,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.sendStatus(404);
       }
       return res.sendStatus(500);
+    }
+  });
+
+  // ===== STRIPE ROUTES =====
+
+  // Create checkout session
+  app.post("/api/stripe/create-checkout-session", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { planId, billingCycle } = req.body;
+
+      if (!planId || !billingCycle) {
+        return res.status(400).json({ message: "Plan ID and billing cycle are required" });
+      }
+
+      if (!['weekly', 'monthly', 'yearly'].includes(billingCycle)) {
+        return res.status(400).json({ message: "Invalid billing cycle" });
+      }
+
+      const successUrl = `${req.protocol}://${req.get('host')}/profile?success=true`;
+      const cancelUrl = `${req.protocol}://${req.get('host')}/pricing?canceled=true`;
+
+      const session = await createCheckoutSession({
+        userId,
+        planId,
+        billingCycle,
+        successUrl,
+        cancelUrl,
+      });
+
+      res.json({ sessionId: session.id, url: session.url });
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to create checkout session" 
+      });
+    }
+  });
+
+  // Create customer portal session
+  app.post("/api/stripe/create-portal-session", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const returnUrl = `${req.protocol}://${req.get('host')}/profile`;
+
+      const session = await createCustomerPortalSession(userId, returnUrl);
+
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error("Error creating portal session:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to create portal session" 
+      });
+    }
+  });
+
+  // Stripe webhook endpoint
+  app.post("/api/webhooks/stripe", async (req, res) => {
+    try {
+      const signature = req.headers['stripe-signature'] as string;
+      
+      if (!signature) {
+        return res.status(400).json({ message: "Missing Stripe signature" });
+      }
+
+      const payload = JSON.stringify(req.body);
+      const event = await verifyWebhookSignature(payload, signature);
+      
+      await handleWebhookEvent(event);
+      
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Webhook error:", error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Webhook signature verification failed" 
+      });
+    }
+  });
+
+  // Cancel subscription
+  app.post("/api/stripe/cancel-subscription", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      await cancelSubscription(userId);
+      
+      res.json({ message: "Subscription cancelled successfully" });
+    } catch (error) {
+      console.error("Error cancelling subscription:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to cancel subscription" 
+      });
+    }
+  });
+
+  // Reactivate subscription
+  app.post("/api/stripe/reactivate-subscription", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      await reactivateSubscription(userId);
+      
+      res.json({ message: "Subscription reactivated successfully" });
+    } catch (error) {
+      console.error("Error reactivating subscription:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to reactivate subscription" 
+      });
     }
   });
 

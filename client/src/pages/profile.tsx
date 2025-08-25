@@ -43,6 +43,26 @@ export default function ProfilePage() {
     queryKey: ["/api/plans"],
   });
 
+  // Stripe customer portal mutation
+  const portalMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("/api/stripe/create-portal-session", "POST");
+      return response;
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to open customer portal",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Update email mutation
   const updateEmailMutation = useMutation({
     mutationFn: async (data: { newEmail: string }) => {
@@ -129,10 +149,17 @@ export default function ProfilePage() {
   };
 
   const getCurrentPlan = () => {
-    return plans.find(plan => plan.name === "Free") || plans[0]; // Default to Free plan
+    if (!user) return null;
+    const userPlanId = (user as any)?.subscriptionPlanId;
+    if (!userPlanId) {
+      return plans.find(plan => plan.name === "Free") || null;
+    }
+    return plans.find(plan => plan.id === userPlanId) || plans.find(plan => plan.name === "Free") || null;
   };
 
   const currentPlan = getCurrentPlan();
+  const userPlanStatus = (user as any)?.planStatus || 'free';
+  const hasActiveSubscription = userPlanStatus === 'active' && currentPlan?.name !== 'Free';
 
   if (!user) {
     return (
@@ -212,10 +239,17 @@ export default function ProfilePage() {
                       variant={currentPlan.name === "Free" ? "secondary" : "default"}
                       className={currentPlan.name === "Free" 
                         ? "bg-gray-600 text-gray-200" 
-                        : "bg-gradient-to-r from-music-purple to-music-blue text-white"
+                        : userPlanStatus === 'active'
+                        ? "bg-green-600 text-white"
+                        : userPlanStatus === 'cancelled'
+                        ? "bg-yellow-600 text-white"
+                        : "bg-red-600 text-white"
                       }
                     >
-                      {currentPlan.name}
+                      {userPlanStatus === 'active' ? 'Active' : 
+                       userPlanStatus === 'cancelled' ? 'Cancelled' : 
+                       userPlanStatus === 'inactive' ? 'Inactive' : 
+                       currentPlan.name}
                     </Badge>
                   </div>
                   
@@ -225,29 +259,79 @@ export default function ProfilePage() {
                       <span className="text-white font-medium">{currentPlan.maxGenerations}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Weekly Price:</span>
+                      <span className="text-gray-400">Used This Month:</span>
                       <span className="text-white font-medium">
-                        {(currentPlan.weeklyPrice && parseFloat(currentPlan.weeklyPrice) > 0) ? `$${currentPlan.weeklyPrice}/wk` : "Free"}
+                        {(user as any)?.generationsUsedThisMonth || 0} / {currentPlan.maxGenerations}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Plan Status:</span>
+                      <span className="text-white font-medium capitalize">{userPlanStatus}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Plan Price:</span>
+                      <span className="text-white font-medium">
+                        {currentPlan.name === 'Free' ? 'Free' : 
+                         currentPlan.monthlyPrice ? `$${currentPlan.monthlyPrice}/mo` : 
+                         currentPlan.weeklyPrice ? `$${currentPlan.weeklyPrice}/wk` : 'N/A'}
                       </span>
                     </div>
                   </div>
+
+                  {(user as any)?.planStartDate && (
+                    <div className="grid md:grid-cols-2 gap-4 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Started:</span>
+                        <span className="text-white font-medium">
+                          {new Date((user as any).planStartDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {(user as any)?.planEndDate && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Expires:</span>
+                          <span className="text-white font-medium">
+                            {new Date((user as any).planEndDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <Separator className="bg-gray-600" />
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-400">Want to upgrade or downgrade your plan?</p>
+                      <p className="text-sm text-gray-400">
+                        {hasActiveSubscription 
+                          ? "Manage your subscription, billing, and payment methods"
+                          : "Want to upgrade or change your plan?"
+                        }
+                      </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      className="border-music-accent text-music-accent hover:bg-music-accent hover:text-white"
-                      onClick={() => window.location.href = "/pricing"}
-                      data-testid="button-manage-subscription"
-                    >
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Change Plan
-                      <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    {hasActiveSubscription ? (
+                      <Button
+                        variant="outline"
+                        className="border-music-accent text-music-accent hover:bg-music-accent hover:text-white"
+                        onClick={() => portalMutation.mutate()}
+                        disabled={portalMutation.isPending}
+                        data-testid="button-manage-subscription"
+                      >
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        {portalMutation.isPending ? "Loading..." : "Manage Subscription"}
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="border-music-accent text-music-accent hover:bg-music-accent hover:text-white"
+                        onClick={() => window.location.href = "/pricing"}
+                        data-testid="button-change-plan"
+                      >
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Change Plan
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ) : (

@@ -43,6 +43,8 @@ export const users = pgTable("users", {
   generationsUsedThisMonth: integer("generations_used_this_month").notNull().default(0),
   planStartDate: timestamp("plan_start_date"),
   planEndDate: timestamp("plan_end_date"),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -226,6 +228,9 @@ export const updateUserSchema = z.object({
   planStatus: z.enum(["free", "active", "expired", "cancelled"]).optional(),
   planStartDate: z.string().optional(), // ISO string date
   planEndDate: z.string().optional(), // ISO string date
+  stripeCustomerId: z.string().optional(),
+  stripeSubscriptionId: z.string().optional(),
+  generationsUsedThisMonth: z.number().optional(),
 });
 
 export type AdminLogin = z.infer<typeof adminLoginSchema>;

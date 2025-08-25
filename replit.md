@@ -81,3 +81,86 @@ The platform offers three subscription tiers:
 **Error Handling**: Centralized error handling with structured responses and proper HTTP status codes.
 
 **Development Experience**: Hot reloading, runtime error overlays, and Replit-specific development tools for improved productivity.
+
+## Storage Configuration
+
+### Google Cloud Storage (GCS) Setup
+
+The application supports multiple storage backends with automatic fallback:
+
+1. **Google Cloud Storage** (Recommended for production)
+2. **Local File Storage** (Development fallback)
+3. **Render File Storage** (Production fallback)
+
+#### GCS Configuration
+
+To use Google Cloud Storage for file storage:
+
+1. **Create a Google Cloud Project**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+   - Enable the Cloud Storage API
+
+2. **Create a Storage Bucket**:
+   - Navigate to "Cloud Storage" → "Buckets"
+   - Create a new bucket with globally unique name
+   - Choose location closest to your users
+   - Set storage class to "Standard"
+
+3. **Create Service Account**:
+   - Go to "IAM & Admin" → "Service Accounts"
+   - Create new service account with name like "numusic-storage"
+   - Add roles: "Storage Object Admin" and "Storage Object Viewer"
+   - Create and download JSON key file
+
+4. **Configure Environment Variables**:
+   ```bash
+   # Add to your .env file
+   STORAGE_PROVIDER=gcs
+   GOOGLE_APPLICATION_CREDENTIALS_JSON={"type":"service_account","project_id":"your-project-id",...}
+   GCS_BUCKET_NAME=your-bucket-name
+   ```
+
+5. **Test Configuration**:
+   ```bash
+   npm run test:gcs
+   ```
+
+#### Storage Service Selection
+
+The app automatically selects the appropriate storage service:
+
+- **GCS Storage**: When `STORAGE_PROVIDER=gcs` and credentials are configured
+- **Local Storage**: Development fallback (`NODE_ENV=development`)
+- **Render Storage**: Production fallback (`NODE_ENV=production`)
+
+#### Benefits of GCS Storage
+
+- ✅ **Mobile App Ready**: Direct HTTPS URLs for mobile apps
+- ✅ **Scalable**: Handle thousands of users and files
+- ✅ **Reliable**: 99.9% uptime guarantee
+- ✅ **Cost Effective**: Pay only for what you use (~$0.02/GB/month)
+- ✅ **CDN Ready**: Can be connected to Cloud CDN
+- ✅ **Global Access**: Files accessible worldwide
+
+#### Security Best Practices
+
+- Never commit service account keys to Git
+- Use environment variables in production
+- Consider IAM roles instead of service account keys for production
+- Set up proper CORS configuration if needed
+- Regularly rotate service account keys
+
+#### File Structure
+
+Generated files are organized in the bucket:
+- `uploads/` - User uploaded files
+- `generated/` - AI-generated music files
+
+#### Troubleshooting
+
+If GCS is not working:
+1. Verify environment variables are set correctly
+2. Check service account permissions
+3. Ensure bucket exists and is accessible
+4. Run `npm run test:gcs` to diagnose issues
