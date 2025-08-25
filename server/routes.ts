@@ -17,6 +17,7 @@ import {
   updateUserSchema,
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
+import { LocalStorageService } from "./localStorage";
 import { z } from "zod";
 import { 
   isAdminAuthenticated, 
@@ -40,8 +41,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Object storage routes
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
     try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      // Use local storage for development, object storage for production
+      const storageService = process.env.NODE_ENV === "development" 
+        ? new LocalStorageService() 
+        : new ObjectStorageService();
+      
+      const uploadURL = await storageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
     } catch (error) {
       console.error("Error getting upload URL:", error);
@@ -56,8 +61,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Upload URL is required" });
       }
       
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      // Use local storage for development, object storage for production
+      const storageService = process.env.NODE_ENV === "development" 
+        ? new LocalStorageService() 
+        : new ObjectStorageService();
+      
+      const objectPath = storageService.normalizeObjectEntityPath(uploadURL);
       res.json({ objectPath });
     } catch (error) {
       console.error("Error normalizing object path:", error);
@@ -114,10 +123,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         offset += chunk.length;
       }
 
-      // Upload to object storage
-      const objectStorageService = new ObjectStorageService();
+      // Upload to storage (local for development, object storage for production)
+      const storageService = process.env.NODE_ENV === "development" 
+        ? new LocalStorageService() 
+        : new ObjectStorageService();
+      
       const filename = `generated-music-${generation.id}.mp3`;
-      const uploadUrl = await objectStorageService.uploadAudioBuffer(audioBuffer, filename);
+      const uploadUrl = await storageService.uploadAudioBuffer(audioBuffer, filename);
       
       // Update generation with success
       await storage.updateMusicGeneration(generation.id, {
@@ -159,8 +171,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get publicly accessible URL for the audio file
-      const objectStorageService = new ObjectStorageService();
-      const publicAudioUrl = await objectStorageService.getObjectEntityPublicUrl(validation.inputAudioUrl, 7200); // 2 hours
+      const storageService = process.env.NODE_ENV === "development" 
+        ? new LocalStorageService() 
+        : new ObjectStorageService();
+      
+      const publicAudioUrl = await storageService.getObjectEntityPublicUrl(validation.inputAudioUrl, 7200); // 2 hours
       
       // Prepare API request payload
       const apiPayload = {
@@ -849,14 +864,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve generated audio files from object storage
+  // Serve generated audio files from storage
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
-      const objectStorageService = new ObjectStorageService();
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      const storageService = process.env.NODE_ENV === "development" 
+        ? new LocalStorageService() 
+        : new ObjectStorageService();
+      
+      const objectFile = await storageService.getObjectEntityFile(req.path);
       
       // Stream the file with proper content type
-      await objectStorageService.downloadObject(objectFile, res);
+      await storageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {

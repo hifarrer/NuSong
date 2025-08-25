@@ -100,3 +100,6 @@ Thumbs.db
 create-env.js
 debug-env.js
 test-db-connection.js
+
+# Local storage for development
+local-storage/
