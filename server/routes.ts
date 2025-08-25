@@ -910,10 +910,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { planId, billingCycle } = req.body;
 
+      console.log('=== STRIPE CHECKOUT REQUEST DEBUG ===');
+      console.log('Full request body:', JSON.stringify(req.body, null, 2));
+      console.log('Extracted planId:', planId, 'Type:', typeof planId);
+      console.log('Extracted billingCycle:', billingCycle, 'Type:', typeof billingCycle);
+      console.log('=====================================');
+
       if (!planId || !billingCycle) {
         return res.status(400).json({ message: "Plan ID and billing cycle are required" });
       }
 
+      console.log('Received billing cycle:', billingCycle, 'Type:', typeof billingCycle);
+      console.log('Valid billing cycles:', ['weekly', 'monthly', 'yearly']);
+      console.log('Includes check:', ['weekly', 'monthly', 'yearly'].includes(billingCycle));
+      
       if (!['weekly', 'monthly', 'yearly'].includes(billingCycle)) {
         return res.status(400).json({ message: "Invalid billing cycle" });
       }
@@ -927,6 +937,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         billingCycle,
         successUrl,
         cancelUrl,
+      });
+
+      console.log(`Created Stripe checkout session:`, {
+        sessionId: session.id,
+        url: session.url,
+        userId,
+        planId,
+        billingCycle
       });
 
       res.json({ sessionId: session.id, url: session.url });

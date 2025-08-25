@@ -27,12 +27,21 @@ export default function Pricing() {
         planId,
         billingCycle,
       });
-      return response;
+      return await response.json();
     },
     onSuccess: (data) => {
+      console.log('Checkout session created:', data);
       // Redirect to Stripe checkout
       if (data.url) {
+        console.log('Redirecting to Stripe checkout:', data.url);
         window.location.href = data.url;
+      } else {
+        console.error('No checkout URL received:', data);
+        toast({
+          title: "Error",
+          description: "No checkout URL received from server",
+          variant: "destructive",
+        });
       }
     },
     onError: (error: any) => {
@@ -76,6 +85,7 @@ export default function Pricing() {
       return;
     }
 
+    console.log('Sending billing cycle to API:', billingCycle, 'Type:', typeof billingCycle);
     checkoutMutation.mutate({ planId, billingCycle });
   };
 
