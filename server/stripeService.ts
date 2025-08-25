@@ -9,12 +9,12 @@ async function getStripeInstance(): Promise<Stripe> {
     return stripe;
   }
 
-  const stripeSecretKey = await storage.getSiteSetting('stripe_secret_key');
-  if (!stripeSecretKey) {
+  const stripeSetting = await storage.getSiteSetting('stripe_secret_key');
+  if (!stripeSetting || !stripeSetting.value) {
     throw new Error('Stripe secret key not configured');
   }
 
-  stripe = new Stripe(stripeSecretKey, {
+  stripe = new Stripe(stripeSetting.value, {
     apiVersion: '2024-12-18.acacia',
   });
 
@@ -358,14 +358,14 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void
 
 export async function verifyWebhookSignature(payload: string, signature: string): Promise<Stripe.Event> {
   const stripeInstance = await getStripeInstance();
-  const webhookSecret = await storage.getSiteSetting('stripe_webhook_secret');
+  const webhookSetting = await storage.getSiteSetting('stripe_webhook_secret');
   
-  if (!webhookSecret) {
+  if (!webhookSetting || !webhookSetting.value) {
     throw new Error('Stripe webhook secret not configured');
   }
 
   try {
-    return stripeInstance.webhooks.constructEvent(payload, signature, webhookSecret);
+    return stripeInstance.webhooks.constructEvent(payload, signature, webhookSetting.value);
   } catch (error) {
     throw new Error(`Webhook signature verification failed: ${error}`);
   }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ export default function Pricing() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [billingCycle, setBillingCycle] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
   
   const { data: plans = [], isLoading } = useQuery<SubscriptionPlan[]>({
     queryKey: ["/api/plans"],
@@ -112,6 +114,55 @@ export default function Pricing() {
     return num === 0 ? 'Free' : `$${num}`;
   };
 
+  const getPlanPrice = (plan: SubscriptionPlan) => {
+    if (plan.name === 'Free') return '0';
+    switch (billingCycle) {
+      case 'weekly':
+        return plan.weeklyPrice || '0';
+      case 'monthly':
+        return plan.monthlyPrice || '0';
+      case 'yearly':
+        return plan.yearlyPrice || '0';
+      default:
+        return plan.monthlyPrice || '0';
+    }
+  };
+
+  const getBillingPeriod = () => {
+    switch (billingCycle) {
+      case 'weekly':
+        return 'week';
+      case 'monthly':
+        return 'month';
+      case 'yearly':
+        return 'year';
+      default:
+        return 'month';
+    }
+  };
+
+  const getSavingsPercentage = (plan: SubscriptionPlan) => {
+    if (plan.name === 'Free') return 0;
+    
+    switch (billingCycle) {
+      case 'yearly':
+        if (plan.monthlyPrice && plan.yearlyPrice) {
+          const monthly = parseFloat(plan.monthlyPrice);
+          const yearly = parseFloat(plan.yearlyPrice);
+          return Math.round((1 - (yearly / (monthly * 12))) * 100);
+        }
+        break;
+      case 'monthly':
+        if (plan.weeklyPrice && plan.monthlyPrice) {
+          const weekly = parseFloat(plan.weeklyPrice);
+          const monthly = parseFloat(plan.monthlyPrice);
+          return Math.round((1 - (monthly / (weekly * 4))) * 100);
+        }
+        break;
+    }
+    return 0;
+  };
+
   const getFeatures = (plan: SubscriptionPlan): string[] => {
     if (!plan.features) return [];
     if (typeof plan.features === 'string') {
@@ -137,10 +188,52 @@ export default function Pricing() {
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
             Choose Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Creative Plan</span>
           </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-8">
             Unlock the power of AI music generation with our flexible subscription plans. 
             Create amazing music that fits your needs and budget.
           </p>
+          
+          {/* Billing Cycle Buttons */}
+          <div className="flex items-center justify-center space-x-2 bg-gray-800/50 rounded-lg p-4 max-w-md mx-auto">
+            <Button
+              variant={billingCycle === 'weekly' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setBillingCycle('weekly')}
+              className={billingCycle === 'weekly' 
+                ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                : 'border-gray-600 text-purple-400 hover:bg-gray-700 hover:text-purple-300'
+              }
+            >
+              Weekly
+            </Button>
+            <Button
+              variant={billingCycle === 'monthly' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setBillingCycle('monthly')}
+              className={billingCycle === 'monthly' 
+                ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                : 'border-gray-600 text-purple-400 hover:bg-gray-700 hover:text-purple-300'
+              }
+            >
+              Monthly
+            </Button>
+            <Button
+              variant={billingCycle === 'yearly' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setBillingCycle('yearly')}
+              className={billingCycle === 'yearly' 
+                ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                : 'border-gray-600 text-purple-400 hover:bg-gray-700 hover:text-purple-300'
+              }
+            >
+              Yearly
+            </Button>
+            {billingCycle === 'yearly' && (
+              <span className="text-green-400 text-xs font-medium bg-green-900/20 px-2 py-1 rounded ml-2">
+                Save up to {Math.max(...plans.map(plan => getSavingsPercentage(plan)))}%
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Pricing Cards */}
@@ -182,22 +275,15 @@ export default function Pricing() {
                   
                   <div className="text-center">
                     <div className="text-4xl font-bold text-white mb-2">
-                      {formatPrice(plan.weeklyPrice || '0')}
-                      {parseFloat(plan.weeklyPrice || '0') > 0 && (
-                        <span className="text-lg text-gray-400 font-normal">/week</span>
+                      {formatPrice(getPlanPrice(plan))}
+                      {plan.name !== 'Free' && (
+                        <span className="text-lg text-gray-400 font-normal">/{getBillingPeriod()}</span>
                       )}
                     </div>
-                    {parseFloat(plan.monthlyPrice || '0') > 0 && (
-                      <div className="text-sm text-gray-400">
-                        or {formatPrice(plan.monthlyPrice || '0')} monthly
-                      </div>
-                    )}
-                    {parseFloat(plan.yearlyPrice || '0') > 0 && (
-                      <div className="text-sm text-gray-400">
-                        or {formatPrice(plan.yearlyPrice || '0')} yearly
-                        <span className="text-green-400 ml-1">
-                          (Save {Math.round((1 - (parseFloat(plan.yearlyPrice || '0') / (parseFloat(plan.weeklyPrice || '0') * 52))) * 100)}%)
-                        </span>
+                    {plan.name !== 'Free' && getSavingsPercentage(plan) > 0 && (
+                      <div className="text-sm text-green-400 font-medium">
+                        {billingCycle === 'yearly' && 'Save ' + getSavingsPercentage(plan) + '% vs monthly'}
+                        {billingCycle === 'monthly' && 'Save ' + getSavingsPercentage(plan) + '% vs weekly'}
                       </div>
                     )}
                   </div>
@@ -225,62 +311,24 @@ export default function Pricing() {
                       Get Started Free
                     </Button>
                   ) : (
-                    <div className="space-y-3">
-                      {/* Billing Cycle Selection */}
-                      <div className="grid grid-cols-3 gap-2">
-                        {parseFloat(plan.weeklyPrice || '0') > 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
-                            onClick={() => handleSubscribe(plan.id, 'weekly')}
-                            disabled={checkoutMutation.isPending}
-                          >
-                            Weekly
-                          </Button>
-                        )}
-                        {parseFloat(plan.monthlyPrice || '0') > 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
-                            onClick={() => handleSubscribe(plan.id, 'monthly')}
-                            disabled={checkoutMutation.isPending}
-                          >
-                            Monthly
-                          </Button>
-                        )}
-                        {parseFloat(plan.yearlyPrice || '0') > 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
-                            onClick={() => handleSubscribe(plan.id, 'yearly')}
-                            disabled={checkoutMutation.isPending}
-                          >
-                            Yearly
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <Button 
-                        className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3 flex items-center justify-center`}
-                        data-testid={`button-select-${plan.name.toLowerCase()}`}
-                        disabled={checkoutMutation.isPending}
-                      >
-                        {checkoutMutation.isPending ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <CreditCard className="w-4 h-4 mr-2" />
-                            Subscribe with Stripe
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                    <Button 
+                      className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3 flex items-center justify-center`}
+                      data-testid={`button-select-${plan.name.toLowerCase()}`}
+                      onClick={() => handleSubscribe(plan.id, billingCycle)}
+                      disabled={checkoutMutation.isPending}
+                    >
+                      {checkoutMutation.isPending ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Subscribe with Stripe
+                        </>
+                      )}
+                    </Button>
                   )}
                   
                   <div className="h-8 flex items-center justify-center mt-3">
