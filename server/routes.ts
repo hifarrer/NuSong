@@ -33,6 +33,28 @@ import { ObjectNotFoundError } from "./objectStorage";
 
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
 
+// Helper function to get the appropriate storage service
+function getStorageService() {
+  console.log('🔍 Storage Service Selection:');
+  console.log(`  - STORAGE_PROVIDER: ${process.env.STORAGE_PROVIDER}`);
+  console.log(`  - NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`  - GOOGLE_APPLICATION_CREDENTIALS_JSON: ${process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ? 'SET' : 'NOT SET'}`);
+  console.log(`  - GCS_BUCKET_NAME: ${process.env.GCS_BUCKET_NAME || 'NOT SET'}`);
+  
+  if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+    console.log('  ✅ Using GCS Storage Service');
+    return new GCSStorageService();
+  }
+  
+  if (process.env.NODE_ENV === "development") {
+    console.log('  ✅ Using Local Storage Service (development)');
+    return new LocalStorageService();
+  } else {
+    console.log('  ✅ Using Render Storage Service (production)');
+    return new RenderStorageService();
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default admin user
   await initializeDefaultAdmin();
@@ -43,15 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Object storage routes
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
     try {
-      // Use GCS storage if configured, otherwise fall back to local/Render storage
-      const storageService = (() => {
-        if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-          return new GCSStorageService();
-        }
-        return process.env.NODE_ENV === "development" 
-          ? new LocalStorageService() 
-          : new RenderStorageService();
-      })();
+      const storageService = getStorageService();
       
       const uploadURL = await storageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
@@ -68,15 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Upload URL is required" });
       }
       
-      // Use GCS storage if configured, otherwise fall back to local/Render storage
-      const storageService = (() => {
-        if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-          return new GCSStorageService();
-        }
-        return process.env.NODE_ENV === "development" 
-          ? new LocalStorageService() 
-          : new RenderStorageService();
-      })();
+      const storageService = getStorageService();
       
       const objectPath = storageService.normalizeObjectEntityPath(uploadURL);
       res.json({ objectPath });
@@ -135,15 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         offset += chunk.length;
       }
 
-      // Upload to storage (GCS if configured, otherwise local/Render storage)
-      const storageService = (() => {
-        if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-          return new GCSStorageService();
-        }
-        return process.env.NODE_ENV === "development" 
-          ? new LocalStorageService() 
-          : new RenderStorageService();
-      })();
+      const storageService = getStorageService();
       
       const filename = `generated-music-${generation.id}.mp3`;
       const uploadUrl = await storageService.uploadAudioBuffer(audioBuffer, filename);
@@ -187,15 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Audio file URL is required" });
       }
 
-      // Get publicly accessible URL for the audio file
-      const storageService = (() => {
-        if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-          return new GCSStorageService();
-        }
-        return process.env.NODE_ENV === "development" 
-          ? new LocalStorageService() 
-          : new RenderStorageService();
-      })();
+      const storageService = getStorageService();
       
       const publicAudioUrl = await storageService.getObjectEntityPublicUrl(validation.inputAudioUrl, 7200); // 2 hours
       
@@ -889,14 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve generated audio files from storage
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
-      const storageService = (() => {
-        if (process.env.STORAGE_PROVIDER === 'gcs' && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-          return new GCSStorageService();
-        }
-        return process.env.NODE_ENV === "development" 
-          ? new LocalStorageService() 
-          : new RenderStorageService();
-      })();
+      const storageService = getStorageService();
       
       const objectFile = await storageService.getObjectEntityFile(req.path);
       
