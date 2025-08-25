@@ -103,3 +103,6 @@ test-db-connection.js
 
 # Local storage for development
 local-storage/
+
+# Render storage for production
+render-storage/
