@@ -38,6 +38,7 @@ import {
   cancelSubscription,
   reactivateSubscription
 } from "./stripeService";
+import Stripe from 'stripe';
 
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
 
@@ -993,14 +994,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Webhook event type:', event.type);
       console.log('Webhook event data:', JSON.stringify(event.data, null, 2));
       
+      console.log('Processing webhook event...');
       await handleWebhookEvent(event);
+      console.log('Webhook event processed successfully');
       
       console.log('Webhook processed successfully');
       res.json({ received: true });
     } catch (error) {
       console.error("Webhook error:", error);
       res.status(400).json({ 
-        message: error instanceof Error ? error.message : "Webhook signature verification failed" 
+        message: error instanceof Error ? error.message : "Webhook processing failed" 
       });
     }
   });

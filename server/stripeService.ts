@@ -283,7 +283,12 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Pro
 }
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
+  console.log('=== HANDLING INVOICE PAYMENT SUCCEEDED ===');
+  console.log('Invoice ID:', invoice.id);
+  console.log('Subscription ID:', invoice.subscription);
+  
   if (!invoice.subscription) {
+    console.log('No subscription found in invoice');
     return;
   }
 
@@ -291,8 +296,10 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<v
   const stripeInstance = await getStripeInstance();
   const subscription = await stripeInstance.subscriptions.retrieve(invoice.subscription as string);
   
+  console.log('Subscription metadata:', subscription.metadata);
   const { userId } = subscription.metadata || {};
   if (!userId) {
+    console.log('No userId found in subscription metadata');
     return;
   }
 
@@ -332,6 +339,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<v
   });
 
   console.log(`Payment succeeded for user ${userId}, subscription extended`);
+  console.log('=== INVOICE PAYMENT SUCCEEDED HANDLING COMPLETE ===');
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
@@ -360,6 +368,14 @@ export async function verifyWebhookSignature(payload: string, signature: string)
   const stripeInstance = await getStripeInstance();
   const webhookSetting = await storage.getSiteSetting('stripe_webhook_secret');
   
+  console.log('=== WEBHOOK SIGNATURE VERIFICATION DEBUG ===');
+  console.log('Webhook setting from database:', webhookSetting);
+  console.log('Webhook setting value:', webhookSetting?.value);
+  console.log('Webhook setting value length:', webhookSetting?.value?.length);
+  console.log('Signature from request:', signature);
+  console.log('Signature length:', signature?.length);
+  console.log('===========================================');
+  
   if (!webhookSetting || !webhookSetting.value) {
     throw new Error('Stripe webhook secret not configured');
   }
@@ -367,6 +383,7 @@ export async function verifyWebhookSignature(payload: string, signature: string)
   try {
     return stripeInstance.webhooks.constructEvent(payload, signature, webhookSetting.value);
   } catch (error) {
+    console.error('Webhook signature verification error:', error);
     throw new Error(`Webhook signature verification failed: ${error}`);
   }
 }
