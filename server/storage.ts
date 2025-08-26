@@ -40,6 +40,7 @@ export interface IStorage {
   
   // Admin user management operations
   getAllUsers(): Promise<User[]>;
+  getAllUsersWithGenerationCount(): Promise<Array<User & { generationCount: number, subscriptionPlan?: SubscriptionPlan }>>;
   updateUser(userId: string, updates: Partial<User>): Promise<User>;
   deleteUser(userId: string): Promise<void>;
   getUserWithGenerationCount(userId: string): Promise<User & { generationCount: number } | undefined>;
@@ -51,7 +52,11 @@ export interface IStorage {
   getMusicGeneration(id: string): Promise<MusicGeneration | undefined>;
   getUserMusicGenerations(userId: string): Promise<MusicGeneration[]>;
   getPublicMusicGenerations(): Promise<MusicGeneration[]>;
+  getAllMusicGenerationsWithUsers(): Promise<Array<MusicGeneration & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> }>>;
   deleteMusicGeneration(id: string): Promise<void>;
+  canUserGenerateMusic(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }>;
+  incrementUserGenerationCount(userId: string): Promise<void>;
+  resetMonthlyGenerationCounts(): Promise<void>;
   
   // Admin operations
   getAdminUser(id: string): Promise<AdminUser | undefined>;
@@ -259,6 +264,69 @@ export class DatabaseStorage implements IStorage {
     return allUsers;
   }
 
+  async getAllUsersWithGenerationCount(): Promise<Array<User & { generationCount: number, subscriptionPlan?: SubscriptionPlan }>> {
+    const results = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        passwordHash: users.passwordHash,
+        profileImageUrl: users.profileImageUrl,
+        emailVerified: users.emailVerified,
+        emailVerificationToken: users.emailVerificationToken,
+        emailVerificationExpiry: users.emailVerificationExpiry,
+        subscriptionPlanId: users.subscriptionPlanId,
+        planStatus: users.planStatus,
+        generationsUsedThisMonth: users.generationsUsedThisMonth,
+        planStartDate: users.planStartDate,
+        planEndDate: users.planEndDate,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        generationCount: count(musicGenerations.id).as("generationCount"),
+        planName: subscriptionPlans.name,
+        planDescription: subscriptionPlans.description,
+        maxGenerations: subscriptionPlans.maxGenerations,
+      })
+      .from(users)
+      .leftJoin(musicGenerations, eq(users.id, musicGenerations.userId))
+      .leftJoin(subscriptionPlans, eq(users.subscriptionPlanId, subscriptionPlans.id))
+      .groupBy(
+        users.id,
+        users.email,
+        users.firstName,
+        users.lastName,
+        users.passwordHash,
+        users.profileImageUrl,
+        users.emailVerified,
+        users.emailVerificationToken,
+        users.emailVerificationExpiry,
+        users.subscriptionPlanId,
+        users.planStatus,
+        users.generationsUsedThisMonth,
+        users.planStartDate,
+        users.planEndDate,
+        users.stripeCustomerId,
+        users.stripeSubscriptionId,
+        users.createdAt,
+        users.updatedAt,
+        subscriptionPlans.name,
+        subscriptionPlans.description,
+        subscriptionPlans.maxGenerations
+      )
+      .orderBy(desc(users.createdAt));
+
+    return results.map((u) => ({
+      ...u,
+      generationCount: Number(u.generationCount),
+      subscriptionPlan: u.planName
+        ? ({ id: u.subscriptionPlanId!, name: u.planName, description: u.planDescription, maxGenerations: u.maxGenerations } as any)
+        : undefined,
+    }));
+  }
+
   async updateUser(userId: string, updates: Partial<User>): Promise<User> {
     const [user] = await db
       .update(users)
@@ -385,6 +453,74 @@ export class DatabaseStorage implements IStorage {
     return generation;
   }
 
+  async canUserGenerateMusic(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }> {
+    const userWithPlan = await this.getUserWithGenerationCount(userId);
+    
+    if (!userWithPlan) {
+      return { canGenerate: false, reason: "User not found", currentUsage: 0, maxGenerations: 0 };
+    }
+
+    // Get the user's current plan
+    const user = await this.getUser(userId);
+    if (!user) {
+      return { canGenerate: false, reason: "User not found", currentUsage: 0, maxGenerations: 0 };
+    }
+
+    // If user has no plan, they get the free plan limit
+    let maxGenerations = 5; // Default free plan limit
+    
+    if (user.subscriptionPlanId) {
+      const plan = await this.getSubscriptionPlan(user.subscriptionPlanId);
+      if (plan) {
+        maxGenerations = plan.maxGenerations;
+      }
+    } else {
+      // If no subscription plan ID, get the free plan
+      const freePlan = await db
+        .select()
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.name, "Free"))
+        .limit(1);
+      
+      if (freePlan.length > 0) {
+        maxGenerations = freePlan[0].maxGenerations;
+      }
+    }
+
+    const currentUsage = user.generationsUsedThisMonth || 0;
+    
+    if (currentUsage >= maxGenerations) {
+      return { 
+        canGenerate: false, 
+        reason: `You have reached your monthly limit of ${maxGenerations} generations. Please upgrade your plan to generate more music.`, 
+        currentUsage, 
+        maxGenerations 
+      };
+    }
+
+    return { canGenerate: true, currentUsage, maxGenerations };
+  }
+
+  async incrementUserGenerationCount(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        generationsUsedThisMonth: sql`${users.generationsUsedThisMonth} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async resetMonthlyGenerationCounts(): Promise<void> {
+    // Reset all users' generation counts to 0
+    await db
+      .update(users)
+      .set({
+        generationsUsedThisMonth: 0,
+        updatedAt: new Date(),
+      });
+  }
+
   async getMusicGeneration(id: string): Promise<MusicGeneration | undefined> {
     const [generation] = await db
       .select()
@@ -461,6 +597,60 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(musicGenerations)
       .orderBy(desc(musicGenerations.createdAt));
+  }
+
+  async getAllMusicGenerationsWithUsers(): Promise<Array<MusicGeneration & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> }>> {
+    const rows = await db
+      .select({
+        id: musicGenerations.id,
+        userId: musicGenerations.userId,
+        type: musicGenerations.type,
+        tags: musicGenerations.tags,
+        lyrics: musicGenerations.lyrics,
+        duration: musicGenerations.duration,
+        audioUrl: musicGenerations.audioUrl,
+        seed: musicGenerations.seed,
+        status: musicGenerations.status,
+        visibility: musicGenerations.visibility,
+        showInGallery: musicGenerations.showInGallery,
+        title: musicGenerations.title,
+        falRequestId: musicGenerations.falRequestId,
+        createdAt: musicGenerations.createdAt,
+        updatedAt: musicGenerations.updatedAt,
+        user_id: users.id,
+        user_firstName: users.firstName,
+        user_lastName: users.lastName,
+        user_email: users.email,
+        user_profileImageUrl: users.profileImageUrl,
+      })
+      .from(musicGenerations)
+      .leftJoin(users, eq(musicGenerations.userId, users.id))
+      .orderBy(desc(musicGenerations.createdAt));
+
+    return rows.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      type: r.type as any,
+      tags: r.tags,
+      lyrics: r.lyrics ?? undefined,
+      duration: r.duration ?? undefined,
+      audioUrl: r.audioUrl ?? undefined,
+      seed: r.seed ?? undefined,
+      status: r.status as any,
+      visibility: r.visibility as any,
+      showInGallery: r.showInGallery,
+      title: r.title ?? undefined,
+      falRequestId: r.falRequestId ?? undefined,
+      createdAt: r.createdAt as any,
+      updatedAt: r.updatedAt as any,
+      user: {
+        id: r.user_id!,
+        firstName: r.user_firstName!,
+        lastName: r.user_lastName!,
+        email: r.user_email!,
+        profileImageUrl: r.user_profileImageUrl ?? null,
+      },
+    }));
   }
 
   async updateMusicGenerationGalleryVisibility(id: string, showInGallery: boolean): Promise<MusicGeneration> {

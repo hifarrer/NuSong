@@ -173,6 +173,21 @@ export function AdminPlanManagement() {
     }
   };
 
+  const addFeature = () => {
+    setFormData({ ...formData, features: [...formData.features, ""] });
+  };
+
+  const updateFeature = (index: number, value: string) => {
+    const updated = [...formData.features];
+    updated[index] = value;
+    setFormData({ ...formData, features: updated });
+  };
+
+  const removeFeature = (index: number) => {
+    const updated = formData.features.filter((_, i) => i !== index);
+    setFormData({ ...formData, features: updated });
+  };
+
   const openCreateDialog = () => {
     resetForm();
     setShowCreateDialog(true);
@@ -252,6 +267,41 @@ export function AdminPlanManagement() {
                   rows={4}
                   data-testid="textarea-description"
                 />
+              </div>
+
+              <div>
+                <label className="text-gray-200 text-sm font-medium">Features</label>
+                <div className="space-y-2 mt-2">
+                  {formData.features.map((feature, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <Input
+                        value={feature}
+                        onChange={(e) => updateFeature(index, e.target.value)}
+                        className="bg-gray-800 border-gray-600 text-white"
+                        placeholder={`Feature #${index + 1}`}
+                        data-testid={`input-feature-${index}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-red-400 hover:text-red-300"
+                        onClick={() => removeFeature(index)}
+                        data-testid={`button-remove-feature-${index}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-gray-600 text-gray-300"
+                    onClick={addFeature}
+                    data-testid="button-add-feature"
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> Add Feature
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -468,12 +518,20 @@ export function AdminPlanManagement() {
                     {plan.generationsNumber}
                   </span>
                 </div>
-                {plan.description && (
+                {Array.isArray(plan.features) && plan.features.length > 0 && (
                   <div className="text-sm text-gray-300">
                     <div className="font-medium mb-1">Features:</div>
-                    <div className="whitespace-pre-line text-xs">
-                      {plan.description}
-                    </div>
+                    <ul className="list-disc list-inside text-xs space-y-1">
+                      {plan.features.map((f, i) => (
+                        <li key={i}>{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {plan.description && (
+                  <div className="text-sm text-gray-300 mt-3">
+                    <div className="font-medium mb-1">Description:</div>
+                    <div className="whitespace-pre-line text-xs">{plan.description}</div>
                   </div>
                 )}
                 {(plan.monthlyPriceId || plan.yearlyPriceId) && (
@@ -534,6 +592,41 @@ export function AdminPlanManagement() {
                 rows={4}
                 data-testid="textarea-edit-description"
               />
+            </div>
+
+            <div>
+              <label className="text-gray-200 text-sm font-medium">Features</label>
+              <div className="space-y-2 mt-2">
+                {formData.features.map((feature, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      value={feature}
+                      onChange={(e) => updateFeature(index, e.target.value)}
+                      className="bg-gray-800 border-gray-600 text-white"
+                      placeholder={`Feature #${index + 1}`}
+                      data-testid={`input-edit-feature-${index}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-red-400 hover:text-red-300"
+                      onClick={() => removeFeature(index)}
+                      data-testid={`button-remove-edit-feature-${index}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-gray-600 text-gray-300"
+                  onClick={addFeature}
+                  data-testid="button-add-edit-feature"
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Add Feature
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">

@@ -95,6 +95,10 @@ export function setupCustomAuth(app: Express) {
         return res.status(400).json({ message: 'Email already registered' });
       }
 
+      // Get the free plan ID
+      const freePlan = await storage.getAllSubscriptionPlans();
+      const freePlanId = freePlan.find(plan => plan.name === "Free")?.id;
+      
       // Hash password and create user (NOT verified by default)
       const passwordHash = await hashPassword(password);
       const user = await storage.createUser({
@@ -103,6 +107,8 @@ export function setupCustomAuth(app: Express) {
         email,
         passwordHash,
         emailVerified: false,
+        subscriptionPlanId: freePlanId || null,
+        planStatus: 'free',
       });
 
       // Generate and set verification token
@@ -409,6 +415,33 @@ export function setupCustomAuth(app: Express) {
       res.json({ message: 'Password updated successfully' });
     } catch (error) {
       console.error('Update password error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Update user avatar route
+  app.put('/api/user/avatar', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { avatarPath } = req.body as { avatarPath?: string };
+      if (!avatarPath || typeof avatarPath !== 'string') {
+        return res.status(400).json({ message: 'avatarPath is required' });
+      }
+
+      // Basic validation: only allow images from public avatars directory
+      if (!avatarPath.startsWith('/avatars/') || !avatarPath.endsWith('.png')) {
+        return res.status(400).json({ message: 'Invalid avatar path' });
+      }
+
+      const userId = req.session.userId!;
+      const updated = await storage.updateUser(userId, { profileImageUrl: avatarPath });
+      if (!updated) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const { passwordHash: _, ...userWithoutPassword } = updated;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Update avatar error:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });

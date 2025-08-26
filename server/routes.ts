@@ -39,6 +39,7 @@ import {
   reactivateSubscription
 } from "./stripeService";
 import Stripe from 'stripe';
+import { spawn } from 'child_process';
 import type { Request } from 'express';
 
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
@@ -108,8 +109,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const validation = insertTextToMusicSchema.parse(req.body);
       
+      // Check if user can generate more music
+      const generationCheck = await storage.canUserGenerateMusic(userId);
+      if (!generationCheck.canGenerate) {
+        return res.status(403).json({ 
+          message: generationCheck.reason,
+          currentUsage: generationCheck.currentUsage,
+          maxGenerations: generationCheck.maxGenerations
+        });
+      }
+      
       // Create generation record
       const generation = await storage.createTextToMusicGeneration(userId, validation);
+      
+      // Increment user's generation count
+      await storage.incrementUserGenerationCount(userId);
       
       // Convert duration from seconds to milliseconds
       const durationMs = (validation.duration || 30) * 1000;
@@ -187,8 +201,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const validation = insertAudioToMusicSchema.parse(req.body);
       
+      // Check if user can generate more music
+      const generationCheck = await storage.canUserGenerateMusic(userId);
+      if (!generationCheck.canGenerate) {
+        return res.status(403).json({ 
+          message: generationCheck.reason,
+          currentUsage: generationCheck.currentUsage,
+          maxGenerations: generationCheck.maxGenerations
+        });
+      }
+      
       // Create generation record
       const generation = await storage.createAudioToMusicGeneration(userId, validation);
+      
+      // Increment user's generation count
+      await storage.incrementUserGenerationCount(userId);
       
       // Validate audio URL is provided
       if (!validation.inputAudioUrl) {
@@ -321,6 +348,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user generations:", error);
       res.status(500).json({ message: "Failed to fetch generations" });
+    }
+  });
+
+  // Get user's generation status (current usage vs limit)
+  app.get("/api/user/generation-status", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const status = await storage.canUserGenerateMusic(userId);
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching generation status:", error);
+      res.status(500).json({ message: "Failed to fetch generation status" });
     }
   });
 
@@ -571,7 +610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin music tracks management
   app.get('/api/admin/tracks', isAdminAuthenticated, async (req, res) => {
     try {
-      const tracks = await storage.getAllMusicGenerations();
+      const tracks = await storage.getAllMusicGenerationsWithUsers();
       res.json(tracks);
     } catch (error) {
       console.error('Error fetching admin tracks:', error);
@@ -698,6 +737,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Maintenance - Reset Generation Counts
+  app.post('/api/admin/reset-generation-counts', isAdminAuthenticated, async (req, res) => {
+    try {
+      await storage.resetMonthlyGenerationCounts();
+      res.json({ message: 'Generation counts reset successfully' });
+    } catch (error) {
+      console.error('Error resetting generation counts:', error);
+      res.status(500).json({ message: 'Failed to reset generation counts' });
+    }
+  });
+
+  // Admin maintenance: download SQL backup (schema + data)
+  app.get('/api/admin/backup/sql', isAdminAuthenticated, async (req, res) => {
+    try {
+      const host = process.env.PGHOST || 'localhost';
+      const port = process.env.PGPORT || '5432';
+      const database = process.env.PGDATABASE;
+      const user = process.env.PGUSER || 'numusicuser';
+      const password = process.env.PGPASSWORD;
+
+      if (!database || !password) {
+        return res.status(500).json({ message: 'Database env vars missing (PGDATABASE/PGPASSWORD)' });
+      }
+
+      const fileName = `numusic_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.sql`;
+      res.setHeader('Content-Type', 'application/sql');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+      const args = [
+        '-h', host,
+        '-p', port,
+        '-U', user,
+        '-d', database,
+        '--no-owner',
+        '--no-privileges'
+      ];
+
+      const child = spawn('pg_dump', args, {
+        env: { ...process.env, PGPASSWORD: password },
+      });
+
+      let stderrData = '';
+      child.stderr.on('data', (chunk) => {
+        stderrData += chunk.toString();
+      });
+
+      child.on('error', (err) => {
+        console.error('pg_dump spawn error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'pg_dump failed to start', error: String(err) });
+        }
+      });
+
+      child.on('close', (code) => {
+        if (code !== 0) {
+          console.error('pg_dump exited with code', code, stderrData);
+          if (!res.headersSent) {
+            res.status(500).json({ message: 'pg_dump failed', code, error: stderrData });
+          }
+        } else {
+          // stream ended successfully
+        }
+      });
+
+      child.stdout.pipe(res);
+    } catch (error) {
+      console.error('Error generating SQL backup:', error);
+      res.status(500).json({ message: 'Failed to generate SQL backup' });
+    }
+  });
+
   // Admin password change
   app.put('/api/admin/change-password', isAdminAuthenticated, async (req, res) => {
     try {
@@ -785,9 +895,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all regular users
   app.get('/api/admin/regular-users', isAdminAuthenticated, async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
+      const usersWithCounts = await storage.getAllUsersWithGenerationCount();
       // Remove password hash from response for security
-      const userList = users.map(({ passwordHash, ...user }) => user);
+      const userList = usersWithCounts.map(({ passwordHash, ...user }) => user);
       res.json(userList);
     } catch (error) {
       console.error('Error fetching regular users:', error);

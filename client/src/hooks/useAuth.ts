@@ -8,7 +8,11 @@ export function useAuth() {
     refetchOnWindowFocus: false,
     queryFn: async () => {
       try {
-        const response = await fetch("/api/auth/user");
+        const response = await fetch("/api/auth/user", {
+          credentials: "include",
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        });
         if (!response.ok) {
           if (response.status === 401) {
             return null; // User not authenticated

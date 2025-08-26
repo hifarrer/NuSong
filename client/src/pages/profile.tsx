@@ -21,12 +21,14 @@ import {
   ChevronRight,
   LogOut
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { SubscriptionPlan } from "@shared/schema";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
   // Form states
   const [emailData, setEmailData] = useState({
@@ -133,6 +135,20 @@ export default function ProfilePage() {
     },
   });
 
+  const handleSelectAvatar = async (index: number) => {
+    try {
+      setSavingAvatar(true);
+      const avatarPath = `/avatars/${index}.png`;
+      await apiRequest("/api/user/avatar", "PUT", { avatarPath });
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({ title: "Avatar updated", description: "Your profile image has been changed." });
+    } catch (e: any) {
+      toast({ title: "Failed to update avatar", description: e?.message || "", variant: "destructive" });
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
+
   const handleUpdateEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (emailData.newEmail === (user as any)?.email) {
@@ -209,6 +225,47 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid gap-6">
+          {/* Avatar Selection */}
+          <Card className="bg-music-secondary border-gray-700">
+            <CardHeader>
+              <CardTitle className="flex items-center text-white">
+                <Settings className="mr-2 h-5 w-5 text-music-accent" />
+                Profile Avatar
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-14 h-14">
+                  {(user as any)?.profileImageUrl ? (
+                    <AvatarImage src={(user as any).profileImageUrl} alt="avatar" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    <AvatarFallback>{((user as any)?.firstName?.[0] || 'U').toUpperCase()}</AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="text-sm text-gray-400">
+                  Choose an avatar below. Your current avatar appears here and in the top navigation.
+                </div>
+              </div>
+              <div className="grid grid-cols-8 gap-3">
+                {Array.from({ length: 64 }, (_, i) => i + 1).map((n) => {
+                  const src = `/avatars/${n}.png`;
+                  const isActive = (user as any)?.profileImageUrl === src;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => handleSelectAvatar(n)}
+                      disabled={savingAvatar}
+                      className={`rounded-md overflow-hidden border transition-transform ${isActive ? 'border-music-accent ring-2 ring-music-accent' : 'border-gray-700 hover:border-gray-500'} ${savingAvatar ? 'opacity-50' : 'hover:scale-105'}`}
+                      aria-label={`Select avatar ${n}`}
+                    >
+                      <img src={src} alt={`avatar ${n}`} className="w-12 h-12 object-cover" />
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
           {/* Profile Information */}
           <Card className="bg-music-secondary border-gray-700">
             <CardHeader>

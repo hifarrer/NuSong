@@ -8,6 +8,7 @@ import {
   CreditCard, 
   Settings, 
   Music,
+  Database,
   LogOut,
   Menu,
   X
@@ -20,6 +21,7 @@ const navigationItems = [
   { id: "plans", label: "Subscription Plans", icon: CreditCard, path: "/admin/plans" },
   { id: "tracks", label: "Music Tracks", icon: Music, path: "/admin/tracks" },
   { id: "settings", label: "Site Settings", icon: Settings, path: "/admin/settings" },
+  { id: "maintenance", label: "Maintenance", icon: Database, path: "/admin/maintenance" },
 ];
 
 export function AdminSidebar() {

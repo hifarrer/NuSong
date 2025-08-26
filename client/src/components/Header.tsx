@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Music, User, LogOut } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 
 interface HeaderProps {
@@ -82,9 +83,15 @@ export function Header({ currentPage }: HeaderProps) {
             {!isLoading && user ? (
               <>
                 <a href="/profile" className="flex items-center space-x-3 hover:bg-gray-800/50 rounded-lg px-3 py-2 transition-colors">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-music-purple to-music-blue flex items-center justify-center">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
+                  <Avatar className="w-8 h-8">
+                    {(user as any)?.profileImageUrl ? (
+                      <AvatarImage src={(user as any).profileImageUrl} alt="avatar" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      <AvatarFallback>
+                        {(((user as any)?.firstName?.[0] || (user as any)?.email?.[0] || 'U') as string).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
                   <span className="text-sm text-gray-300 hover:text-white transition-colors">
                     {(user as any)?.firstName || (user as any)?.email || "User"}
                   </span>

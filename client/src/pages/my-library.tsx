@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AudioPlayer } from "@/components/ui/audio-player";
-import { Music, Search, Filter, WandSparkles, AudioWaveform, Download, Share, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Music, Search, Filter, WandSparkles, AudioWaveform, Download, Share, Eye, EyeOff, Trash2, Star } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
 export default function MyLibrary() {
@@ -18,6 +18,13 @@ export default function MyLibrary() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
+
+  // Helper function to check if user is on free plan
+  const isUserOnFreePlan = () => {
+    if (!user) return true;
+    const userPlanStatus = (user as any)?.planStatus || 'free';
+    return userPlanStatus === 'free' || !(user as any)?.subscriptionPlanId;
+  };
 
   // Fetch user's generations
   const { data: generations, isLoading } = useQuery({
@@ -201,15 +208,6 @@ export default function MyLibrary() {
                   ? "No tracks match your current filters."
                   : "You haven't created any music yet. Start by generating your first track!"}
               </p>
-              {!searchQuery && statusFilter === "all" && typeFilter === "all" && visibilityFilter === "all" && (
-                <Button 
-                  onClick={() => window.location.href = '/'}
-                  className="bg-blue-600 hover:bg-blue-700"
-                  data-testid="button-create-first"
-                >
-                  Create Your First Track
-                </Button>
-              )}
             </CardContent>
           </Card>
         ) : (
@@ -280,46 +278,84 @@ export default function MyLibrary() {
                     {/* Action Buttons */}
                     <div className="flex gap-3 items-center pt-3 border-t border-gray-700">
                       {generation.status === "completed" && generation.audioUrl && (
+                        isUserOnFreePlan() ? (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              toast({
+                                title: "Upgrade Required",
+                                description: "Please upgrade your plan to download tracks.",
+                                variant: "destructive",
+                              });
+                            }}
+                            className="text-purple-400 hover:text-purple-300 flex-1"
+                            data-testid={`button-upgrade-download-${generation.id}`}
+                          >
+                            <Star className="w-4 h-4 mr-2" />
+                            Upgrade to Download
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              const a = document.createElement('a');
+                              a.href = generation.audioUrl!;
+                              a.download = `${generation.title || 'track'}.wav`;
+                              a.click();
+                            }}
+                            className="text-blue-400 hover:text-blue-300 flex-1"
+                            data-testid={`button-download-${generation.id}`}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                        )
+                      )}
+                      {isUserOnFreePlan() ? (
                         <Button 
                           variant="ghost" 
                           size="sm"
                           onClick={() => {
-                            const a = document.createElement('a');
-                            a.href = generation.audioUrl!;
-                            a.download = `${generation.title || 'track'}.wav`;
-                            a.click();
-                          }}
-                          className="text-blue-400 hover:text-blue-300 flex-1"
-                          data-testid={`button-download-${generation.id}`}
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </Button>
-                      )}
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            await navigator.clipboard.writeText('https://numusic.app/track/' + generation.id);
                             toast({
-                              title: "Link Copied!",
-                              description: "Track link has been copied to your clipboard.",
-                            });
-                          } catch (error) {
-                            toast({
-                              title: "Share Failed",
-                              description: "Failed to copy link to clipboard.",
+                              title: "Upgrade Required",
+                              description: "Please upgrade your plan to share tracks.",
                               variant: "destructive",
                             });
-                          }
-                        }}
-                        className="text-green-400 hover:text-green-300 flex-1"
-                        data-testid={`button-share-${generation.id}`}
-                      >
-                        <Share className="w-4 h-4 mr-2" />
-                        Share
-                      </Button>
+                          }}
+                          className="text-purple-400 hover:text-purple-300 flex-1"
+                          data-testid={`button-upgrade-share-${generation.id}`}
+                        >
+                          <Star className="w-4 h-4 mr-2" />
+                          Upgrade to Share
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText('https://numusic.app/track/' + generation.id);
+                              toast({
+                                title: "Link Copied!",
+                                description: "Track link has been copied to your clipboard.",
+                              });
+                            } catch (error) {
+                              toast({
+                                title: "Share Failed",
+                                description: "Failed to copy link to clipboard.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          className="text-green-400 hover:text-green-300 flex-1"
+                          data-testid={`button-share-${generation.id}`}
+                        >
+                          <Share className="w-4 h-4 mr-2" />
+                          Share
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>

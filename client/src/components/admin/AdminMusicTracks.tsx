@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Music, Eye, EyeOff, Search, Filter, WandSparkles, AudioWaveform, Edit3, Check, X, Download, Trash2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { MusicGeneration } from "@shared/schema";
 
@@ -180,7 +181,7 @@ export function AdminMusicTracks() {
   };
 
   // Filter tracks based on search and filters
-  const filteredTracks = (tracks as MusicGeneration[] || []).filter((track: MusicGeneration) => {
+  const filteredTracks = ((tracks as any[] || []) as Array<MusicGeneration & { user?: { firstName: string; lastName: string; email: string; profileImageUrl?: string | null } }>).filter((track) => {
     const matchesSearch = !searchQuery || 
       track.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       track.tags?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -327,18 +328,27 @@ export function AdminMusicTracks() {
             </CardContent>
           </Card>
         ) : (
-          filteredTracks.map((track: MusicGeneration) => (
+          filteredTracks.map((track) => {
+            const displayName = track.user
+              ? [`${track.user.firstName || ''}`.trim(), `${track.user.lastName || ''}`.trim()]
+                  .filter(Boolean)
+                  .join(' ') || track.user.email || 'Unknown user'
+              : 'Unknown user';
+            const initials = track.user
+              ? `${(track.user.firstName?.[0] || 'U').toUpperCase()}${(track.user.lastName?.[0] || '').toUpperCase()}`
+              : 'UU';
+            return (
             <Card key={track.id} className="bg-gray-800 border-gray-700">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start space-x-4 flex-1">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                      {track.type === "text-to-music" ? (
-                        <WandSparkles className="w-5 h-5 text-white" />
+                    <Avatar className="w-10 h-10">
+                      {track.user?.profileImageUrl ? (
+                        <AvatarImage src={track.user.profileImageUrl} alt={`${track.user.firstName} ${track.user.lastName}`} />
                       ) : (
-                        <AudioWaveform className="w-5 h-5 text-white" />
+                        <AvatarFallback>{initials}</AvatarFallback>
                       )}
-                    </div>
+                    </Avatar>
                     
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
@@ -415,6 +425,7 @@ export function AdminMusicTracks() {
                           <Badge variant={track.visibility === "public" ? "default" : "secondary"}>
                             {track.visibility}
                           </Badge>
+                          <span className="text-xs text-gray-400 ml-2">by {displayName}</span>
                         </div>
                       </div>
                       
@@ -504,7 +515,8 @@ export function AdminMusicTracks() {
                 )}
               </CardContent>
             </Card>
-          ))
+          );
+          })
         )}
       </div>
     </div>

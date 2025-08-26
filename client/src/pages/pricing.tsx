@@ -253,6 +253,7 @@ export default function Pricing() {
             const gradientColor = getPlanColor(plan.name);
             const features = getFeatures(plan);
             const isPopular = plan.name.toLowerCase().includes('basic');
+            const isCurrentPlan = !!user && (user as any)?.subscriptionPlanId === plan.id && (user as any)?.planStatus === 'active';
             
             return (
               <Card 
@@ -317,15 +318,16 @@ export default function Pricing() {
                       className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3`}
                       data-testid={`button-select-${plan.name.toLowerCase()}`}
                       onClick={() => !user ? setLocation("/auth") : setLocation("/")}
+                      disabled={isCurrentPlan}
                     >
-                      Get Started Free
+                      {isCurrentPlan ? 'Current Plan' : 'Get Started Free'}
                     </Button>
                   ) : (
                     <Button 
                       className={`w-full bg-gradient-to-r ${gradientColor} hover:opacity-90 text-white font-medium py-3 flex items-center justify-center`}
                       data-testid={`button-select-${plan.name.toLowerCase()}`}
                       onClick={() => handleSubscribe(plan.id, billingCycle)}
-                      disabled={checkoutMutation.isPending}
+                      disabled={checkoutMutation.isPending || isCurrentPlan}
                     >
                       {checkoutMutation.isPending ? (
                         <>
@@ -334,8 +336,14 @@ export default function Pricing() {
                         </>
                       ) : (
                         <>
-                          <CreditCard className="w-4 h-4 mr-2" />
-                          Subscribe with Stripe
+                          {isCurrentPlan ? (
+                            'Current Plan'
+                          ) : (
+                            <>
+                              <CreditCard className="w-4 h-4 mr-2" />
+                              Subscribe with Stripe
+                            </>
+                          )}
                         </>
                       )}
                     </Button>

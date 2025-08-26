@@ -63,6 +63,14 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentGeneration, setCurrentGeneration] = useState<MusicGeneration | null>(null);
   const [activeTab, setActiveTab] = useState("textToMusic");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'textToMusic' || tab === 'audioToMusic' || tab === 'myLibrary') {
+      setActiveTab(tab);
+    }
+  }, []);
   
   // Lyrics generator modal state
   const [showLyricsModal, setShowLyricsModal] = useState(false);
@@ -73,6 +81,19 @@ export default function Home() {
     queryKey: ["/api/my-generations"],
     retry: false,
   });
+
+  // Fetch user's generation status
+  const { data: generationStatus } = useQuery({
+    queryKey: ["/api/user/generation-status"],
+    retry: false,
+  }) as { data: { canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number } | undefined };
+
+  // Helper function to check if user is on free plan
+  const isUserOnFreePlan = () => {
+    if (!user) return true;
+    const userPlanStatus = (user as any)?.planStatus || 'free';
+    return userPlanStatus === 'free' || !(user as any)?.subscriptionPlanId;
+  };
 
   // Lyrics generator handlers
   const handleOpenLyricsGenerator = (target: 'text' | 'audio') => {
@@ -156,6 +177,18 @@ export default function Home() {
       }, 500);
       return;
     }
+
+    // Handle generation limit exceeded error
+    if (error?.response?.status === 403) {
+      const errorData = error.response.data;
+      toast({
+        title: "Generation Limit Reached",
+        description: errorData.message || "You have reached your generation limit. Please upgrade your plan to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
       title: "Generation Failed",
       description: "Failed to start music generation. Please try again.",
@@ -322,7 +355,7 @@ export default function Home() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
         {/* Tab Navigation */}
-        <Tabs defaultValue="textToMusic" className="mb-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList className="bg-music-secondary p-2 border border-gray-700 grid w-full grid-cols-3 h-12">
             <TabsTrigger 
               value="textToMusic"
@@ -593,15 +626,33 @@ export default function Home() {
                             Upgrade to Download
                           </Button>
                         )}
-                        <Button
-                          variant="outline"
-                          className="flex-1 border-gray-600 hover:border-music-accent"
-                          onClick={() => handleShare(currentGeneration)}
-                          data-testid="button-share"
-                        >
-                          <Share className="mr-2 h-4 w-4" />
-                          Share
-                        </Button>
+                        {isUserOnFreePlan() ? (
+                          <Button
+                            variant="outline"
+                            className="flex-1 border-purple-600 hover:border-purple-500 text-purple-400 hover:text-purple-300"
+                            onClick={() => {
+                              toast({
+                                title: "Upgrade Required",
+                                description: "Please upgrade your plan to share tracks.",
+                                variant: "destructive",
+                              });
+                            }}
+                            data-testid="button-upgrade-share"
+                          >
+                            <Star className="mr-2 h-4 w-4" />
+                            Upgrade to Share
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            className="flex-1 border-gray-600 hover:border-music-accent"
+                            onClick={() => handleShare(currentGeneration)}
+                            data-testid="button-share"
+                          >
+                            <Share className="mr-2 h-4 w-4" />
+                            Share
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="icon"
@@ -898,14 +949,32 @@ export default function Home() {
                             Upgrade to Download
                           </Button>
                         )}
-                        <Button
-                          variant="outline"
-                          className="flex-1 border-gray-600 hover:border-music-accent"
-                          data-testid="button-share-audio"
-                        >
-                          <Share className="mr-2 h-4 w-4" />
-                          Share
-                        </Button>
+                        {isUserOnFreePlan() ? (
+                          <Button
+                            variant="outline"
+                            className="flex-1 border-purple-600 hover:border-purple-500 text-purple-400 hover:text-purple-300"
+                            onClick={() => {
+                              toast({
+                                title: "Upgrade Required",
+                                description: "Please upgrade your plan to share tracks.",
+                                variant: "destructive",
+                              });
+                            }}
+                            data-testid="button-upgrade-share-audio"
+                          >
+                            <Star className="mr-2 h-4 w-4" />
+                            Upgrade to Share
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            className="flex-1 border-gray-600 hover:border-music-accent"
+                            data-testid="button-share-audio"
+                          >
+                            <Share className="mr-2 h-4 w-4" />
+                            Share
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="icon"
@@ -954,6 +1023,35 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="myLibrary" className="space-y-6 sm:space-y-8">
+            {/* Generation Status Indicator */}
+            {generationStatus && (
+              <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${generationStatus.canGenerate ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className="text-sm text-gray-300">
+                      Generations: {generationStatus.currentUsage} / {generationStatus.maxGenerations} used this month
+                    </span>
+                  </div>
+                  {!generationStatus.canGenerate && (
+                    <div className="text-sm text-orange-400">
+                      ⚠️ Limit reached. Upgrade your plan to continue generating.
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      generationStatus.canGenerate 
+                        ? 'bg-gradient-to-r from-green-500 to-blue-500' 
+                        : 'bg-red-500'
+                    }`}
+                    style={{ width: `${Math.min((generationStatus.currentUsage / generationStatus.maxGenerations) * 100, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+            
             <div>
               <Card className="bg-music-secondary border-gray-700">
                 <CardHeader className="pb-4 sm:pb-6">
@@ -970,14 +1068,7 @@ export default function Home() {
                       <Music className="h-12 w-12 sm:h-16 sm:w-16 text-gray-600 mx-auto mb-4" />
                       <h3 className="text-lg sm:text-xl font-semibold text-gray-400 mb-2">No tracks yet</h3>
                       <p className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6 px-4">Create your first AI-generated track to start your music library.</p>
-                      <Button
-                        onClick={() => (document.querySelector('[data-testid="tab-text-to-music"]') as HTMLElement)?.click()}
-                        className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-sm sm:text-base"
-                        data-testid="button-create-first-track"
-                      >
-                        <WandSparkles className="mr-2 h-4 w-4" />
-                        Create First Track
-                      </Button>
+                      
                     </div>
                   ) : (
                     <div className="grid gap-3 sm:gap-4">
@@ -1010,6 +1101,13 @@ function TrackCard({ track, user }: { track: MusicGeneration; user: any }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(track.title || "");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Helper function to check if user is on free plan
+  const isUserOnFreePlan = () => {
+    if (!user) return true;
+    const userPlanStatus = (user as any)?.planStatus || 'free';
+    return userPlanStatus === 'free' || !(user as any)?.subscriptionPlanId;
+  };
 
   const updateTitleMutation = useMutation({
     mutationFn: async (title: string) => {
@@ -1282,29 +1380,48 @@ function TrackCard({ track, user }: { track: MusicGeneration; user: any }) {
                 )
               )}
               
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText('https://numusic.app/track/' + track.id);
+              {isUserOnFreePlan() ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
                     toast({
-                      title: "Link Copied!",
-                      description: "Track link has been copied to your clipboard.",
-                    });
-                  } catch (error) {
-                    toast({
-                      title: "Share Failed",
-                      description: "Failed to copy link to clipboard.",
+                      title: "Upgrade Required",
+                      description: "Please upgrade your plan to share tracks.",
                       variant: "destructive",
                     });
-                  }
-                }}
-                className="text-gray-400 hover:text-white flex-1 sm:flex-initial"
-                data-testid={`button-share-${track.id}`}
-              >
-                <Share className="w-4 h-4" />
-              </Button>
+                  }}
+                  className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-1 sm:flex-initial"
+                  data-testid={`button-upgrade-share-${track.id}`}
+                  title="Upgrade to share tracks"
+                >
+                  <Star className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText('https://numusic.app/track/' + track.id);
+                      toast({
+                        title: "Link Copied!",
+                        description: "Track link has been copied to your clipboard.",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Share Failed",
+                        description: "Failed to copy link to clipboard.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="text-gray-400 hover:text-white flex-1 sm:flex-initial"
+                  data-testid={`button-share-${track.id}`}
+                >
+                  <Share className="w-4 h-4" />
+                </Button>
+              )}
               
               <Button
                 size="sm"
