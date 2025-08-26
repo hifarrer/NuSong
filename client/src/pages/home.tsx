@@ -37,7 +37,6 @@ import {
   X,
   Trash2,
   Star,
-  ArrowDownToLine,
   ExternalLink
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
@@ -94,7 +93,9 @@ export default function Home() {
   const isUserOnFreePlan = () => {
     if (!user) return true;
     const userPlanStatus = (user as any)?.planStatus || 'free';
-    return userPlanStatus === 'free' || !(user as any)?.subscriptionPlanId;
+    // User is on free plan if planStatus is 'free' OR if they have no subscription plan ID
+    // OR if their plan status is not 'active' (expired, cancelled, etc.)
+    return userPlanStatus === 'free' || !(user as any)?.subscriptionPlanId || userPlanStatus !== 'active';
   };
 
   // Lyrics generator handlers
@@ -609,52 +610,39 @@ export default function Home() {
 
                       {/* Action Buttons */}
                       <div className="flex space-x-3">
-                        {user?.planStatus !== "free" ? (
-                          <Button
-                            onClick={() => handleDownload(currentGeneration.audioUrl!)}
-                            className="flex-1 bg-music-purple hover:bg-purple-600"
-                            data-testid="button-download"
-                          >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => window.location.href = "/pricing"}
-                            className="flex-1 bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
-                            data-testid="button-upgrade-to-download"
-                          >
-                            <ArrowDownToLine className="mr-2 h-4 w-4" />
-                            Upgrade to Download
-                          </Button>
-                        )}
-                        {isUserOnFreePlan() ? (
-                          <Button
-                            variant="outline"
-                            className="flex-1 border-purple-600 hover:border-purple-500 text-purple-400 hover:text-purple-300"
-                            onClick={() => {
+                        <Button
+                          onClick={() => {
+                            if (!isUserOnFreePlan()) {
+                              handleDownload(currentGeneration.audioUrl!);
+                            } else {
+                              window.location.href = "/pricing";
+                            }
+                          }}
+                          className="flex-1 bg-music-purple hover:bg-purple-600"
+                          data-testid="button-download"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          {!isUserOnFreePlan() ? "Download" : "Upgrade"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1 border-gray-600 hover:border-music-accent"
+                          onClick={() => {
+                            if (!isUserOnFreePlan()) {
+                              handleShare(currentGeneration);
+                            } else {
                               toast({
                                 title: "Upgrade Required",
                                 description: "Please upgrade your plan to share tracks.",
                                 variant: "destructive",
                               });
-                            }}
-                            data-testid="button-upgrade-share"
-                          >
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Upgrade to Share
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            className="flex-1 border-gray-600 hover:border-music-accent"
-                            onClick={() => handleShare(currentGeneration)}
-                            data-testid="button-share"
-                          >
-                            <Share className="mr-2 h-4 w-4" />
-                            Share
-                          </Button>
-                        )}
+                            }
+                          }}
+                          data-testid="button-share"
+                        >
+                          <Share className="mr-2 h-4 w-4" />
+                          Share
+                        </Button>
                         <Button
                           variant="outline"
                           size="icon"
@@ -665,6 +653,11 @@ export default function Home() {
                           <RotateCcw className="h-4 w-4" />
                         </Button>
                       </div>
+                      {isUserOnFreePlan() && (
+                        <p className="text-xs text-gray-400 text-center mt-2">
+                          Please upgrade to download or share.
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -932,51 +925,39 @@ export default function Home() {
 
                       {/* Action Buttons */}
                       <div className="flex space-x-3">
-                        {user?.planStatus !== "free" ? (
-                          <Button
-                            onClick={() => handleDownload(currentGeneration.audioUrl!)}
-                            className="flex-1 bg-music-purple hover:bg-purple-600"
-                            data-testid="button-download-audio"
-                          >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => window.location.href = "/pricing"}
-                            className="flex-1 bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
-                            data-testid="button-upgrade-to-download-audio"
-                          >
-                            <ArrowDownToLine className="mr-2 h-4 w-4" />
-                            Upgrade to Download
-                          </Button>
-                        )}
-                        {isUserOnFreePlan() ? (
-                          <Button
-                            variant="outline"
-                            className="flex-1 border-purple-600 hover:border-purple-500 text-purple-400 hover:text-purple-300"
-                            onClick={() => {
+                        <Button
+                          onClick={() => {
+                            if (!isUserOnFreePlan()) {
+                              handleDownload(currentGeneration.audioUrl!);
+                            } else {
+                              window.location.href = "/pricing";
+                            }
+                          }}
+                          className="flex-1 bg-music-purple hover:bg-purple-600"
+                          data-testid="button-download-audio"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          {!isUserOnFreePlan() ? "Download" : "Upgrade"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1 border-gray-600 hover:border-music-accent"
+                          onClick={() => {
+                            if (!isUserOnFreePlan()) {
+                              handleShare(currentGeneration);
+                            } else {
                               toast({
                                 title: "Upgrade Required",
                                 description: "Please upgrade your plan to share tracks.",
                                 variant: "destructive",
                               });
-                            }}
-                            data-testid="button-upgrade-share-audio"
-                          >
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Upgrade to Share
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            className="flex-1 border-gray-600 hover:border-music-accent"
-                            data-testid="button-share-audio"
-                          >
-                            <Share className="mr-2 h-4 w-4" />
-                            Share
-                          </Button>
-                        )}
+                            }
+                          }}
+                          data-testid="button-share-audio"
+                        >
+                          <Share className="mr-2 h-4 w-4" />
+                          Share
+                        </Button>
                         <Button
                           variant="outline"
                           size="icon"
@@ -987,6 +968,11 @@ export default function Home() {
                           <RotateCcw className="h-4 w-4" />
                         </Button>
                       </div>
+                      {isUserOnFreePlan() && (
+                        <p className="text-xs text-gray-400 text-center mt-2">
+                          Please upgrade to download or share.
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -1108,7 +1094,9 @@ function TrackCard({ track, user }: { track: MusicGeneration; user: any }) {
   const isUserOnFreePlan = () => {
     if (!user) return true;
     const userPlanStatus = (user as any)?.planStatus || 'free';
-    return userPlanStatus === 'free' || !(user as any)?.subscriptionPlanId;
+    // User is on free plan if planStatus is 'free' OR if they have no subscription plan ID
+    // OR if their plan status is not 'active' (expired, cancelled, etc.)
+    return userPlanStatus === 'free' || !(user as any)?.subscriptionPlanId || userPlanStatus !== 'active';
   };
 
   const updateTitleMutation = useMutation({
@@ -1352,37 +1340,37 @@ function TrackCard({ track, user }: { track: MusicGeneration; user: any }) {
             </Select>
             
             <div className="flex items-center justify-center gap-2 sm:gap-1">
-              {track.status === "completed" && track.audioUrl && (
-                user?.planStatus !== "free" ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = track.audioUrl!;
-                      link.download = `${track.title || 'track'}.wav`;
-                      link.click();
-                    }}
-                    className="text-gray-400 hover:text-white flex-1 sm:flex-initial flex-col h-auto py-2"
-                    data-testid={`button-download-${track.id}`}
-                  >
-                    <Download className="w-4 h-4 mb-1" />
-                    <span className="text-xs">Download</span>
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => window.location.href = "/pricing"}
-                    className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-1 sm:flex-initial flex-col h-auto py-2"
-                    data-testid={`button-upgrade-download-${track.id}`}
-                    title="Upgrade to download tracks"
-                  >
-                    <ArrowDownToLine className="w-4 h-4 mb-1" />
-                    <span className="text-xs">Download</span>
-                  </Button>
-                )
-              )}
+                                            {track.status === "completed" && track.audioUrl && (
+                 !isUserOnFreePlan() ? (
+                   <Button
+                     size="sm"
+                     variant="ghost"
+                     onClick={() => {
+                       const link = document.createElement('a');
+                       link.href = track.audioUrl!;
+                       link.download = `${track.title || 'track'}.wav`;
+                       link.click();
+                     }}
+                     className="text-gray-400 hover:text-white flex-1 sm:flex-initial flex-col h-auto py-2"
+                     data-testid={`button-download-${track.id}`}
+                   >
+                     <Download className="w-4 h-4 mb-1" />
+                     <span className="text-xs">Download</span>
+                   </Button>
+                 ) : (
+                   <Button
+                     size="sm"
+                     variant="ghost"
+                     onClick={() => window.location.href = "/pricing"}
+                     className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-1 sm:flex-initial flex-col h-auto py-2"
+                     data-testid={`button-upgrade-download-${track.id}`}
+                     title="Upgrade to download tracks"
+                   >
+                     <Download className="w-4 h-4 mb-1" />
+                     <span className="text-xs">Download</span>
+                   </Button>
+                 )
+               )}
               
               {isUserOnFreePlan() ? (
                 <Button
