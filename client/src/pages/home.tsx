@@ -36,7 +36,9 @@ import {
   Check,
   X,
   Trash2,
-  Star
+  Star,
+  ArrowDownToLine,
+  ExternalLink
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
@@ -622,7 +624,7 @@ export default function Home() {
                             className="flex-1 bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
                             data-testid="button-upgrade-to-download"
                           >
-                            <Star className="mr-2 h-4 w-4" />
+                            <ArrowDownToLine className="mr-2 h-4 w-4" />
                             Upgrade to Download
                           </Button>
                         )}
@@ -639,7 +641,7 @@ export default function Home() {
                             }}
                             data-testid="button-upgrade-share"
                           >
-                            <Star className="mr-2 h-4 w-4" />
+                            <ExternalLink className="mr-2 h-4 w-4" />
                             Upgrade to Share
                           </Button>
                         ) : (
@@ -945,7 +947,7 @@ export default function Home() {
                             className="flex-1 bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
                             data-testid="button-upgrade-to-download-audio"
                           >
-                            <Star className="mr-2 h-4 w-4" />
+                            <ArrowDownToLine className="mr-2 h-4 w-4" />
                             Upgrade to Download
                           </Button>
                         )}
@@ -962,7 +964,7 @@ export default function Home() {
                             }}
                             data-testid="button-upgrade-share-audio"
                           >
-                            <Star className="mr-2 h-4 w-4" />
+                            <ExternalLink className="mr-2 h-4 w-4" />
                             Upgrade to Share
                           </Button>
                         ) : (
@@ -1361,21 +1363,23 @@ function TrackCard({ track, user }: { track: MusicGeneration; user: any }) {
                       link.download = `${track.title || 'track'}.wav`;
                       link.click();
                     }}
-                    className="text-gray-400 hover:text-white flex-1 sm:flex-initial"
+                    className="text-gray-400 hover:text-white flex-1 sm:flex-initial flex-col h-auto py-2"
                     data-testid={`button-download-${track.id}`}
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-4 h-4 mb-1" />
+                    <span className="text-xs">Download</span>
                   </Button>
                 ) : (
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => window.location.href = "/pricing"}
-                    className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-1 sm:flex-initial"
+                    className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-1 sm:flex-initial flex-col h-auto py-2"
                     data-testid={`button-upgrade-download-${track.id}`}
                     title="Upgrade to download tracks"
                   >
-                    <Star className="w-4 h-4" />
+                    <ArrowDownToLine className="w-4 h-4 mb-1" />
+                    <span className="text-xs">Download</span>
                   </Button>
                 )
               )}
@@ -1391,11 +1395,12 @@ function TrackCard({ track, user }: { track: MusicGeneration; user: any }) {
                       variant: "destructive",
                     });
                   }}
-                  className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-1 sm:flex-initial"
+                  className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-1 sm:flex-initial flex-col h-auto py-2"
                   data-testid={`button-upgrade-share-${track.id}`}
                   title="Upgrade to share tracks"
                 >
-                  <Star className="w-4 h-4" />
+                  <ExternalLink className="w-4 h-4 mb-1" />
+                  <span className="text-xs">Share</span>
                 </Button>
               ) : (
                 <Button
@@ -1416,10 +1421,11 @@ function TrackCard({ track, user }: { track: MusicGeneration; user: any }) {
                       });
                     }
                   }}
-                  className="text-gray-400 hover:text-white flex-1 sm:flex-initial"
+                  className="text-gray-400 hover:text-white flex-1 sm:flex-initial flex-col h-auto py-2"
                   data-testid={`button-share-${track.id}`}
                 >
-                  <Share className="w-4 h-4" />
+                  <Share className="w-4 h-4 mb-1" />
+                  <span className="text-xs">Share</span>
                 </Button>
               )}
               
@@ -1427,10 +1433,11 @@ function TrackCard({ track, user }: { track: MusicGeneration; user: any }) {
                 size="sm"
                 variant="ghost"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="text-gray-400 hover:text-red-400 flex-1 sm:flex-initial"
+                className="text-gray-400 hover:text-red-400 flex-1 sm:flex-initial flex-col h-auto py-2"
                 data-testid={`button-delete-${track.id}`}
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4 mb-1" />
+                <span className="text-xs">Delete</span>
               </Button>
             </div>
           </div>

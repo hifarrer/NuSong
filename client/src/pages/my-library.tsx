@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AudioPlayer } from "@/components/ui/audio-player";
-import { Music, Search, Filter, WandSparkles, AudioWaveform, Download, Share, Eye, EyeOff, Trash2, Star } from "lucide-react";
+import { Music, Search, Filter, WandSparkles, AudioWaveform, Download, Share, Eye, EyeOff, Trash2, Star, ArrowDownToLine, ExternalLink } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
 export default function MyLibrary() {
@@ -289,11 +289,11 @@ export default function MyLibrary() {
                                 variant: "destructive",
                               });
                             }}
-                            className="text-purple-400 hover:text-purple-300 flex-1"
+                            className="text-purple-400 hover:text-purple-300 flex-1 flex-col h-auto py-2"
                             data-testid={`button-upgrade-download-${generation.id}`}
                           >
-                            <Star className="w-4 h-4 mr-2" />
-                            Upgrade to Download
+                            <ArrowDownToLine className="w-4 h-4 mb-1" />
+                            <span className="text-xs">Download</span>
                           </Button>
                         ) : (
                           <Button 
@@ -305,11 +305,11 @@ export default function MyLibrary() {
                               a.download = `${generation.title || 'track'}.wav`;
                               a.click();
                             }}
-                            className="text-blue-400 hover:text-blue-300 flex-1"
+                            className="text-blue-400 hover:text-blue-300 flex-1 flex-col h-auto py-2"
                             data-testid={`button-download-${generation.id}`}
                           >
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
+                            <Download className="w-4 h-4 mb-1" />
+                            <span className="text-xs">Download</span>
                           </Button>
                         )
                       )}
@@ -324,11 +324,11 @@ export default function MyLibrary() {
                               variant: "destructive",
                             });
                           }}
-                          className="text-purple-400 hover:text-purple-300 flex-1"
+                          className="text-purple-400 hover:text-purple-300 flex-1 flex-col h-auto py-2"
                           data-testid={`button-upgrade-share-${generation.id}`}
                         >
-                          <Star className="w-4 h-4 mr-2" />
-                          Upgrade to Share
+                          <ExternalLink className="w-4 h-4 mb-1" />
+                          <span className="text-xs">Share</span>
                         </Button>
                       ) : (
                         <Button 
@@ -349,11 +349,11 @@ export default function MyLibrary() {
                               });
                             }
                           }}
-                          className="text-green-400 hover:text-green-300 flex-1"
+                          className="text-green-400 hover:text-green-300 flex-1 flex-col h-auto py-2"
                           data-testid={`button-share-${generation.id}`}
                         >
-                          <Share className="w-4 h-4 mr-2" />
-                          Share
+                          <Share className="w-4 h-4 mb-1" />
+                          <span className="text-xs">Share</span>
                         </Button>
                       )}
                     </div>
