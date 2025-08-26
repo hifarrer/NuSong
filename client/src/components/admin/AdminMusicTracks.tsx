@@ -340,9 +340,9 @@ export function AdminMusicTracks() {
             return (
             <Card key={track.id} className="bg-gray-800 border-gray-700">
               <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-start space-x-4 flex-1">
-                    <Avatar className="w-10 h-10">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4 gap-4">
+                  <div className="flex items-start space-x-4 flex-1 min-w-0">
+                    <Avatar className="w-10 h-10 flex-shrink-0">
                       {track.user?.profileImageUrl ? (
                         <AvatarImage src={track.user.profileImageUrl} alt={`${track.user.firstName} ${track.user.lastName}`} />
                       ) : (
@@ -350,12 +350,12 @@ export function AdminMusicTracks() {
                       )}
                     </Avatar>
                     
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 mb-2 gap-2">
                         {/* Editable Title */}
-                        <div className="flex items-center space-x-2 flex-1">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
                           {editingTitle === track.id ? (
-                            <div className="flex items-center space-x-2 flex-1">
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
                               <Input
                                 value={editTitleValue}
                                 onChange={(e) => setEditTitleValue(e.target.value)}
@@ -376,7 +376,7 @@ export function AdminMusicTracks() {
                                 variant="ghost"
                                 onClick={() => handleSaveTitle(track.id)}
                                 disabled={updateTitleMutation.isPending}
-                                className="text-green-400 hover:text-green-300"
+                                className="text-green-400 hover:text-green-300 flex-shrink-0"
                                 data-testid={`button-save-title-${track.id}`}
                               >
                                 <Check className="w-4 h-4" />
@@ -386,22 +386,22 @@ export function AdminMusicTracks() {
                                 variant="ghost"
                                 onClick={handleCancelEditTitle}
                                 disabled={updateTitleMutation.isPending}
-                                className="text-red-400 hover:text-red-300"
+                                className="text-red-400 hover:text-red-300 flex-shrink-0"
                                 data-testid={`button-cancel-title-${track.id}`}
                               >
                                 <X className="w-4 h-4" />
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex items-center space-x-2 group">
-                              <h3 className="text-lg font-semibold text-white">
+                            <div className="flex items-center space-x-2 group min-w-0">
+                              <h3 className="text-lg font-semibold text-white truncate">
                                 {track.title || "Untitled Track"}
                               </h3>
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleStartEditTitle(track.id, track.title || "")}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-400 hover:text-blue-300 p-1"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-400 hover:text-blue-300 p-1 flex-shrink-0"
                                 data-testid={`button-edit-title-${track.id}`}
                               >
                                 <Edit3 className="w-3 h-3" />
@@ -410,7 +410,7 @@ export function AdminMusicTracks() {
                           )}
                         </div>
                         
-                        <div className="flex items-center space-x-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge 
                             variant={track.status === "completed" ? "default" : "secondary"}
                             className={
@@ -425,7 +425,7 @@ export function AdminMusicTracks() {
                           <Badge variant={track.visibility === "public" ? "default" : "secondary"}>
                             {track.visibility}
                           </Badge>
-                          <span className="text-xs text-gray-400 ml-2">by {displayName}</span>
+                          <span className="text-xs text-gray-400">by {displayName}</span>
                         </div>
                       </div>
                       
@@ -439,18 +439,19 @@ export function AdminMusicTracks() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center space-x-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-shrink-0">
                     {/* Download Button */}
                     {track.audioUrl && track.status === "completed" && (
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleDownloadTrack(track)}
-                        className="text-blue-400 hover:text-blue-300 border-blue-400 hover:border-blue-300"
+                        className="text-blue-400 hover:text-blue-300 border-blue-400 hover:border-blue-300 w-full sm:w-auto"
                         data-testid={`button-download-${track.id}`}
                       >
                         <Download className="w-4 h-4 mr-2" />
-                        Download
+                        <span className="hidden sm:inline">Download</span>
+                        <span className="sm:hidden">DL</span>
                       </Button>
                     )}
 
@@ -460,11 +461,12 @@ export function AdminMusicTracks() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-red-400 hover:text-red-300 border-red-400 hover:border-red-300"
+                          className="text-red-400 hover:text-red-300 border-red-400 hover:border-red-300 w-full sm:w-auto"
                           data-testid={`button-delete-track-${track.id}`}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
+                          <span className="hidden sm:inline">Delete</span>
+                          <span className="sm:hidden">Del</span>
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-gray-900 border-gray-700">
@@ -492,9 +494,10 @@ export function AdminMusicTracks() {
                     
                     {/* Gallery Visibility Toggle */}
                     {track.visibility === "public" && track.status === "completed" && (
-                      <>
-                        <Label htmlFor={`gallery-${track.id}`} className="text-sm text-gray-400">
-                          Show in Gallery
+                      <div className="flex items-center space-x-2 w-full sm:w-auto">
+                        <Label htmlFor={`gallery-${track.id}`} className="text-sm text-gray-400 whitespace-nowrap">
+                          <span className="hidden sm:inline">Show in Gallery</span>
+                          <span className="sm:hidden">Gallery</span>
                         </Label>
                         <Switch
                           id={`gallery-${track.id}`}
@@ -502,7 +505,7 @@ export function AdminMusicTracks() {
                           onCheckedChange={() => handleToggleGallery(track.id, track.showInGallery)}
                           disabled={toggleGalleryMutation.isPending}
                         />
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
