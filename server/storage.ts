@@ -466,33 +466,35 @@ export class DatabaseStorage implements IStorage {
       return { canGenerate: false, reason: "User not found", currentUsage: 0, maxGenerations: 0 };
     }
 
-    // If user has no plan, they get the free plan limit
-    let maxGenerations = 5; // Default free plan limit
-    
-    if (user.subscriptionPlanId) {
-      const plan = await this.getSubscriptionPlan(user.subscriptionPlanId);
-      if (plan) {
-        maxGenerations = plan.maxGenerations;
-      }
-    } else {
-      // If no subscription plan ID, get the free plan
-      const freePlan = await db
-        .select()
-        .from(subscriptionPlans)
-        .where(eq(subscriptionPlans.name, "Free"))
-        .limit(1);
-      
-      if (freePlan.length > 0) {
-        maxGenerations = freePlan[0].maxGenerations;
-      }
+    // Require an active paid plan
+    if (!user.subscriptionPlanId || user.planStatus !== 'active') {
+      return {
+        canGenerate: false,
+        reason: "Please upgrade",
+        currentUsage: user.generationsUsedThisMonth || 0,
+        maxGenerations: 0,
+      };
     }
+
+    // Load plan to determine maxGenerations
+    const plan = await this.getSubscriptionPlan(user.subscriptionPlanId);
+    if (!plan) {
+      return {
+        canGenerate: false,
+        reason: "Please upgrade",
+        currentUsage: user.generationsUsedThisMonth || 0,
+        maxGenerations: 0,
+      };
+    }
+
+    const maxGenerations = plan.maxGenerations;
 
     const currentUsage = user.generationsUsedThisMonth || 0;
     
     if (currentUsage >= maxGenerations) {
       return { 
-        canGenerate: false, 
-        reason: `You have reached your monthly limit of ${maxGenerations} generations. Please upgrade your plan to generate more music.`, 
+        canGenerate: false,
+        reason: "Please upgrade",
         currentUsage, 
         maxGenerations 
       };

@@ -88,6 +88,19 @@ export default function Home() {
     queryKey: ["/api/user/generation-status"],
     retry: false,
   }) as { data: { canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number } | undefined };
+  
+  // Determine if user has an active paid subscription from local auth state
+  const hasActiveSubscription = !!(user && (user as any)?.subscriptionPlanId && (user as any)?.planStatus === 'active');
+  
+  // Can the user generate? Default based on subscription status until status loads
+  const canGenerate = generationStatus ? generationStatus.canGenerate : hasActiveSubscription;
+
+  const upgradeInline = (
+    <p className="mt-2 text-sm text-red-500">
+      To generate tracks please subscribe (7 day trial) {""}
+      <a href="/pricing" className="underline">View plans</a>
+    </p>
+  );
 
   // Helper function to check if user is on free plan
   const isUserOnFreePlan = () => {
@@ -222,6 +235,15 @@ export default function Home() {
   const handleGenerateTextToMusic = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!canGenerate) {
+      toast({
+        title: "Upgrade Required",
+        description: "To generate tracks please subscribe (7 day trial)",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!tags.trim()) {
       toast({
         title: "Missing Tags",
@@ -243,6 +265,15 @@ export default function Home() {
   const handleGenerateAudioToMusic = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!canGenerate) {
+      toast({
+        title: "Upgrade Required",
+        description: "To generate tracks please subscribe (7 day trial)",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!audioTags.trim()) {
       toast({
         title: "Missing Tags",
@@ -536,7 +567,7 @@ export default function Home() {
                       {/* Generate Button */}
                       <Button
                         type="submit"
-                        disabled={generateTextToMusicMutation.isPending || isGenerating}
+                        disabled={!canGenerate || generateTextToMusicMutation.isPending || isGenerating}
                         className="w-full bg-gradient-to-r from-music-purple via-music-blue to-music-green hover:from-purple-600 hover:via-blue-600 hover:to-green-600 text-white py-4 text-lg font-bold transition-all transform hover:scale-[1.02] shadow-2xl disabled:opacity-50"
                         data-testid="button-generate"
                       >
@@ -547,6 +578,7 @@ export default function Home() {
                         )}
                         {generateTextToMusicMutation.isPending || isGenerating ? "Generating..." : "Generate Music Track"}
                       </Button>
+                      {((generationStatus && !generationStatus.canGenerate) || !hasActiveSubscription) && upgradeInline}
                     </form>
                   </CardContent>
                 </Card>
@@ -647,6 +679,7 @@ export default function Home() {
                           variant="outline"
                           size="icon"
                           onClick={() => handleGenerateTextToMusic({ preventDefault: () => {} } as React.FormEvent)}
+                          disabled={!canGenerate}
                           className="border-gray-600 hover:border-music-green"
                           data-testid="button-regenerate"
                         >
@@ -851,7 +884,7 @@ export default function Home() {
                       {/* Generate Button */}
                       <Button
                         type="submit"
-                        disabled={generateAudioToMusicMutation.isPending || isGenerating}
+                        disabled={!canGenerate || generateAudioToMusicMutation.isPending || isGenerating}
                         className="w-full bg-gradient-to-r from-music-accent via-music-purple to-music-blue hover:from-purple-600 hover:via-blue-600 hover:to-green-600 text-white py-4 text-lg font-bold transition-all transform hover:scale-[1.02] shadow-2xl disabled:opacity-50"
                         data-testid="button-generate-audio"
                       >
@@ -862,6 +895,7 @@ export default function Home() {
                         )}
                         {generateAudioToMusicMutation.isPending || isGenerating ? "Transforming..." : "Transform Audio"}
                       </Button>
+                      {((generationStatus && !generationStatus.canGenerate) || !hasActiveSubscription) && upgradeInline}
                     </form>
                   </CardContent>
                 </Card>
@@ -962,6 +996,7 @@ export default function Home() {
                           variant="outline"
                           size="icon"
                           onClick={() => handleGenerateAudioToMusic({ preventDefault: () => {} } as React.FormEvent)}
+                          disabled={!canGenerate}
                           className="border-gray-600 hover:border-music-green"
                           data-testid="button-regenerate-audio"
                         >

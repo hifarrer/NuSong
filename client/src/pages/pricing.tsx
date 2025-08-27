@@ -247,7 +247,11 @@ export default function Pricing() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
+        <div className={`grid gap-8 max-w-6xl mx-auto ${
+          plans.length === 1 ? 'md:grid-cols-1 justify-center' :
+          plans.length === 2 ? 'md:grid-cols-2 justify-center' :
+          'md:grid-cols-3'
+        } ${plans.length <= 2 ? 'justify-items-center' : ''}`}>
           {plans.map((plan) => {
             const IconComponent = getPlanIcon(plan.name);
             const gradientColor = getPlanColor(plan.name);
