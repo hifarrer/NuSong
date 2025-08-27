@@ -15,7 +15,7 @@ async function getStripeInstance(): Promise<Stripe> {
   }
 
   stripe = new Stripe(stripeSetting.value, {
-    apiVersion: '2024-12-18.acacia',
+    apiVersion: '2025-07-30.basil',
   });
 
   return stripe;
@@ -287,10 +287,12 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Pro
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
   console.log('=== HANDLING INVOICE PAYMENT SUCCEEDED ===');
   console.log('Invoice ID:', invoice.id);
-  console.log('Subscription ID:', invoice.subscription);
+  const invoiceAny = invoice as any;
+  const subscriptionId: string | undefined = (invoiceAny.subscription as string | undefined) || undefined;
+  console.log('Subscription ID:', subscriptionId);
   console.log('Amount paid (cents):', invoice.amount_paid);
   
-  if (!invoice.subscription) {
+  if (!subscriptionId) {
     console.log('No subscription found in invoice');
     return;
   }
@@ -303,7 +305,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<v
 
   // Get subscription details
   const stripeInstance = await getStripeInstance();
-  const subscription = await stripeInstance.subscriptions.retrieve(invoice.subscription as string);
+  const subscription = await stripeInstance.subscriptions.retrieve(subscriptionId);
   
   console.log('Subscription metadata:', subscription.metadata);
   let { userId } = subscription.metadata || {} as any;
@@ -335,12 +337,8 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<v
 
   // Reset monthly usage and extend subscription
   const user = await storage.getUserById(userId);
-  if (!user || !user.subscriptionPlanId) {
-    return;
-  }
-
-  const plan = await storage.getSubscriptionPlan(user.subscriptionPlanId);
-  if (!plan) {
+  if (!user) {
+    console.log('User not found for resolved userId:', userId);
     return;
   }
 
@@ -381,13 +379,15 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<v
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
-  if (!invoice.subscription) {
+  const invoiceAny = invoice as any;
+  const subscriptionId: string | undefined = (invoiceAny.subscription as string | undefined) || undefined;
+  if (!subscriptionId) {
     return;
   }
 
   // Get subscription details
   const stripeInstance = await getStripeInstance();
-  const subscription = await stripeInstance.subscriptions.retrieve(invoice.subscription as string);
+  const subscription = await stripeInstance.subscriptions.retrieve(subscriptionId);
   
   const { userId } = subscription.metadata || {};
   if (!userId) {
