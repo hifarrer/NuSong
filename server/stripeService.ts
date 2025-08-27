@@ -205,8 +205,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session):
   // Update user subscription
   await storage.updateUser(userId, {
     subscriptionPlanId: planId,
-    // Do NOT mark active here. Checkout completion can mean trialing/unpaid.
-    planStatus: 'inactive',
+    // Treat trialing users as active immediately after successful Checkout
+    planStatus: 'active',
     planStartDate: startDate,
     planEndDate: endDate,
     generationsUsedThisMonth: 0, // Reset usage
@@ -225,10 +225,10 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription): Pro
     return;
   }
 
-  // Update user with subscription details
+  // Update user with subscription details (treat trialing as active)
   await storage.updateUser(userId, {
     stripeSubscriptionId: subscription.id,
-    planStatus: subscription.status === 'active' ? 'active' : 'inactive',
+    planStatus: (subscription.status === 'active' || subscription.status === 'trialing') ? 'active' : 'inactive',
   });
 
   console.log(`Subscription created for user ${userId}: ${subscription.id}`);
@@ -242,11 +242,12 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Pro
     return;
   }
 
-  // Update user subscription status
+  // Update user subscription status (treat trialing as active)
   let planStatus: 'active' | 'inactive' | 'cancelled' = 'inactive';
   
   switch (subscription.status) {
     case 'active':
+    case 'trialing':
       planStatus = 'active';
       break;
     case 'canceled':
