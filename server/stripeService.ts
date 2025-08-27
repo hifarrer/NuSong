@@ -205,7 +205,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session):
   // Update user subscription
   await storage.updateUser(userId, {
     subscriptionPlanId: planId,
-    planStatus: 'active',
+    // Do NOT mark active here. Checkout completion can mean trialing/unpaid.
+    planStatus: 'inactive',
     planStartDate: startDate,
     planEndDate: endDate,
     generationsUsedThisMonth: 0, // Reset usage
@@ -287,9 +288,16 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<v
   console.log('=== HANDLING INVOICE PAYMENT SUCCEEDED ===');
   console.log('Invoice ID:', invoice.id);
   console.log('Subscription ID:', invoice.subscription);
+  console.log('Amount paid (cents):', invoice.amount_paid);
   
   if (!invoice.subscription) {
     console.log('No subscription found in invoice');
+    return;
+  }
+
+  // Only consider as an activation when a positive payment is made
+  if (typeof invoice.amount_paid === 'number' && invoice.amount_paid <= 0) {
+    console.log('Zero-amount invoice succeeded (likely trial). Skipping activation.');
     return;
   }
 
@@ -298,9 +306,30 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<v
   const subscription = await stripeInstance.subscriptions.retrieve(invoice.subscription as string);
   
   console.log('Subscription metadata:', subscription.metadata);
-  const { userId } = subscription.metadata || {};
+  let { userId } = subscription.metadata || {} as any;
+
+  // Fallback: resolve user by Stripe customer email if metadata missing
   if (!userId) {
-    console.log('No userId found in subscription metadata');
+    try {
+      const customerId = subscription.customer as string | undefined;
+      if (customerId) {
+        const customer = await stripeInstance.customers.retrieve(customerId as string);
+        const customerEmail = (customer as any)?.email as string | undefined;
+        if (customerEmail) {
+          const userByEmail = await storage.getUserByEmail(customerEmail);
+          if (userByEmail) {
+            userId = userByEmail.id;
+            console.log('Resolved userId from customer email:', userId);
+          }
+        }
+      }
+    } catch (fallbackErr) {
+      console.warn('Failed fallback user resolution by customer email:', fallbackErr);
+    }
+  }
+
+  if (!userId) {
+    console.log('Could not resolve userId for payment succeeded handling');
     return;
   }
 
@@ -333,11 +362,19 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<v
       break;
   }
 
-  await storage.updateUser(userId, {
+  const updatePayload: any = {
     planStatus: 'active',
     planEndDate: newEndDate,
     generationsUsedThisMonth: 0, // Reset usage
-  });
+  };
+
+  // Ensure subscriptionPlanId is set if missing but present in subscription metadata
+  const subscriptionPlanIdFromMetadata = (subscription.metadata as any)?.planId as string | undefined;
+  if (!user.subscriptionPlanId && subscriptionPlanIdFromMetadata) {
+    updatePayload.subscriptionPlanId = subscriptionPlanIdFromMetadata;
+  }
+
+  await storage.updateUser(userId, updatePayload);
 
   console.log(`Payment succeeded for user ${userId}, subscription extended`);
   console.log('=== INVOICE PAYMENT SUCCEEDED HANDLING COMPLETE ===');
