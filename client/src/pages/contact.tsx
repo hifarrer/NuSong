@@ -190,12 +190,7 @@ export default function ContactPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-music-blue to-music-green rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MessageSquare className="h-5 w-5 text-white" />
-                  </div>
-
-                </div>
+                
 
                 <div className="flex items-start space-x-4">
                   <div className="w-10 h-10 bg-gradient-to-br from-music-purple to-music-accent rounded-lg flex items-center justify-center flex-shrink-0">
