@@ -109,7 +109,7 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
 
     try {
       await resend.emails.send({
-        from: 'NuMusic <noreply@numusic.app>',
+        from: 'NuMusic <noreply@notifications.numusic.app>',
         to: email,
         subject: 'Verify Your NuMusic Account',
         html: emailHtml,
@@ -193,7 +193,7 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
 
     try {
       await resend.emails.send({
-        from: 'NuMusic <noreply@numusic.app>',
+        from: 'NuMusic <noreply@notifications.numusic.app>',
         to: email,
         subject: 'Welcome to NuMusic - Your Account is Ready!',
         html: emailHtml,
@@ -301,7 +301,7 @@ This link will expire in 1 hour. If you didn't request a password reset, you can
 
     try {
       await resend.emails.send({
-        from: 'NuMusic <noreply@numusic.app>',
+        from: 'NuMusic <noreply@notifications.numusic.app>',
         to: email,
         subject: 'Reset Your NuMusic Password',
         html: emailHtml,
