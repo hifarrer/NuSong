@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Header } from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 import { Mail, MessageSquare, Send, MapPin, Phone, Clock, Music, User, LogOut } from "lucide-react";
 
 export default function ContactPage() {
@@ -24,8 +25,16 @@ export default function ContactPage() {
     setIsSubmitting(true);
 
     try {
-      // Simulate form submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await apiRequest('/api/contact', 'POST', {
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to send message');
+      }
       
       toast({
         title: "Message sent successfully!",
@@ -42,7 +51,7 @@ export default function ContactPage() {
     } catch (error) {
       toast({
         title: "Failed to send message",
-        description: "Please try again later.",
+        description: (error as any)?.message || "Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -80,7 +89,7 @@ export default function ContactPage() {
           <div>
             <Card className="bg-music-secondary border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center text-2xl">
+                <CardTitle className="flex items-center text-2xl text-white">
                   <MessageSquare className="mr-3 h-6 w-6 text-music-accent" />
                   Send us a message
                 </CardTitle>
@@ -164,7 +173,7 @@ export default function ContactPage() {
           <div className="space-y-8">
             <Card className="bg-music-secondary border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center text-xl">
+                <CardTitle className="flex items-center text-xl text-white">
                   <Mail className="mr-3 h-5 w-5 text-music-blue" />
                   Contact Information
                 </CardTitle>
@@ -185,11 +194,7 @@ export default function ContactPage() {
                   <div className="w-10 h-10 bg-gradient-to-br from-music-blue to-music-green rounded-lg flex items-center justify-center flex-shrink-0">
                     <MessageSquare className="h-5 w-5 text-white" />
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-white">Business Inquiries</h4>
-                    <p className="text-gray-300">business@numusic.app</p>
-                    <p className="text-sm text-gray-400">For partnerships and collaborations</p>
-                  </div>
+
                 </div>
 
                 <div className="flex items-start space-x-4">
@@ -208,7 +213,7 @@ export default function ContactPage() {
             {/* FAQ Section */}
             <Card className="bg-music-secondary border-gray-700">
               <CardHeader>
-                <CardTitle className="text-xl">Frequently Asked Questions</CardTitle>
+                <CardTitle className="text-xl text-white">Frequently Asked Questions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>

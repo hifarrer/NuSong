@@ -38,6 +38,7 @@ import {
   cancelSubscription,
   reactivateSubscription
 } from "./stripeService";
+import { EmailService } from "./emailService";
 import Stripe from 'stripe';
 import { spawn } from 'child_process';
 import type { Request } from 'express';
@@ -83,6 +84,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting upload URL:", error);
       res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
+  // Public contact form endpoint
+  app.post('/api/contact', async (req, res) => {
+    try {
+      const { name, email, subject, message } = req.body || {};
+      if (!name || !email || !message) {
+        return res.status(400).json({ message: 'Name, email, and message are required' });
+      }
+      await EmailService.sendContactEmail(String(name), String(email), String(subject || ''), String(message));
+      res.json({ message: 'Message sent' });
+    } catch (error) {
+      console.error('Error sending contact email:', error);
+      res.status(500).json({ message: 'Failed to send message' });
     }
   });
 

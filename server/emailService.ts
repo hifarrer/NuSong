@@ -8,6 +8,35 @@ export class EmailService {
     return randomBytes(32).toString('hex');
   }
 
+  static async sendContactEmail(
+    fromName: string,
+    fromEmail: string,
+    subject: string,
+    message: string
+  ): Promise<void> {
+    const safeSubject = subject?.trim() || 'New Contact Form Message';
+    const to = 'support@numusic.app';
+    const html = `
+      <div style="font-family: Arial, sans-serif;">
+        <h2>New contact form submission</h2>
+        <p><strong>From:</strong> ${fromName} &lt;${fromEmail}&gt;</p>
+        <p><strong>Subject:</strong> ${safeSubject}</p>
+        <p><strong>Message:</strong></p>
+        <div style="white-space: pre-wrap; background:#111827; color:#e5e7eb; padding:12px; border-radius:8px;">${message}</div>
+      </div>
+    `;
+    const text = `New contact form submission\nFrom: ${fromName} <${fromEmail}>\nSubject: ${safeSubject}\n\n${message}`;
+
+    await resend.emails.send({
+      from: 'NuMusic Contact <contact@notifications.numusic.app>',
+      to,
+      subject: `[Contact] ${safeSubject}`,
+      html,
+      text,
+      reply_to: fromEmail,
+    } as any);
+  }
+
   static generatePasswordResetToken(): string {
     return randomBytes(32).toString('hex');
   }
