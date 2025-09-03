@@ -15,7 +15,7 @@ export class EmailService {
     message: string
   ): Promise<void> {
     const safeSubject = subject?.trim() || 'New Contact Form Message';
-    const to = 'support@numusic.app';
+    const to = 'support@nusong.app';
     const html = `
       <div style="font-family: Arial, sans-serif;">
         <h2>New contact form submission</h2>
@@ -28,7 +28,7 @@ export class EmailService {
     const text = `New contact form submission\nFrom: ${fromName} <${fromEmail}>\nSubject: ${safeSubject}\n\n${message}`;
 
     await resend.emails.send({
-      from: 'NuMusic Contact <contact@notifications.numusic.app>',
+      from: 'NuSong Contact <contact@notifications.nusong.app>',
       to,
       subject: `[Contact] ${safeSubject}`,
       html,
@@ -46,7 +46,7 @@ export class EmailService {
     firstName: string, 
     verificationToken: string
   ): Promise<void> {
-    const verificationUrl = `https://numusic.app/verify-email/${verificationToken}`;
+    const verificationUrl = `https://nusong.app/verify-email/${verificationToken}`;
     
     const emailHtml = `
     <!DOCTYPE html>
@@ -54,7 +54,7 @@ export class EmailService {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Verify Your NuMusic Account</title>
+      <title>Verify Your NuSong Account</title>
       <style>
         body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #0a0a0a; color: #ffffff; }
         .container { max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1a 0%, #2d1b69 100%); }
@@ -88,12 +88,12 @@ export class EmailService {
     <body>
       <div class="container">
         <div class="header">
-          <h1 class="logo">🎵 NuMusic</h1>
+          <h1 class="logo">🎵 NuSong</h1>
         </div>
         <div class="content">
-          <h2 class="welcome">Welcome to NuMusic, ${firstName}!</h2>
+          <h2 class="welcome">Welcome to NuSong, ${firstName}!</h2>
           <p class="message">
-            Thank you for joining NuMusic, the AI-powered music generation platform. 
+            Thank you for joining NuSong, the AI-powered music generation platform. 
             To complete your registration and start creating amazing music, please verify your email address.
           </p>
           
@@ -110,13 +110,13 @@ export class EmailService {
           
           <div class="security-note">
             <strong>Security Note:</strong> This verification link will expire in 24 hours. 
-            If you didn't create a NuMusic account, you can safely ignore this email.
+            If you didn't create a NuSong account, you can safely ignore this email.
           </div>
         </div>
         <div class="footer">
           <p class="footer-text">
-            © 2025 NuMusic. All rights reserved.<br>
-            This email was sent to ${email} because you signed up for a NuMusic account.
+            © 2025 NuSong. All rights reserved.<br>
+            This email was sent to ${email} because you signed up for a NuSong account.
           </p>
         </div>
       </div>
@@ -125,22 +125,22 @@ export class EmailService {
     `;
 
     const emailText = `
-Welcome to NuMusic, ${firstName}!
+Welcome to NuSong, ${firstName}!
 
-Thank you for joining NuMusic, the AI-powered music generation platform. To complete your registration and start creating amazing music, please verify your email address.
+Thank you for joining NuSong, the AI-powered music generation platform. To complete your registration and start creating amazing music, please verify your email address.
 
 Verify your email: ${verificationUrl}
 
-This verification link will expire in 24 hours. If you didn't create a NuMusic account, you can safely ignore this email.
+This verification link will expire in 24 hours. If you didn't create a NuSong account, you can safely ignore this email.
 
-© 2025 NuMusic. All rights reserved.
+© 2025 NuSong. All rights reserved.
     `;
 
     try {
       await resend.emails.send({
-        from: 'NuMusic <noreply@notifications.numusic.app>',
+        from: 'NuSong <noreply@notifications.nusong.app>',
         to: email,
-        subject: 'Verify Your NuMusic Account',
+        subject: 'Verify Your NuSong Account',
         html: emailHtml,
         text: emailText,
       });
@@ -157,7 +157,7 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Welcome to NuMusic!</title>
+      <title>Welcome to NuSong!</title>
       <style>
         body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #0a0a0a; color: #ffffff; }
         .container { max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1a 0%, #2d1b69 100%); }
@@ -188,10 +188,10 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
     <body>
       <div class="container">
         <div class="header">
-          <h1 class="logo">🎵 NuMusic</h1>
+          <h1 class="logo">🎵 NuSong</h1>
         </div>
         <div class="content">
-          <h2 class="welcome">Welcome to NuMusic, ${firstName}!</h2>
+          <h2 class="welcome">Welcome to NuSong, ${firstName}!</h2>
           <p class="message">
             Your email has been verified and your account is now active! 
             You're ready to start creating amazing AI-powered music.
@@ -206,12 +206,12 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
           </ul>
           
           <div class="button-container">
-            <a href="https://numusic.app/" class="get-started-button">Start Creating Music</a>
+            <a href="https://nusong.app/" class="get-started-button">Start Creating Music</a>
           </div>
         </div>
         <div class="footer">
           <p class="footer-text">
-            © 2025 NuMusic. All rights reserved.<br>
+            © 2025 NuSong. All rights reserved.<br>
             Happy music making!
           </p>
         </div>
@@ -222,9 +222,9 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
 
     try {
       await resend.emails.send({
-        from: 'NuMusic <noreply@notifications.numusic.app>',
+        from: 'NuSong <noreply@notifications.nusong.app>',
         to: email,
-        subject: 'Welcome to NuMusic - Your Account is Ready!',
+        subject: 'Welcome to NuSong - Your Account is Ready!',
         html: emailHtml,
       });
     } catch (error) {
@@ -238,7 +238,7 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
     firstName: string, 
     resetToken: string
   ): Promise<void> {
-    const resetUrl = `https://numusic.app/reset-password/${resetToken}`;
+    const resetUrl = `https://nusong.app/reset-password/${resetToken}`;
     
     const emailHtml = `
     <!DOCTYPE html>
@@ -246,7 +246,7 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Reset Your NuMusic Password</title>
+      <title>Reset Your NuSong Password</title>
       <style>
         body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #0a0a0a; color: #ffffff; }
         .container { max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #1a1a1a 0%, #2d1b69 100%); }
@@ -279,13 +279,13 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
     <body>
       <div class="container">
         <div class="header">
-          <h1 class="logo">🎵 NuMusic</h1>
+          <h1 class="logo">🎵 NuSong</h1>
         </div>
         <div class="content">
           <h2 class="welcome">Reset Your Password</h2>
           <p class="message">
             Hi ${firstName},<br><br>
-            We received a request to reset your password for your NuMusic account. 
+            We received a request to reset your password for your NuSong account. 
             Click the button below to create a new password.
           </p>
           
@@ -305,7 +305,7 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
         </div>
         <div class="footer">
           <p class="footer-text">
-            © 2025 NuMusic. All rights reserved.<br>
+            © 2025 NuSong. All rights reserved.<br>
             If you have any questions, please contact our support team.
           </p>
         </div>
@@ -315,24 +315,24 @@ This verification link will expire in 24 hours. If you didn't create a NuMusic a
     `;
 
     const emailText = `
-Reset Your NuMusic Password
+Reset Your NuSong Password
 
 Hi ${firstName},
 
-We received a request to reset your password for your NuMusic account. Visit the following link to create a new password:
+We received a request to reset your password for your NuSong account. Visit the following link to create a new password:
 
 ${resetUrl}
 
 This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.
 
-© 2025 NuMusic. All rights reserved.
+© 2025 NuSong. All rights reserved.
     `;
 
     try {
       await resend.emails.send({
-        from: 'NuMusic <noreply@notifications.numusic.app>',
+        from: 'NuSong <noreply@notifications.nusong.app>',
         to: email,
-        subject: 'Reset Your NuMusic Password',
+        subject: 'Reset Your NuSong Password',
         html: emailHtml,
         text: emailText,
       });

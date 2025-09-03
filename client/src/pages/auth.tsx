@@ -214,7 +214,7 @@ export default function Auth() {
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
                 <Music className="text-white text-xl" />
               </div>
-              <h1 className="text-3xl font-bold text-white">NuMusic</h1>
+              <h1 className="text-3xl font-bold text-white">NuSong</h1>
             </div>
             
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">

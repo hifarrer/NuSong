@@ -336,7 +336,7 @@ export default function MyLibrary() {
                           size="sm"
                           onClick={async () => {
                             try {
-                              await navigator.clipboard.writeText('https://numusic.app/track/' + generation.id);
+                              await navigator.clipboard.writeText('https://nusong.app/track/' + generation.id);
                               toast({
                                 title: "Link Copied!",
                                 description: "Track link has been copied to your clipboard.",

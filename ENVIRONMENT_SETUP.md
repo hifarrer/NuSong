@@ -1,4 +1,4 @@
-# Environment Setup for NuMusic
+# Environment Setup for NuSong
 
 ## Quick Setup
 

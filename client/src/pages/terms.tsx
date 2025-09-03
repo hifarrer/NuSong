@@ -30,7 +30,7 @@ export default function Terms() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="bg-music-secondary border-gray-700">
           <CardHeader>
-            <CardTitle className="text-2xl text-music-blue">NuMusic Terms of Service</CardTitle>
+            <CardTitle className="text-2xl text-music-blue">NuSong Terms of Service</CardTitle>
             <p className="text-gray-300">Last updated: {new Date().toLocaleDateString()}</p>
           </CardHeader>
           <CardContent className="prose prose-invert max-w-none space-y-6">
@@ -38,7 +38,7 @@ export default function Terms() {
               <h2 className="text-xl font-semibold text-white mb-3">1. Acceptance of Terms</h2>
               <div className="text-gray-300 space-y-3">
                 <p>
-                  By accessing and using NuMusic ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+                  By accessing and using NuSong ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
                 </p>
               </div>
             </section>
@@ -47,7 +47,7 @@ export default function Terms() {
               <h2 className="text-xl font-semibold text-white mb-3">2. Description of Service</h2>
               <div className="text-gray-300 space-y-3">
                 <p>
-                  NuMusic is an AI-powered music generation platform that allows users to:
+                  NuSong is an AI-powered music generation platform that allows users to:
                 </p>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Generate music from text prompts and lyrics</li>
@@ -76,7 +76,7 @@ export default function Terms() {
             <section>
               <h2 className="text-xl font-semibold text-white mb-3">4. Subscription Plans and Billing</h2>
               <div className="text-gray-300 space-y-3">
-                <p>NuMusic offers the following subscription tiers:</p>
+                <p>NuSong offers the following subscription tiers:</p>
                 <div className="bg-music-dark p-4 rounded-lg border border-gray-600 my-4">
                   <ul className="space-y-2">
                     <li><strong>Free Plan:</strong> Up to 5 songs per week, standard quality, public sharing only</li>
@@ -118,7 +118,7 @@ export default function Terms() {
                 </ul>
                 <p><strong>Our Service:</strong></p>
                 <ul className="list-disc pl-6 space-y-1">
-                  <li>NuMusic retains all rights to the platform, AI models, and technology</li>
+                  <li>NuSong retains all rights to the platform, AI models, and technology</li>
                   <li>You may not copy, modify, or distribute our software or algorithms</li>
                   <li>Our trademarks and branding remain our exclusive property</li>
                 </ul>
@@ -158,7 +158,7 @@ export default function Terms() {
               <h2 className="text-xl font-semibold text-white mb-3">9. Limitation of Liability</h2>
               <div className="text-gray-300 space-y-3">
                 <p>
-                  To the maximum extent permitted by law, NuMusic shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to:
+                  To the maximum extent permitted by law, NuSong shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to:
                 </p>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Loss of data or generated content</li>
@@ -209,9 +209,9 @@ export default function Terms() {
                   For questions about these Terms, please contact us:
                 </p>
                 <div className="bg-music-dark p-4 rounded-lg border border-gray-600">
-                  <p className="font-medium">NuMusic Legal Team</p>
-                  <p>Email: legal@numusic.app</p>
-                  <p>Website: numusic.app</p>
+                  <p className="font-medium">NuSong Legal Team</p>
+                  <p>Email: legal@nusong.app</p>
+                  <p>Website: nusong.app</p>
                 </div>
               </div>
             </section>

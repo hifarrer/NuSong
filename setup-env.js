@@ -1,7 +1,7 @@
 import { writeFileSync, existsSync } from 'fs';
 import { readFileSync } from 'fs';
 
-console.log('🔧 NuMusic Environment Setup');
+console.log('🔧 NuSong Environment Setup');
 console.log('============================\n');
 
 // Check if .env already exists

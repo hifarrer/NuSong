@@ -1,11 +1,11 @@
 # Stripe Integration Setup Guide
 
-This guide will help you set up Stripe recurring payments for your NuMusic app.
+This guide will help you set up Stripe recurring payments for your NuSong app.
 
 ## Prerequisites
 
 1. A Stripe account (sign up at https://stripe.com)
-2. Your NuMusic app running with admin access
+2. Your NuSong app running with admin access
 3. Database access to run migrations
 
 ## Step 1: Database Migration
@@ -26,7 +26,7 @@ This will add the necessary `stripe_customer_id` and `stripe_subscription_id` co
    - Copy your **Publishable key** and **Secret key**
 
 2. **Add keys to your admin dashboard:**
-   - Go to your NuMusic admin dashboard (`/admin/login`)
+   - Go to your NuSong admin dashboard (`/admin/login`)
    - Navigate to Site Settings → Stripe tab
    - Enter your Stripe Publishable Key and Secret Key
    - Save the settings

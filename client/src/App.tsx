@@ -21,7 +21,7 @@ import CheckEmailPage from "@/pages/check-email";
 import VerifyEmailPage from "@/pages/verify-email";
 import ResetPasswordPage from "@/pages/reset-password";
 // Use direct path to video in public folder
-const backgroundVideo = "/background-video.mp4";
+const backgroundVideo = "/nusongBG.mp4";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();

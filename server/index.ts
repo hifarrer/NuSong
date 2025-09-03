@@ -4,6 +4,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+// Disable ETag to prevent 304 Not Modified on API JSON responses
+app.set('etag', false);
 app.use(express.json({
   verify: (req: any, _res, buf) => {
     // Preserve raw body for Stripe webhook signature verification

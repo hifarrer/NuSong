@@ -30,7 +30,7 @@ export default function Privacy() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="bg-music-secondary border-gray-700">
           <CardHeader>
-            <CardTitle className="text-2xl text-music-blue">NuMusic Privacy Policy</CardTitle>
+            <CardTitle className="text-2xl text-music-blue">NuSong Privacy Policy</CardTitle>
             <p className="text-gray-300">Last updated: {new Date().toLocaleDateString()}</p>
           </CardHeader>
           <CardContent className="prose prose-invert max-w-none space-y-6">
@@ -38,7 +38,7 @@ export default function Privacy() {
               <h2 className="text-xl font-semibold text-white mb-3">1. Information We Collect</h2>
               <div className="text-gray-300 space-y-3">
                 <p>
-                  When you use NuMusic, we collect information that you provide directly to us, including:
+                  When you use NuSong, we collect information that you provide directly to us, including:
                 </p>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Account information (email address, username, password)</li>
@@ -157,9 +157,9 @@ export default function Privacy() {
                   If you have any questions about this Privacy Policy or our data practices, please contact us at:
                 </p>
                 <div className="bg-music-dark p-4 rounded-lg border border-gray-600">
-                  <p className="font-medium">NuMusic Support</p>
-                  <p>Email: privacy@numusic.app</p>
-                  <p>Website: numusic.app</p>
+                  <p className="font-medium">NuSong Support</p>
+                  <p>Email: privacy@nusong.app</p>
+                  <p>Website: nusong.app</p>
                 </div>
               </div>
             </section>

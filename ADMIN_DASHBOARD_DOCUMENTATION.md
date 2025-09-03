@@ -1,8 +1,8 @@
-# NuMusic Admin Dashboard Documentation
+# NuSong Admin Dashboard Documentation
 
 ## Overview
 
-The NuMusic Admin Dashboard is a comprehensive management interface that allows administrators to oversee all aspects of the music generation platform. This dashboard provides tools for user management, subscription plan administration, music track oversight, and site configuration.
+The NuSong Admin Dashboard is a comprehensive management interface that allows administrators to oversee all aspects of the music generation platform. This dashboard provides tools for user management, subscription plan administration, music track oversight, and site configuration.
 
 ## Access and Authentication
 

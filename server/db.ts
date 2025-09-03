@@ -7,7 +7,7 @@ const dbConfig = {
   host: process.env.PGHOST,
   port: parseInt(process.env.PGPORT || '5432'),
   database: process.env.PGDATABASE,
-  user: 'numusicuser',
+  user: process.env.PGUSER || 'postgres',
   password: process.env.PGPASSWORD,
   ssl: {
     rejectUnauthorized: false

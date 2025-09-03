@@ -64,7 +64,9 @@ export const musicGenerations = pgTable("music_generations", {
   visibility: varchar("visibility").notNull().default("public"), // public, private
   showInGallery: boolean("show_in_gallery").notNull().default(true), // Admin can hide from gallery
   title: varchar("title"), // Optional custom title for the track
-  falRequestId: varchar("fal_request_id"),
+  falRequestId: varchar("fal_request_id"), // Legacy field for FAL
+  kieTaskId: varchar("kie_task_id"), // KIE.ai task ID
+  imageUrl: varchar("image_url"), // Track cover image from KIE.ai
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -164,7 +164,7 @@ export default function Landing() {
                 <div className="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center">
                   <Music className="text-white text-sm" />
                 </div>
-                <span className="text-lg font-bold">NuMusic</span>
+                <span className="text-lg font-bold">NuSong</span>
               </div>
               <p className="text-gray-400">Create professional music with the power of artificial intelligence.</p>
             </div>
@@ -189,7 +189,7 @@ export default function Landing() {
           </div>
 
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 NuMusic. All rights reserved.</p>
+            <p>&copy; 2024 NuSong. All rights reserved.</p>
           </div>
         </div>
       </footer>

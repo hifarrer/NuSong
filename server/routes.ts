@@ -28,7 +28,7 @@ import {
   initializeDefaultAdmin 
 } from "./adminAuth";
 import { generateLyrics } from "./openaiService";
-import { generateMusic } from "./elevenLabsService";
+import { generateMusic, buildPromptFromTags, checkTaskStatus } from "./kieService";
 import { ObjectNotFoundError } from "./objectStorage";
 import { 
   createCheckoutSession, 
@@ -119,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Text-to-music generation using ElevenLabs
+  // Text-to-music generation using KIE.ai
   app.post("/api/generate-text-to-music", requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -135,74 +135,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Check if user already has a recent generation with same content to prevent duplicates
+      const recentGenerations = await storage.getUserMusicGenerations(userId);
+      const hasRecentDuplicate = recentGenerations.some(gen => 
+        gen.tags === validation.tags && 
+        gen.lyrics === validation.lyrics &&
+        gen.createdAt && 
+        (new Date().getTime() - new Date(gen.createdAt).getTime()) < 30000 // Within 30 seconds
+      );
+      
+      if (hasRecentDuplicate) {
+        console.log(`⚠️  Duplicate generation request detected for user ${userId}`);
+        return res.status(400).json({ 
+          message: "Duplicate generation request. Please wait a moment before trying again." 
+        });
+      }
+      
       // Create generation record
       const generation = await storage.createTextToMusicGeneration(userId, validation);
       
       // Increment user's generation count
       await storage.incrementUserGenerationCount(userId);
       
-      // Convert duration from seconds to milliseconds
-      const durationMs = (validation.duration || 30) * 1000;
+      // Build prompt for KIE.ai
+      const { prompt, style, title } = buildPromptFromTags(validation.tags, validation.lyrics);
       
       // Log the input parameters
-      console.log(`\n=== TEXT-TO-MUSIC ELEVENLABS REQUEST ===`);
+      console.log(`\n=== TEXT-TO-MUSIC KIE.AI REQUEST ===`);
       console.log(`User ID: ${userId}`);
       console.log(`Generation ID: ${generation.id}`);
       console.log(`Tags: ${validation.tags}`);
       console.log(`Lyrics: ${validation.lyrics || 'N/A'}`);
-      console.log(`Duration: ${durationMs}ms`);
-      console.log(`=========================================\n`);
+      console.log(`Prompt: ${prompt}`);
+      console.log(`Style: ${style}`);
+      console.log(`Title: ${title}`);
+      console.log(`===================================\n`);
 
-      // Generate music using ElevenLabs
-      const audioStream = await generateMusic({
-        tags: validation.tags,
-        lyrics: validation.lyrics || undefined,
-        durationMs: durationMs
+      // Generate music using KIE.ai
+      console.log(`🚀 Calling KIE.ai generateMusic with:`, {
+        prompt: prompt.substring(0, 100) + '...',
+        style,
+        title,
+        instrumental: !validation.lyrics,
+        model: "V4",
+        callBackUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/api/kie-callback`
+      });
+      
+      const kieResponse = await generateMusic({
+        prompt: prompt,
+        style: style,
+        title: title,
+        instrumental: !validation.lyrics, // If no lyrics, make it instrumental
+        model: "V4",
+        callBackUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/api/kie-callback`
       });
 
-      // Convert stream to buffer for storage
-      const chunks: Uint8Array[] = [];
-      const reader = audioStream.getReader();
-      
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
-        }
-      } finally {
-        reader.releaseLock();
-      }
-      
-      const audioBuffer = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
-      let offset = 0;
-      for (const chunk of chunks) {
-        audioBuffer.set(chunk, offset);
-        offset += chunk.length;
+      if (kieResponse.code !== 200) {
+        throw new Error(`KIE.ai API error: ${kieResponse.msg}`);
       }
 
-      const storageService = getStorageService();
-      
-      const filename = `generated-music-${generation.id}.mp3`;
-      const uploadUrl = await storageService.uploadAudioBuffer(audioBuffer, filename);
-      
-      // Update generation with success
+      // Update generation with KIE task ID and set status to generating
       await storage.updateMusicGeneration(generation.id, {
-        status: "completed",
-        audioUrl: uploadUrl,
+        status: "generating",
+        kieTaskId: kieResponse.data.taskId,
       });
 
       res.json({ 
         generationId: generation.id, 
-        status: "completed",
-        audioUrl: uploadUrl 
+        status: "generating",
+        taskId: kieResponse.data.taskId,
+        message: "Music generation started. You'll be notified when it's ready."
       });
     } catch (error) {
-      console.error("Error generating music with ElevenLabs:", error);
+      console.error("Error generating music with KIE.ai:", error);
       
       // Update generation with failure
       try {
-        await storage.updateMusicGeneration(req.body.generationId || '', { status: "failed" });
+        const generationId = req.body.generationId || (await storage.createTextToMusicGeneration(req.user.id, req.body)).id;
+        await storage.updateMusicGeneration(generationId, { status: "failed" });
       } catch (updateError) {
         console.error("Error updating generation status:", updateError);
       }
@@ -293,6 +303,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/generation/:id/status", requireAuth, async (req: any, res) => {
     try {
+      // Always send no-cache headers so the client does not cache
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+
       const userId = req.user.id;
       const { id } = req.params;
       
@@ -306,7 +322,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(generation);
       }
 
-      // Check FAL.ai status
+      // Prefer KIE.ai status if we have a task id
+      if (generation.kieTaskId) {
+        console.log(`\n=== API STATUS CHECK: KIE.ai ===`);
+        console.log(`Generation ID: ${id}`);
+        console.log(`KIE Task ID: ${generation.kieTaskId}`);
+        try {
+          const statusResponse = await checkTaskStatus(generation.kieTaskId);
+          console.log(`KIE.ai status response received.`);
+          console.log(JSON.stringify(statusResponse, null, 2));
+
+          if (statusResponse.code === 200) {
+            const { status, response } = statusResponse.data as any;
+            if (status === 'SUCCESS' && response?.sunoData && response.sunoData.length > 0) {
+              const sunoData = response.sunoData[0];
+              const updated = await storage.updateMusicGeneration(id, {
+                status: 'completed',
+                audioUrl: sunoData.audioUrl,
+                imageUrl: sunoData.imageUrl,
+                title: sunoData.title || generation.title,
+              });
+              console.log(`Updated generation ${id} with audioUrl and imageUrl`);
+              return res.json(updated);
+            } else if (status === 'FAILED') {
+              const updated = await storage.updateMusicGeneration(id, { status: 'failed' });
+              return res.json(updated);
+            }
+          }
+        } catch (e) {
+          console.error(`KIE.ai status check error for generation ${id}:`, e);
+        }
+      }
+
+      // Check FAL.ai status (legacy)
       if (generation.falRequestId) {
         const falResponse = await fetch(
           `https://queue.fal.run/fal-ai/ace-step/requests/${generation.falRequestId}/status`,
@@ -770,14 +818,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = process.env.PGHOST || 'localhost';
       const port = process.env.PGPORT || '5432';
       const database = process.env.PGDATABASE;
-      const user = process.env.PGUSER || 'numusicuser';
+      const user = process.env.PGUSER || 'postgres';
       const password = process.env.PGPASSWORD;
 
       if (!database || !password) {
         return res.status(500).json({ message: 'Database env vars missing (PGDATABASE/PGPASSWORD)' });
       }
 
-      const fileName = `numusic_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.sql`;
+      const fileName = `nusong_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.sql`;
       res.setHeader('Content-Type', 'application/sql');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
 
@@ -1165,6 +1213,243 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: error instanceof Error ? error.message : "Failed to reactivate subscription" 
       });
+    }
+  });
+
+  // KIE.ai callback endpoint
+  app.post("/api/kie-callback", async (req, res) => {
+    try {
+      console.log('📞 KIE.ai callback received:', JSON.stringify(req.body, null, 2));
+      
+      const { taskId, status, response } = req.body;
+      
+      if (!taskId) {
+        return res.status(400).json({ message: "Missing taskId" });
+      }
+
+      // Find the generation record by KIE task ID
+      const generation = await storage.findGenerationByKieTaskId(taskId);
+      if (!generation) {
+        console.log(`⚠️  No generation found for KIE task ID: ${taskId}`);
+        return res.status(404).json({ message: "Generation not found" });
+      }
+
+      if (status === 'SUCCESS' && response?.sunoData && response.sunoData.length > 0) {
+        // KIE.ai returns multiple songs; update the primary with the first one
+        const sunoData = response.sunoData[0];
+        console.log(`✅ KIE.ai generation completed for task ${taskId}`);
+        console.log(`📊 Found ${response.sunoData.length} songs, using the first one`);
+        console.log(`📊 Selected song data:`, JSON.stringify(sunoData, null, 2));
+        
+        // Update generation with completed status and URLs
+        await storage.updateMusicGeneration(generation.id, {
+          status: "completed",
+          audioUrl: sunoData.audioUrl,
+          imageUrl: sunoData.imageUrl,
+          title: sunoData.title || generation.title,
+        });
+        
+        console.log(`🎵 Generation ${generation.id} completed successfully`);
+        console.log(`🎵 Audio URL: ${sunoData.audioUrl}`);
+        console.log(`🖼️ Image URL: ${sunoData.imageUrl}`);
+
+        // Save additional songs (if any) as separate tracks for the user library
+        if (response.sunoData.length > 1) {
+          for (let i = 1; i < response.sunoData.length; i++) {
+            const alt = response.sunoData[i];
+            try {
+              // Avoid duplicates if callback retries
+              const existing = (await storage.getUserMusicGenerations(generation.userId))
+                .find(g => g.audioUrl === alt.audioUrl);
+              if (existing) {
+                console.log(`ℹ️ Alternate track already saved: ${existing.id}`);
+                continue;
+              }
+
+              const altGen = await storage.createTextToMusicGeneration(generation.userId, {
+                tags: generation.tags,
+                lyrics: generation.lyrics || undefined,
+                duration: generation.duration || undefined,
+                visibility: generation.visibility,
+                title: alt.title || generation.title || undefined,
+                type: "text-to-music",
+              } as any);
+
+              await storage.updateMusicGeneration(altGen.id, {
+                status: 'completed',
+                audioUrl: alt.audioUrl,
+                imageUrl: alt.imageUrl,
+                kieTaskId: generation.kieTaskId,
+              });
+              console.log(`✅ Saved alternate track ${altGen.id} for user ${generation.userId}`);
+            } catch (e) {
+              console.error(`Failed saving alternate track index ${i}:`, e);
+            }
+          }
+        }
+      } else if (status === 'FAILED') {
+        console.log(`❌ KIE.ai generation failed for task ${taskId}`);
+        await storage.updateMusicGeneration(generation.id, {
+          status: "failed",
+        });
+      } else {
+        console.log(`📊 KIE.ai generation status update for task ${taskId}: ${status}`);
+        await storage.updateMusicGeneration(generation.id, {
+          status: status === 'PROCESSING' ? 'generating' : 'pending',
+        });
+      }
+
+      res.json({ message: "Callback processed" });
+    } catch (error) {
+      console.error("Error processing KIE.ai callback:", error);
+      res.status(500).json({ message: "Failed to process callback" });
+    }
+  });
+
+  // Check KIE.ai generation status manually
+  app.get("/api/check-generation-status/:generationId", requireAuth, async (req: any, res) => {
+    try {
+      const { generationId } = req.params;
+      const userId = req.user.id;
+      
+      // Get the generation record
+      const generation = await storage.getGenerationById(generationId);
+      if (!generation || generation.userId !== userId) {
+        return res.status(404).json({ message: "Generation not found" });
+      }
+
+      console.log(`\n📊 STATUS CHECK DEBUG INFO`);
+      console.log(`📋 Generation ID: ${generationId}`);
+      console.log(`🎯 KIE Task ID: ${generation.kieTaskId || 'MISSING'}`);
+      console.log(`📊 Current Status: ${generation.status}`);
+      console.log(`👤 User ID: ${generation.userId}`);
+      console.log(`⏰ Created: ${generation.createdAt}`);
+      console.log(`🔍 Will check KIE status: ${!!(generation.kieTaskId && generation.status === 'generating')}`);
+      console.log(`=====================================`);
+
+      // If it has a KIE task ID and is still generating, check status
+      if (generation.kieTaskId && generation.status === 'generating') {
+        try {
+          console.log(`\n🔍 MANUAL STATUS CHECK INITIATED`);
+          console.log(`📋 Generation ID: ${generationId}`);
+          console.log(`🎯 KIE Task ID: ${generation.kieTaskId}`);
+          console.log(`📊 Current Status: ${generation.status}`);
+          console.log(`⏰ Created: ${generation.createdAt}`);
+          console.log(`=====================================`);
+          
+          const statusResponse = await checkTaskStatus(generation.kieTaskId);
+          
+          if (statusResponse.code === 200) {
+            const { status, response } = statusResponse.data;
+            
+            console.log(`📊 KIE.ai Status Response Analysis:`);
+            console.log(`   - Code: ${statusResponse.code}`);
+            console.log(`   - Status: ${status}`);
+            console.log(`   - Has Response: ${!!response}`);
+            console.log(`   - Has SunoData: ${!!response?.sunoData}`);
+            console.log(`   - SunoData Length: ${response?.sunoData?.length || 0}`);
+            
+            if (status === 'SUCCESS' && response?.sunoData && response.sunoData.length > 0) {
+               const sunoData = response.sunoData[0];
+               console.log(`📊 Manual status check - Found ${response.sunoData.length} songs, using first one`);
+               console.log(`📊 Manual status check - Selected song:`, JSON.stringify(sunoData, null, 2));
+               
+               // Update generation with completed status
+               await storage.updateMusicGeneration(generation.id, {
+                 status: "completed",
+                 audioUrl: sunoData.audioUrl,
+                 imageUrl: sunoData.imageUrl,
+                 title: sunoData.title || generation.title,
+               });
+               
+               // Save alternates as additional tracks
+               if (response.sunoData.length > 1) {
+                 for (let i = 1; i < response.sunoData.length; i++) {
+                   const alt = response.sunoData[i];
+                   try {
+                     const existing = (await storage.getUserMusicGenerations(generation.userId))
+                       .find(g => g.audioUrl === alt.audioUrl);
+                     if (existing) {
+                       console.log(`ℹ️ Alternate track already saved: ${existing.id}`);
+                       continue;
+                     }
+
+                     const altGen = await storage.createTextToMusicGeneration(generation.userId, {
+                       tags: generation.tags,
+                       lyrics: generation.lyrics || undefined,
+                       duration: generation.duration || undefined,
+                       visibility: generation.visibility,
+                       title: alt.title || generation.title || undefined,
+                       type: "text-to-music",
+                     } as any);
+
+                     await storage.updateMusicGeneration(altGen.id, {
+                       status: 'completed',
+                       audioUrl: alt.audioUrl,
+                       imageUrl: alt.imageUrl,
+                       kieTaskId: generation.kieTaskId,
+                     });
+                     console.log(`✅ Saved alternate track ${altGen.id} for user ${generation.userId}`);
+                   } catch (e) {
+                     console.error(`Failed saving alternate track index ${i}:`, e);
+                   }
+                 }
+               }
+               
+               console.log(`🎵 Manual check - Updated generation ${generation.id} with URLs`);
+               console.log(`🎵 Audio URL: ${sunoData.audioUrl}`);
+               console.log(`🖼️ Image URL: ${sunoData.imageUrl}`);
+               
+               return res.json({
+                 status: "completed",
+                 primary: {
+                   audioUrl: sunoData.audioUrl,
+                   imageUrl: sunoData.imageUrl,
+                   title: sunoData.title,
+                 },
+                 alternates: response.sunoData.slice(1).map(alt => ({
+                   audioUrl: alt.audioUrl,
+                   imageUrl: alt.imageUrl,
+                   title: alt.title,
+                 })),
+               });
+                          } else if (status === 'FAILED') {
+               console.log(`❌ Generation failed according to KIE.ai`);
+               await storage.updateMusicGeneration(generation.id, {
+                 status: "failed",
+               });
+               
+               return res.json({ status: "failed" });
+             } else {
+               console.log(`⏳ Generation still in progress. Status: ${status}`);
+               // Update status to current KIE.ai status
+               await storage.updateMusicGeneration(generation.id, {
+                 status: status === 'PROCESSING' ? 'generating' : 'pending',
+               });
+             }
+           } else {
+             console.log(`❌ KIE.ai API returned non-200 code: ${statusResponse.code}`);
+           }
+         } catch (statusError) {
+          console.error("Error checking KIE.ai status:", statusError);
+        }
+      } else {
+        console.log(`🚫 SKIPPING KIE.ai status check:`);
+        console.log(`   - Has KIE Task ID: ${!!generation.kieTaskId}`);
+        console.log(`   - Status is 'generating': ${generation.status === 'generating'}`);
+        console.log(`   - Actual status: ${generation.status}`);
+      }
+
+      // Return current status
+      res.json({
+        status: generation.status,
+        audioUrl: generation.audioUrl,
+        imageUrl: generation.imageUrl,
+        title: generation.title,
+      });
+    } catch (error) {
+      console.error("Error checking generation status:", error);
+      res.status(500).json({ message: "Failed to check generation status" });
     }
   });
 

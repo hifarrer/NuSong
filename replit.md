@@ -1,8 +1,8 @@
-# NuMusic
+# NuSong
 
 ## Overview
 
-NuMusic is a full-stack web application that enables users to generate AI-powered music using ElevenLabs AI music generation service. Users can input musical tags, lyrics, and specify duration to create custom audio tracks. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database integration.
+NuSong is a full-stack web application that enables users to generate AI-powered music using ElevenLabs AI music generation service. Users can input musical tags, lyrics, and specify duration to create custom audio tracks. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database integration.
 
 ## User Preferences
 
@@ -10,9 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Project Configuration
 
-**Production Domain**: numusic.app  
+**Production Domain**: nusong.app  
 **Development Environment**: Replit workspace  
-**Webhook Endpoints**: Configured for numusic.app domain
+**Webhook Endpoints**: Configured for nusong.app domain
 
 ## Subscription Plans
 
@@ -109,7 +109,7 @@ To use Google Cloud Storage for file storage:
 
 3. **Create Service Account**:
    - Go to "IAM & Admin" → "Service Accounts"
-   - Create new service account with name like "numusic-storage"
+   - Create new service account with name like "nusong-storage"
    - Add roles: "Storage Object Admin" and "Storage Object Viewer"
    - Create and download JSON key file
 

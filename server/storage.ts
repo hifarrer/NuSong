@@ -50,6 +50,8 @@ export interface IStorage {
   createAudioToMusicGeneration(userId: string, data: InsertAudioToMusic): Promise<MusicGeneration>;
   updateMusicGeneration(id: string, updates: Partial<MusicGeneration>): Promise<MusicGeneration>;
   getMusicGeneration(id: string): Promise<MusicGeneration | undefined>;
+  getGenerationById(id: string): Promise<MusicGeneration | undefined>;
+  findGenerationByKieTaskId(kieTaskId: string): Promise<MusicGeneration | undefined>;
   getUserMusicGenerations(userId: string): Promise<MusicGeneration[]>;
   getPublicMusicGenerations(): Promise<MusicGeneration[]>;
   getAllMusicGenerationsWithUsers(): Promise<Array<MusicGeneration & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> }>>;
@@ -528,6 +530,22 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(musicGenerations)
       .where(eq(musicGenerations.id, id));
+    return generation;
+  }
+
+  async getGenerationById(id: string): Promise<MusicGeneration | undefined> {
+    const [generation] = await db
+      .select()
+      .from(musicGenerations)
+      .where(eq(musicGenerations.id, id));
+    return generation;
+  }
+
+  async findGenerationByKieTaskId(kieTaskId: string): Promise<MusicGeneration | undefined> {
+    const [generation] = await db
+      .select()
+      .from(musicGenerations)
+      .where(eq(musicGenerations.kieTaskId, kieTaskId));
     return generation;
   }
 

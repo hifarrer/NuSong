@@ -23,7 +23,7 @@ export function AdminMaintenance() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `numusic_backup_${new Date().toISOString().replace(/[:.]/g, "-")}.sql`;
+      a.download = `nusong_backup_${new Date().toISOString().replace(/[:.]/g, "-")}.sql`;
       document.body.appendChild(a);
       a.click();
       a.remove();

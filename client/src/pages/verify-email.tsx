@@ -108,7 +108,7 @@ export default function VerifyEmailPage() {
             </CardTitle>
             <div className="space-y-4 text-center">
               <p className="text-gray-300">
-                Welcome to NuMusic, {result?.user?.firstName || "there"}! 🎉
+                Welcome to NuSong, {result?.user?.firstName || "there"}! 🎉
               </p>
               <p className="text-green-400">
                 {result?.message || "Your account is now active and ready to use."}
