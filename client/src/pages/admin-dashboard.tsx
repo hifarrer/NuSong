@@ -7,6 +7,7 @@ import { AdminPlanManagement } from "@/components/admin/AdminPlanManagement";
 import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings";
 import { AdminMusicTracks } from "@/components/admin/AdminMusicTracks";
 import { AdminMaintenance } from "@/components/admin/AdminMaintenance";
+import { AdminDatabaseManagement } from "@/components/admin/AdminDatabaseManagement";
 
 export default function AdminDashboard() {
   const { isAuthenticated, isLoading } = useAdminAuth();
@@ -41,6 +42,9 @@ export default function AdminDashboard() {
     }
     if (currentPath === "/admin/maintenance") {
       return <AdminMaintenance />;
+    }
+    if (currentPath === "/admin/database") {
+      return <AdminDatabaseManagement />;
     }
     return <AdminDashboardContent />;
   };

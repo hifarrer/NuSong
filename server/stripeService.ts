@@ -87,7 +87,7 @@ export async function createCheckoutSession({
       billingCycle,
     },
     subscription_data: {
-      trial_period_days: 7,
+      trial_period_days: 2,
       metadata: {
         userId,
         planId,

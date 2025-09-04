@@ -1626,6 +1626,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== DATABASE MANAGEMENT ROUTES (Admin Only) =====
+  
+  // Get database statistics
+  app.get('/api/admin/database/stats', isAdminAuthenticated, async (req, res) => {
+    try {
+      const client = await pool.connect();
+      
+      try {
+        // Get all table names
+        const tablesResult = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_type = 'BASE TABLE'
+          ORDER BY table_name
+        `);
+        
+        const tableNames = tablesResult.rows.map(row => row.table_name);
+        
+        // Get row counts for each table
+        const tableStats = [];
+        let totalRows = 0;
+        
+        for (const tableName of tableNames) {
+          try {
+            const countResult = await client.query(`SELECT COUNT(*) as count FROM ${tableName}`);
+            const rowCount = parseInt(countResult.rows[0].count);
+            tableStats.push({ tableName, rowCount });
+            totalRows += rowCount;
+          } catch (error) {
+            console.error(`Error counting rows in ${tableName}:`, error);
+            tableStats.push({ tableName, rowCount: 0 });
+          }
+        }
+        
+        res.json({
+          totalTables: tableNames.length,
+          totalRows,
+          tableStats,
+        });
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('Error getting database stats:', error);
+      res.status(500).json({ message: 'Failed to get database statistics' });
+    }
+  });
+
+  // Get list of all tables
+  app.get('/api/admin/database/tables', isAdminAuthenticated, async (req, res) => {
+    try {
+      const client = await pool.connect();
+      
+      try {
+        const result = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_type = 'BASE TABLE'
+          ORDER BY table_name
+        `);
+        
+        const tableNames = result.rows.map(row => row.table_name);
+        res.json(tableNames);
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('Error getting table list:', error);
+      res.status(500).json({ message: 'Failed to get table list' });
+    }
+  });
+
+  // Get table structure and sample data
+  app.get('/api/admin/database/table/:tableName', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { tableName } = req.params;
+      
+      // Validate table name to prevent SQL injection
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
+        return res.status(400).json({ message: 'Invalid table name' });
+      }
+      
+      const client = await pool.connect();
+      
+      try {
+        // Get table columns
+        const columnsResult = await client.query(`
+          SELECT 
+            column_name,
+            data_type,
+            is_nullable,
+            column_default
+          FROM information_schema.columns 
+          WHERE table_name = $1 
+          AND table_schema = 'public'
+          ORDER BY ordinal_position
+        `, [tableName]);
+        
+        // Get sample data (first 10 rows)
+        const sampleResult = await client.query(`
+          SELECT * FROM ${tableName} 
+          ORDER BY 
+            CASE 
+              WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = 'created_at') 
+              THEN 'created_at' 
+              ELSE (SELECT column_name FROM information_schema.columns WHERE table_name = $1 ORDER BY ordinal_position LIMIT 1)
+            END DESC
+          LIMIT 10
+        `, [tableName]);
+        
+        // Get total row count
+        const countResult = await client.query(`SELECT COUNT(*) as count FROM ${tableName}`);
+        const rowCount = parseInt(countResult.rows[0].count);
+        
+        res.json({
+          tableName,
+          columns: columnsResult.rows,
+          rowCount,
+          sampleData: sampleResult.rows,
+        });
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('Error getting table data:', error);
+      res.status(500).json({ message: 'Failed to get table data' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

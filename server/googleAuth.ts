@@ -111,7 +111,7 @@ export class GoogleAuthService {
             googlePicture: googleUser.picture,
             authMethod: 'google',
             subscriptionPlanId: freePlanId || null,
-            planStatus: 'free',
+            planStatus: 'active',
           });
           isNewUser = true;
         }

@@ -109,7 +109,7 @@ export function setupCustomAuth(app: Express) {
         passwordHash,
         emailVerified: false,
         subscriptionPlanId: freePlanId || null,
-        planStatus: 'free',
+        planStatus: 'active',
       });
 
       // Generate and set verification token
