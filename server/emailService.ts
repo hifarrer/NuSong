@@ -15,7 +15,7 @@ export class EmailService {
     message: string
   ): Promise<void> {
     const safeSubject = subject?.trim() || 'New Contact Form Message';
-    const to = 'support@nusong.app';
+    const to = 'support@nusong.ai';
     const html = `
       <div style="font-family: Arial, sans-serif;">
         <h2>New contact form submission</h2>
@@ -28,7 +28,7 @@ export class EmailService {
     const text = `New contact form submission\nFrom: ${fromName} <${fromEmail}>\nSubject: ${safeSubject}\n\n${message}`;
 
     await resend.emails.send({
-      from: 'NuSong Contact <contact@notifications.nusong.app>',
+      from: 'NuSong Contact <contact@notifications.nusong.ai>',
       to,
       subject: `[Contact] ${safeSubject}`,
       html,
@@ -46,7 +46,7 @@ export class EmailService {
     firstName: string, 
     verificationToken: string
   ): Promise<void> {
-    const verificationUrl = `https://nusong.app/verify-email/${verificationToken}`;
+    const verificationUrl = `https://nusong.ai/verify-email/${verificationToken}`;
     
     const emailHtml = `
     <!DOCTYPE html>
@@ -138,7 +138,7 @@ This verification link will expire in 24 hours. If you didn't create a NuSong ac
 
     try {
       await resend.emails.send({
-        from: 'NuSong <noreply@notifications.nusong.app>',
+        from: 'NuSong <noreply@notifications.nusong.ai>',
         to: email,
         subject: 'Verify Your NuSong Account',
         html: emailHtml,
@@ -206,7 +206,7 @@ This verification link will expire in 24 hours. If you didn't create a NuSong ac
           </ul>
           
           <div class="button-container">
-            <a href="https://nusong.app/" class="get-started-button">Start Creating Music</a>
+            <a href="https://nusong.ai/" class="get-started-button">Start Creating Music</a>
           </div>
         </div>
         <div class="footer">
@@ -222,7 +222,7 @@ This verification link will expire in 24 hours. If you didn't create a NuSong ac
 
     try {
       await resend.emails.send({
-        from: 'NuSong <noreply@notifications.nusong.app>',
+        from: 'NuSong <noreply@notifications.nusong.ai>',
         to: email,
         subject: 'Welcome to NuSong - Your Account is Ready!',
         html: emailHtml,
@@ -238,7 +238,7 @@ This verification link will expire in 24 hours. If you didn't create a NuSong ac
     firstName: string, 
     resetToken: string
   ): Promise<void> {
-    const resetUrl = `https://nusong.app/reset-password/${resetToken}`;
+    const resetUrl = `https://nusong.ai/reset-password/${resetToken}`;
     
     const emailHtml = `
     <!DOCTYPE html>

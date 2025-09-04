@@ -1245,13 +1245,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let audioUrlToSave = sunoData.audioUrl;
         try {
           if (process.env.STORAGE_PROVIDER === 'gcs') {
+            console.log('☁️ GCS upload attempt (primary):', {
+              provider: process.env.STORAGE_PROVIDER,
+              bucket: process.env.GCS_BUCKET_NAME || 'NOT SET',
+              sourceUrl: sunoData.audioUrl,
+              generationId: generation.id,
+            });
             const storageService = getStorageService();
             const resp = await fetch(sunoData.audioUrl);
+            console.log(`☁️ GCS fetch (primary) status: ${resp.status}`);
             const arrBuf = await resp.arrayBuffer();
+            console.log(`☁️ GCS fetch (primary) bytes: ${arrBuf.byteLength}`);
             const buf = new Uint8Array(arrBuf);
             const filename = `${generation.id}.mp3`;
             audioUrlToSave = await storageService.uploadAudioBuffer(buf, filename);
-            console.log(`☁️ Uploaded primary track to GCS: ${audioUrlToSave}`);
+            console.log(`☁️ Uploaded primary track to GCS path: ${audioUrlToSave}`);
+          } else {
+            console.log('☁️ Skipping GCS upload (primary): STORAGE_PROVIDER is not gcs');
           }
         } catch (e) {
           console.error('GCS upload error (primary track), falling back to remote URL:', e);
@@ -1293,13 +1303,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
               let altAudioUrlToSave = alt.audioUrl;
               try {
                 if (process.env.STORAGE_PROVIDER === 'gcs') {
+                  console.log('☁️ GCS upload attempt (alternate):', {
+                    provider: process.env.STORAGE_PROVIDER,
+                    bucket: process.env.GCS_BUCKET_NAME || 'NOT SET',
+                    sourceUrl: alt.audioUrl,
+                    generationId: altGen.id,
+                  });
                   const storageService = getStorageService();
                   const respAlt = await fetch(alt.audioUrl);
+                  console.log(`☁️ GCS fetch (alternate) status: ${respAlt.status}`);
                   const arrBufAlt = await respAlt.arrayBuffer();
+                  console.log(`☁️ GCS fetch (alternate) bytes: ${arrBufAlt.byteLength}`);
                   const bufAlt = new Uint8Array(arrBufAlt);
                   const altFilename = `${altGen.id}.mp3`;
                   altAudioUrlToSave = await storageService.uploadAudioBuffer(bufAlt, altFilename);
-                  console.log(`☁️ Uploaded alternate track to GCS: ${altAudioUrlToSave}`);
+                  console.log(`☁️ Uploaded alternate track to GCS path: ${altAudioUrlToSave}`);
+                } else {
+                  console.log('☁️ Skipping GCS upload (alternate): STORAGE_PROVIDER is not gcs');
                 }
               } catch (e) {
                 console.error('GCS upload error (alternate track), falling back to remote URL:', e);
@@ -1388,13 +1408,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                let manualAudioUrlToSave = sunoData.audioUrl;
                try {
                  if (process.env.STORAGE_PROVIDER === 'gcs') {
+                   console.log('☁️ GCS upload attempt (manual primary):', {
+                     provider: process.env.STORAGE_PROVIDER,
+                     bucket: process.env.GCS_BUCKET_NAME || 'NOT SET',
+                     sourceUrl: sunoData.audioUrl,
+                     generationId: generation.id,
+                   });
                    const storageService = getStorageService();
                    const resp = await fetch(sunoData.audioUrl);
+                   console.log(`☁️ GCS fetch (manual primary) status: ${resp.status}`);
                    const arrBuf = await resp.arrayBuffer();
+                   console.log(`☁️ GCS fetch (manual primary) bytes: ${arrBuf.byteLength}`);
                    const buf = new Uint8Array(arrBuf);
                    const filename = `${generation.id}.mp3`;
                    manualAudioUrlToSave = await storageService.uploadAudioBuffer(buf, filename);
-                   console.log(`☁️ Uploaded primary track (manual check) to GCS: ${manualAudioUrlToSave}`);
+                   console.log(`☁️ Uploaded primary track (manual check) to GCS path: ${manualAudioUrlToSave}`);
+                 } else {
+                   console.log('☁️ Skipping GCS upload (manual primary): STORAGE_PROVIDER is not gcs');
                  }
                } catch (e) {
                  console.error('GCS upload error (manual primary), falling back to remote URL:', e);
@@ -1431,13 +1461,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                      let manualAltAudioUrlToSave = alt.audioUrl;
                      try {
                        if (process.env.STORAGE_PROVIDER === 'gcs') {
+                         console.log('☁️ GCS upload attempt (manual alternate):', {
+                           provider: process.env.STORAGE_PROVIDER,
+                           bucket: process.env.GCS_BUCKET_NAME || 'NOT SET',
+                           sourceUrl: alt.audioUrl,
+                           generationId: altGen.id,
+                         });
                          const storageService = getStorageService();
                          const respAlt = await fetch(alt.audioUrl);
+                         console.log(`☁️ GCS fetch (manual alternate) status: ${respAlt.status}`);
                          const arrBufAlt = await respAlt.arrayBuffer();
+                         console.log(`☁️ GCS fetch (manual alternate) bytes: ${arrBufAlt.byteLength}`);
                          const bufAlt = new Uint8Array(arrBufAlt);
                          const altFilename = `${altGen.id}.mp3`;
                          manualAltAudioUrlToSave = await storageService.uploadAudioBuffer(bufAlt, altFilename);
-                         console.log(`☁️ Uploaded alternate track (manual check) to GCS: ${manualAltAudioUrlToSave}`);
+                         console.log(`☁️ Uploaded alternate track (manual check) to GCS path: ${manualAltAudioUrlToSave}`);
+                       } else {
+                         console.log('☁️ Skipping GCS upload (manual alternate): STORAGE_PROVIDER is not gcs');
                        }
                      } catch (e) {
                        console.error('GCS upload error (manual alternate), falling back to remote URL:', e);
