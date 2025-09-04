@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { GoogleAuthService } from "./googleAuth";
 
 const app = express();
 // Disable ETag to prevent 304 Not Modified on API JSON responses
@@ -47,6 +48,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize Google Auth Service
+  GoogleAuthService.initialize();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

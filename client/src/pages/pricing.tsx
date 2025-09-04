@@ -88,7 +88,7 @@ export default function Pricing() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900">
+      <div className="min-h-screen">
         <div className="container mx-auto px-4 py-16">
           <div className="text-center mb-16">
             <div className="h-12 bg-gray-700 rounded animate-pulse mb-4 max-w-md mx-auto" />
@@ -175,8 +175,6 @@ export default function Pricing() {
     <div className="min-h-screen text-white">
       {/* Header */}
       <Header currentPage="pricing" />
-
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900">
 
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
@@ -366,7 +364,6 @@ export default function Pricing() {
             </Link>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );

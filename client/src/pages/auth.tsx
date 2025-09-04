@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Header } from "@/components/Header";
+import { GoogleSignIn } from "@/components/GoogleSignIn";
 import { Music, Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import backgroundVideo from "/nusongBG.mp4";
 import { useForm } from "react-hook-form";
@@ -322,6 +323,20 @@ export default function Auth() {
                       >
                         {loginMutation.isPending ? "Signing In..." : "Sign In"}
                       </Button>
+
+                      <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-gray-600" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-gray-800 px-2 text-gray-400">Or continue with</span>
+                        </div>
+                      </div>
+
+                      <GoogleSignIn 
+                        onSuccess={() => setLocation('/')}
+                        disabled={loginMutation.isPending}
+                      />
                     </form>
                   </TabsContent>
                   
@@ -438,6 +453,20 @@ export default function Auth() {
                       >
                         {registerMutation.isPending ? "Creating Account..." : "Create Account"}
                       </Button>
+
+                      <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-gray-600" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-gray-800 px-2 text-gray-400">Or continue with</span>
+                        </div>
+                      </div>
+
+                      <GoogleSignIn 
+                        onSuccess={() => setLocation('/')}
+                        disabled={registerMutation.isPending}
+                      />
                     </form>
                   </TabsContent>
                 </Tabs>

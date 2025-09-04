@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { storage } from './storage';
 import type { User } from '@shared/schema';
 import { EmailService } from './emailService';
+import { GoogleAuthService } from './googleAuth';
 
 declare module 'express-session' {
   interface SessionData {
@@ -455,5 +456,47 @@ export function setupCustomAuth(app: Express) {
     // Return user without password hash
     const { passwordHash: _, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
+  });
+
+  // Google OAuth routes
+  app.get('/api/auth/google', (req: Request, res: Response) => {
+    try {
+      const authUrl = GoogleAuthService.getAuthUrl();
+      res.json({ authUrl });
+    } catch (error) {
+      console.error('Google auth URL generation failed:', error);
+      res.status(500).json({ message: 'Google authentication not available' });
+    }
+  });
+
+  app.post('/api/auth/google/verify', async (req: Request, res: Response) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: 'Google token is required' });
+      }
+
+      // Verify the Google token
+      const googleUser = await GoogleAuthService.verifyToken(token);
+      
+      // Handle the Google authentication
+      const { user, isNewUser } = await GoogleAuthService.handleGoogleAuth(googleUser);
+
+      // Create session
+      req.session.userId = user.id;
+
+      // Return user without password hash
+      const { passwordHash: _, ...userWithoutPassword } = user;
+      
+      res.json({
+        user: userWithoutPassword,
+        isNewUser,
+        message: isNewUser ? 'Account created successfully!' : 'Welcome back!'
+      });
+    } catch (error) {
+      console.error('Google authentication error:', error);
+      res.status(401).json({ message: 'Google authentication failed' });
+    }
   });
 }
