@@ -15,6 +15,7 @@
     "db:verify": "node scripts/verify-import.js",
     "db:migrate-weekly": "node scripts/migrate-to-weekly.js",
     "db:migrate-google-oauth": "tsx scripts/migrate-google-oauth.js",
+    "db:migrate-albums": "tsx scripts/migrate-albums.js",
     "test:gcs": "tsx test-gcs.js"
   },
   "dependencies": {

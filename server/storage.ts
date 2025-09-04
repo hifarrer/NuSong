@@ -17,6 +17,9 @@ import {
   type SiteSetting,
   type InsertSiteSetting,
   type UsageAnalytic,
+  albums,
+  type Album,
+  type InsertAlbum,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, count, asc } from "drizzle-orm";
@@ -60,6 +63,13 @@ export interface IStorage {
   canUserGenerateMusic(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }>;
   incrementUserGenerationCount(userId: string): Promise<void>;
   resetMonthlyGenerationCounts(): Promise<void>;
+  // Album operations
+  getUserAlbums(userId: string): Promise<Album[]>;
+  getOrCreateDefaultAlbum(userId: string): Promise<Album>;
+  createAlbum(userId: string, album: Omit<InsertAlbum, 'id'> & { name: string }): Promise<Album>;
+  updateAlbum(id: string, updates: Partial<Album>): Promise<Album>;
+  getAlbumById(id: string): Promise<Album | undefined>;
+  backfillAlbums(): Promise<void>;
   
   // Admin operations
   getAdminUser(id: string): Promise<AdminUser | undefined>;
@@ -426,24 +436,40 @@ export class DatabaseStorage implements IStorage {
 
   // Music generation operations
   async createTextToMusicGeneration(userId: string, data: InsertTextToMusic): Promise<MusicGeneration> {
+    // Ensure albumId exists (fallback to default album)
+    let albumId = (data as any).albumId as string | undefined;
+    if (!albumId) {
+      const album = await this.getOrCreateDefaultAlbum(userId);
+      albumId = album.id;
+    }
+
     const [generation] = await db
       .insert(musicGenerations)
       .values({
         ...data,
         userId,
         type: "text-to-music",
+        albumId,
       })
       .returning();
     return generation;
   }
 
   async createAudioToMusicGeneration(userId: string, data: InsertAudioToMusic): Promise<MusicGeneration> {
+    // Ensure albumId exists (fallback to default album)
+    let albumId = (data as any).albumId as string | undefined;
+    if (!albumId) {
+      const album = await this.getOrCreateDefaultAlbum(userId);
+      albumId = album.id;
+    }
+
     const [generation] = await db
       .insert(musicGenerations)
       .values({
         ...data,
         userId,
         type: "audio-to-music",
+        albumId,
         lyrics: (data as any).prompt, // Store prompt in lyrics field for backward compatibility
       })
       .returning();
@@ -530,6 +556,73 @@ export class DatabaseStorage implements IStorage {
         generationsUsedThisMonth: 0,
         updatedAt: new Date(),
       });
+  }
+
+  // Album operations
+  async getUserAlbums(userId: string): Promise<Album[]> {
+    return await db
+      .select()
+      .from(albums)
+      .where(eq(albums.userId, userId))
+      .orderBy(albums.createdAt);
+  }
+
+  async getOrCreateDefaultAlbum(userId: string): Promise<Album> {
+    const rows = await db
+      .select()
+      .from(albums)
+      .where(and(eq(albums.userId, userId), eq(albums.isDefault, true)))
+      .limit(1);
+    const [existing] = rows;
+    if (existing) return existing;
+
+    const [created] = await db
+      .insert(albums)
+      .values({ userId, name: "My Music", isDefault: true })
+      .returning();
+    return created;
+  }
+
+  async createAlbum(userId: string, albumData: Omit<InsertAlbum, 'id'> & { name: string }): Promise<Album> {
+    const [album] = await db
+      .insert(albums)
+      .values({
+        userId,
+        name: albumData.name,
+        coverUrl: (albumData as any).coverUrl ?? null,
+        isDefault: false,
+      })
+      .returning();
+    return album;
+  }
+
+  async updateAlbum(id: string, updates: Partial<Album>): Promise<Album> {
+    const [album] = await db
+      .update(albums)
+      .set({
+        ...updates,
+      })
+      .where(eq(albums.id, id))
+      .returning();
+    return album;
+  }
+
+  async getAlbumById(id: string): Promise<Album | undefined> {
+    const [album] = await db.select().from(albums).where(eq(albums.id, id));
+    return album;
+  }
+
+  async backfillAlbums(): Promise<void> {
+    // Ensure each user has a default album and assign any songs without albumId
+    const allUsers = await this.getAllUsers();
+    for (const u of allUsers) {
+      const def = await this.getOrCreateDefaultAlbum(u.id);
+      // Update generations missing albumId
+      await db
+        .update(musicGenerations)
+        .set({ albumId: def.id, updatedAt: new Date() })
+        .where(and(eq(musicGenerations.userId, u.id), sql`${musicGenerations.albumId} IS NULL`));
+    }
   }
 
   async getMusicGeneration(id: string): Promise<MusicGeneration | undefined> {

@@ -153,6 +153,18 @@ export class GCSStorageService {
     return `/objects/generated/${filename}`;
   }
 
+  // Upload image buffer to GCS
+  async uploadImageBuffer(imageBuffer: Uint8Array, filename: string): Promise<string> {
+    const bucket = this.storage.bucket(this.bucketName);
+    const file = bucket.file(`generated/${filename}`);
+    await file.save(imageBuffer, {
+      metadata: {
+        contentType: 'image/jpeg'
+      }
+    });
+    return `/objects/generated/${filename}`;
+  }
+
   // Download object and stream to response
   async downloadObject(file: any, res: Response, cacheTtlSec: number = 3600): Promise<void> {
     try {

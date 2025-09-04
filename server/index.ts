@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { storage } from "./storage";
 import { setupVite, serveStatic, log } from "./vite";
 import { GoogleAuthService } from "./googleAuth";
 
@@ -50,6 +51,12 @@ app.use((req, res, next) => {
 (async () => {
   // Initialize Google Auth Service
   GoogleAuthService.initialize();
+  // Backfill albums/default album for existing songs
+  try {
+    await storage.backfillAlbums();
+  } catch (e) {
+    console.error("Album backfill failed:", e);
+  }
   
   const server = await registerRoutes(app);
 

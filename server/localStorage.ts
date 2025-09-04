@@ -139,6 +139,13 @@ export class LocalStorageService {
     return `/objects/generated/${filename}`;
   }
 
+  // Upload image buffer to local storage
+  async uploadImageBuffer(imageBuffer: Uint8Array, filename: string): Promise<string> {
+    const filePath = path.join(GENERATED_DIR, filename);
+    fs.writeFileSync(filePath, imageBuffer);
+    return `/objects/generated/${filename}`;
+  }
+
   // Download object and stream to response
   async downloadObject(file: any, res: any, cacheTtlSec: number = 3600): Promise<void> {
     try {

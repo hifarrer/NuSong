@@ -24,6 +24,7 @@ import { ObjectStorageService } from "./objectStorage";
 import { LocalStorageService } from "./localStorage";
 import { RenderStorageService } from "./renderStorage";
 import { GCSStorageService } from "./gcsStorage";
+import fetch from 'node-fetch';
 import { z } from "zod";
 import { 
   isAdminAuthenticated, 
@@ -91,6 +92,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Album routes
+  app.get("/api/albums", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      // Ensure default album exists
+      await storage.getOrCreateDefaultAlbum(userId);
+      const albums = await storage.getUserAlbums(userId);
+      res.json(albums);
+    } catch (error) {
+      console.error("Error fetching albums:", error);
+      res.status(500).json({ message: "Failed to fetch albums" });
+    }
+  });
+
+  app.post("/api/albums", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { name, coverUrl } = req.body || {};
+      if (!name || !String(name).trim()) {
+        return res.status(400).json({ message: "Album name is required" });
+      }
+      const album = await storage.createAlbum(userId, { name: String(name).trim(), coverUrl: coverUrl || undefined } as any);
+      res.json(album);
+    } catch (error) {
+      console.error("Error creating album:", error);
+      res.status(500).json({ message: "Failed to create album" });
+    }
+  });
+
+  // Update album (name or coverUrl)
+  app.patch("/api/albums/:id", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const { name, coverUrl } = req.body || {};
+      const album = await storage.getAlbumById(id);
+      if (!album || album.userId !== userId) {
+        return res.status(404).json({ message: "Album not found" });
+      }
+      let finalCoverUrl = coverUrl;
+      if (typeof coverUrl === 'string' && coverUrl.startsWith('/objects/')) {
+        try {
+          const storageService = getStorageService();
+          finalCoverUrl = await storageService.getObjectEntityPublicUrl(coverUrl, 7 * 24 * 3600);
+        } catch (e) {
+          console.error('Failed to sign cover url:', e);
+        }
+      }
+      const updated = await storage.updateAlbum(id, {
+        name: typeof name === 'string' && name.trim() ? String(name).trim() : album.name,
+        coverUrl: typeof finalCoverUrl === 'string' ? finalCoverUrl : album.coverUrl,
+      } as any);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating album:", error);
+      res.status(500).json({ message: "Failed to update album" });
+    }
+  });
+
   // Public contact form endpoint
   app.post('/api/contact', async (req, res) => {
     try {
@@ -120,6 +180,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error normalizing object path:", error);
       res.status(500).json({ message: "Failed to normalize object path" });
+    }
+  });
+
+  // Generate album cover via Wavespeed.ai and store to GCS
+  app.post('/api/albums/:id/generate-cover', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const { prompt } = req.body || {};
+      if (!prompt || !String(prompt).trim()) {
+        return res.status(400).json({ message: 'Prompt is required' });
+      }
+
+      const album = await storage.getAlbumById(id);
+      if (!album || album.userId !== userId) {
+        return res.status(404).json({ message: 'Album not found' });
+      }
+
+      const apiKey = process.env.WAVESPEED_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: 'Wavespeed API key not configured' });
+      }
+
+      // Kick off generation
+      const createResp = await fetch('https://api.wavespeed.ai/api/v3/bytedance/dreamina-v3.1/text-to-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          enable_base64_output: false,
+          enable_prompt_expansion: true,
+          enable_sync_mode: false,
+          prompt: `create an album cover for ${String(prompt)}`,
+          seed: -1,
+          size: '822*822',
+        }),
+      });
+      if (!createResp.ok) {
+        const txt = await createResp.text();
+        return res.status(500).json({ message: 'Failed to start cover generation', detail: txt });
+      }
+      const createData = await createResp.json();
+      const requestId = createData?.data?.id || createData?.id || createData?.requestId;
+      if (!requestId) {
+        return res.status(500).json({ message: 'Invalid Wavespeed response' });
+      }
+
+      // Poll for result (simple short-poll loop up to ~30s)
+      let imageUrl: string | undefined;
+      const maxAttempts = 15;
+      for (let i = 0; i < maxAttempts; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        const statusResp = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${requestId}/result`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+        });
+        if (!statusResp.ok) continue;
+        const statusJson = await statusResp.json();
+        if (statusJson?.code === 200 && statusJson?.data?.status === 'completed' && Array.isArray(statusJson?.data?.outputs) && statusJson.data.outputs.length > 0) {
+          imageUrl = statusJson.data.outputs[0];
+          break;
+        }
+      }
+
+      if (!imageUrl) {
+        return res.status(202).json({ message: 'Generation in progress', requestId });
+      }
+
+      // Download the image and upload to GCS
+      const imgResp = await fetch(imageUrl);
+      if (!imgResp.ok) {
+        return res.status(500).json({ message: 'Failed to download generated image' });
+      }
+      const arrayBuf = await imgResp.arrayBuffer();
+      const buffer = Buffer.from(arrayBuf);
+
+      const storageService = getStorageService();
+      const filename = `album_covers/${id}_${Date.now()}.jpg`;
+
+      let objectPath: string;
+      if ('uploadAudioBuffer' in storageService) {
+        // Reuse upload method, content-type set there (audio), but path is just a key. We implement a small custom path here via GCS/local.
+        // We’ll prefer GCS/local implementations for image upload.
+        if ((storageService as any).uploadImageBuffer) {
+          objectPath = await (storageService as any).uploadImageBuffer(buffer, filename);
+        } else if ((storageService as any).uploadAudioBuffer) {
+          // Fallback to existing method with different path
+          objectPath = await (storageService as any).uploadAudioBuffer(buffer, filename);
+        } else {
+          return res.status(500).json({ message: 'No upload method available' });
+        }
+      } else {
+        return res.status(500).json({ message: 'Storage service not available' });
+      }
+
+      const publicUrl = await storageService.getObjectEntityPublicUrl(objectPath, 24 * 3600);
+      const updated = await storage.updateAlbum(id, { coverUrl: publicUrl } as any);
+      res.json({ album: updated, coverUrl: publicUrl });
+    } catch (error) {
+      console.error('Error generating album cover:', error);
+      res.status(500).json({ message: 'Failed to generate album cover' });
     }
   });
 

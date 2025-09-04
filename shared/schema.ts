@@ -56,10 +56,21 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Albums table
+export const albums = pgTable("albums", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: varchar("name").notNull(),
+  coverUrl: varchar("cover_url"),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Music generation records
 export const musicGenerations = pgTable("music_generations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
+  albumId: varchar("album_id").references(() => albums.id),
   type: varchar("type").notNull().default("text-to-music"), // text-to-music, audio-to-music
   tags: text("tags").notNull(),
   lyrics: text("lyrics"),
@@ -81,6 +92,8 @@ export const musicGenerations = pgTable("music_generations", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type UpsertUser = typeof users.$inferInsert;
+export type Album = typeof albums.$inferSelect;
+export type InsertAlbum = typeof albums.$inferInsert;
 
 export const insertTextToMusicSchema = createInsertSchema(musicGenerations).pick({
   tags: true,
@@ -88,9 +101,11 @@ export const insertTextToMusicSchema = createInsertSchema(musicGenerations).pick
   duration: true,
   visibility: true,
   title: true,
+  albumId: true,
 }).extend({
   type: z.literal("text-to-music").default("text-to-music"),
   visibility: z.enum(["public", "private"]).default("public"),
+  albumId: z.string().optional(),
 });
 
 export const insertAudioToMusicSchema = createInsertSchema(musicGenerations).pick({
@@ -98,11 +113,13 @@ export const insertAudioToMusicSchema = createInsertSchema(musicGenerations).pic
   inputAudioUrl: true,
   visibility: true,
   title: true,
+  albumId: true,
 }).extend({
   type: z.literal("audio-to-music").default("audio-to-music"),
   inputAudioUrl: z.string().min(1, "Audio file URL is required"),
   visibility: z.enum(["public", "private"]).default("public"),
   prompt: z.string().optional(), // Add prompt field for the text description
+  albumId: z.string().optional(),
 });
 
 export const updateMusicGenerationVisibilitySchema = z.object({
@@ -113,6 +130,17 @@ export const updateMusicGenerationVisibilitySchema = z.object({
 export type InsertTextToMusic = z.infer<typeof insertTextToMusicSchema>;
 export type InsertAudioToMusic = z.infer<typeof insertAudioToMusicSchema>;
 export type MusicGeneration = typeof musicGenerations.$inferSelect;
+
+// Album schemas
+export const insertAlbumSchema = createInsertSchema(albums).pick({
+  name: true,
+  coverUrl: true,
+}).extend({
+  name: z.string().min(1, "Album name is required"),
+  coverUrl: z.string().url().optional(),
+});
+
+export type InsertAlbumForm = z.infer<typeof insertAlbumSchema>;
 
 // Admin users table
 export const adminUsers = pgTable("admin_users", {
