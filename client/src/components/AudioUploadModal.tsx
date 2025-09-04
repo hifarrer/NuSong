@@ -76,7 +76,8 @@ export function AudioUploadModal({ isOpen, onClose, onUploadComplete }: AudioUpl
         method: 'PUT',
         body: file,
         headers: {
-          'Content-Type': file.type,
+          // Must match the contentType used when signing the URL on the server
+          'Content-Type': 'application/octet-stream',
         },
       });
 

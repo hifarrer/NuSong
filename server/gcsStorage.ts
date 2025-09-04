@@ -21,7 +21,17 @@ export class GCSStorageService {
       throw new Error("GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is required");
     }
 
-    const credentials = JSON.parse(credentialsJson);
+    let credentials: any;
+    try {
+      credentials = JSON.parse(credentialsJson);
+    } catch (e) {
+      try {
+        const decoded = Buffer.from(credentialsJson, 'base64').toString('utf8');
+        credentials = JSON.parse(decoded);
+      } catch {
+        throw new Error("Invalid GOOGLE_APPLICATION_CREDENTIALS_JSON: must be valid JSON or base64-encoded JSON");
+      }
+    }
     this.bucketName = process.env.GCS_BUCKET_NAME;
     
     if (!this.bucketName) {
