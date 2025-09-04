@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Music, Eye, EyeOff, Lock, CheckCircle, AlertCircle } from "lucide-react";
-import backgroundVideo from "/background-video.mp4";
+import backgroundVideo from "/nusongBG.mp4";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";

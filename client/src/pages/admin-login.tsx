@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Shield, Eye, EyeOff } from "lucide-react";
-import backgroundVideo from "/background-video.mp4";
+import backgroundVideo from "/nusongBG.mp4";
 
 export default function AdminLogin() {
   const [, navigate] = useLocation();

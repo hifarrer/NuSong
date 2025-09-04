@@ -9,7 +9,7 @@ import { Music, Share2, Clock, Tags, User, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { MusicGeneration } from "@shared/schema";
-import backgroundVideo from "/background-video.mp4";
+import backgroundVideo from "/nusongBG.mp4";
 
 export default function TrackPage() {
   const [location] = useLocation();

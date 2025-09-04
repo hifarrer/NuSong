@@ -1241,10 +1241,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`📊 Found ${response.sunoData.length} songs, using the first one`);
         console.log(`📊 Selected song data:`, JSON.stringify(sunoData, null, 2));
         
-        // Update generation with completed status and URLs
+        // Upload to GCS (if configured) and update generation with final URLs
+        let audioUrlToSave = sunoData.audioUrl;
+        try {
+          if (process.env.STORAGE_PROVIDER === 'gcs') {
+            const storageService = getStorageService();
+            const resp = await fetch(sunoData.audioUrl);
+            const arrBuf = await resp.arrayBuffer();
+            const buf = new Uint8Array(arrBuf);
+            const filename = `${generation.id}.mp3`;
+            audioUrlToSave = await storageService.uploadAudioBuffer(buf, filename);
+            console.log(`☁️ Uploaded primary track to GCS: ${audioUrlToSave}`);
+          }
+        } catch (e) {
+          console.error('GCS upload error (primary track), falling back to remote URL:', e);
+        }
+
         await storage.updateMusicGeneration(generation.id, {
           status: "completed",
-          audioUrl: sunoData.audioUrl,
+          audioUrl: audioUrlToSave,
           imageUrl: sunoData.imageUrl,
           title: sunoData.title || generation.title,
         });
@@ -1275,9 +1290,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 type: "text-to-music",
               } as any);
 
+              let altAudioUrlToSave = alt.audioUrl;
+              try {
+                if (process.env.STORAGE_PROVIDER === 'gcs') {
+                  const storageService = getStorageService();
+                  const respAlt = await fetch(alt.audioUrl);
+                  const arrBufAlt = await respAlt.arrayBuffer();
+                  const bufAlt = new Uint8Array(arrBufAlt);
+                  const altFilename = `${altGen.id}.mp3`;
+                  altAudioUrlToSave = await storageService.uploadAudioBuffer(bufAlt, altFilename);
+                  console.log(`☁️ Uploaded alternate track to GCS: ${altAudioUrlToSave}`);
+                }
+              } catch (e) {
+                console.error('GCS upload error (alternate track), falling back to remote URL:', e);
+              }
+
               await storage.updateMusicGeneration(altGen.id, {
                 status: 'completed',
-                audioUrl: alt.audioUrl,
+                audioUrl: altAudioUrlToSave,
                 imageUrl: alt.imageUrl,
                 kieTaskId: generation.kieTaskId,
               });
@@ -1354,10 +1384,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
                console.log(`📊 Manual status check - Found ${response.sunoData.length} songs, using first one`);
                console.log(`📊 Manual status check - Selected song:`, JSON.stringify(sunoData, null, 2));
                
-               // Update generation with completed status
+               // Upload primary to GCS if enabled
+               let manualAudioUrlToSave = sunoData.audioUrl;
+               try {
+                 if (process.env.STORAGE_PROVIDER === 'gcs') {
+                   const storageService = getStorageService();
+                   const resp = await fetch(sunoData.audioUrl);
+                   const arrBuf = await resp.arrayBuffer();
+                   const buf = new Uint8Array(arrBuf);
+                   const filename = `${generation.id}.mp3`;
+                   manualAudioUrlToSave = await storageService.uploadAudioBuffer(buf, filename);
+                   console.log(`☁️ Uploaded primary track (manual check) to GCS: ${manualAudioUrlToSave}`);
+                 }
+               } catch (e) {
+                 console.error('GCS upload error (manual primary), falling back to remote URL:', e);
+               }
+
                await storage.updateMusicGeneration(generation.id, {
                  status: "completed",
-                 audioUrl: sunoData.audioUrl,
+                 audioUrl: manualAudioUrlToSave,
                  imageUrl: sunoData.imageUrl,
                  title: sunoData.title || generation.title,
                });
@@ -1383,9 +1428,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
                        type: "text-to-music",
                      } as any);
 
+                     let manualAltAudioUrlToSave = alt.audioUrl;
+                     try {
+                       if (process.env.STORAGE_PROVIDER === 'gcs') {
+                         const storageService = getStorageService();
+                         const respAlt = await fetch(alt.audioUrl);
+                         const arrBufAlt = await respAlt.arrayBuffer();
+                         const bufAlt = new Uint8Array(arrBufAlt);
+                         const altFilename = `${altGen.id}.mp3`;
+                         manualAltAudioUrlToSave = await storageService.uploadAudioBuffer(bufAlt, altFilename);
+                         console.log(`☁️ Uploaded alternate track (manual check) to GCS: ${manualAltAudioUrlToSave}`);
+                       }
+                     } catch (e) {
+                       console.error('GCS upload error (manual alternate), falling back to remote URL:', e);
+                     }
+
                      await storage.updateMusicGeneration(altGen.id, {
                        status: 'completed',
-                       audioUrl: alt.audioUrl,
+                       audioUrl: manualAltAudioUrlToSave,
                        imageUrl: alt.imageUrl,
                        kieTaskId: generation.kieTaskId,
                      });
