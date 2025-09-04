@@ -444,6 +444,7 @@ export class DatabaseStorage implements IStorage {
         ...data,
         userId,
         type: "audio-to-music",
+        lyrics: (data as any).prompt, // Store prompt in lyrics field for backward compatibility
       })
       .returning();
     return generation;

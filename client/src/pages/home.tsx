@@ -16,6 +16,7 @@ import { AudioPlayer } from "@/components/ui/audio-player";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { LyricsGeneratorModal } from "@/components/LyricsGeneratorModal";
+import { AudioUploadModal } from "@/components/AudioUploadModal";
 import { Header } from "@/components/Header";
 import { 
   Music, 
@@ -37,6 +38,7 @@ import {
   X,
   Trash2,
   Star,
+  MessageSquare,
   ExternalLink
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
@@ -55,7 +57,7 @@ export default function Home() {
   
   // Audio-to-music state
   const [audioTags, setAudioTags] = useState("");
-  const [audioLyrics, setAudioLyrics] = useState("");
+  const [audioPrompt, setAudioPrompt] = useState("");
   const [audioTitle, setAudioTitle] = useState("");
   const [audioVisibility, setAudioVisibility] = useState<"public" | "private">("public");
   const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string>("");
@@ -75,7 +77,10 @@ export default function Home() {
   
   // Lyrics generator modal state
   const [showLyricsModal, setShowLyricsModal] = useState(false);
-  const [currentLyricsTarget, setCurrentLyricsTarget] = useState<'text' | 'audio'>('text');
+  const [currentLyricsTarget, setCurrentLyricsTarget] = useState<'text'>('text');
+  
+  // Audio upload modal state
+  const [showAudioUploadModal, setShowAudioUploadModal] = useState(false);
 
   // Fetch user's music generations
   const { data: generations } = useQuery({
@@ -112,17 +117,22 @@ export default function Home() {
   };
 
   // Lyrics generator handlers
-  const handleOpenLyricsGenerator = (target: 'text' | 'audio') => {
+  const handleOpenLyricsGenerator = (target: 'text') => {
     setCurrentLyricsTarget(target);
     setShowLyricsModal(true);
   };
 
   const handleUseLyrics = (generatedLyrics: string) => {
-    if (currentLyricsTarget === 'text') {
-      setLyrics(generatedLyrics);
-    } else {
-      setAudioLyrics(generatedLyrics);
-    }
+    setLyrics(generatedLyrics);
+  };
+
+  // Audio upload handlers
+  const handleAudioUploadComplete = (audioUrl: string) => {
+    setUploadedAudioUrl(audioUrl);
+    toast({
+      title: "Upload successful",
+      description: "Your audio file has been uploaded successfully!",
+    });
   };
 
   // Shared generation success handler
@@ -294,46 +304,13 @@ export default function Home() {
 
     generateAudioToMusicMutation.mutate({
       tags: audioTags.trim(),
-      lyrics: audioLyrics.trim(),
+      prompt: audioPrompt.trim(),
       inputAudioUrl: uploadedAudioUrl,
       title: audioTitle.trim() || undefined,
       visibility: audioVisibility,
     });
   };
 
-  const handleGetUploadParameters = async () => {
-    const response = await apiRequest("/api/objects/upload", "POST");
-    const data = await response.json();
-    return {
-      method: "PUT" as const,
-      url: data.uploadURL,
-    };
-  };
-
-  const handleUploadComplete = async (result: any) => {
-    if (result.successful && result.successful.length > 0) {
-      const uploadedFile = result.successful[0];
-      // Call backend to convert the upload URL to object path format
-      try {
-        const response = await apiRequest("/api/objects/normalize-path", "POST", { 
-          uploadURL: uploadedFile.uploadURL 
-        });
-        const data = await response.json();
-        setUploadedAudioUrl(data.objectPath);
-        toast({
-          title: "Audio Uploaded!",
-          description: "Your audio file is ready for processing.",
-        });
-      } catch (error) {
-        console.error("Error normalizing upload path:", error);
-        toast({
-          title: "Upload Error",
-          description: "Failed to process uploaded file.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
 
   const handleDownload = async (audioUrl: string) => {
     try {
@@ -749,24 +726,35 @@ export default function Home() {
                           <AudioWaveform className="inline mr-2 h-4 w-4 text-music-accent" />
                           Upload Audio File
                         </label>
-                        <ObjectUploader
-                          maxNumberOfFiles={1}
-                          maxFileSize={50485760} // 50MB
-                          onGetUploadParameters={handleGetUploadParameters}
-                          onComplete={handleUploadComplete}
-                          acceptedFileTypes={['.mp3', '.wav', '.m4a', '.aac', '.ogg']}
-                          buttonClassName="w-full bg-music-dark border-2 border-dashed border-gray-600 hover:border-music-accent text-gray-300 hover:text-white min-h-[120px] rounded-lg transition-all flex items-center justify-center"
+                        
+                        <Button
+                          type="button"
+                          onClick={() => setShowAudioUploadModal(true)}
+                          className="w-full bg-music-dark border-2 border-dashed border-gray-600 hover:border-music-accent text-gray-300 hover:text-white min-h-[120px] rounded-lg transition-all duration-200 hover:scale-[1.02]"
+                          variant="outline"
                         >
                           <div className="flex flex-col items-center justify-center space-y-3 px-4 py-4">
-                            <AudioWaveform className="h-8 w-8 text-music-accent flex-shrink-0" />
+                            <div className="w-16 h-16 bg-music-accent/20 rounded-full flex items-center justify-center">
+                              <AudioWaveform className="h-8 w-8 text-music-accent flex-shrink-0" />
+                            </div>
                             <div className="text-center space-y-1">
-                              <p className="text-base font-semibold">Click to upload audio file</p>
-                              <p className="text-sm text-gray-400">Supports MP3, WAV, M4A, AAC, OGG (max 50MB)</p>
+                              <p className="text-base font-semibold">
+                                {uploadedAudioUrl ? "Change Audio File" : "Upload Audio File"}
+                              </p>
+                              <p className="text-sm text-gray-400">
+                                Drag & drop or click to browse • MP3, WAV, M4A, AAC, OGG (max 50MB)
+                              </p>
                             </div>
                           </div>
-                        </ObjectUploader>
+                        </Button>
+                        
                         {uploadedAudioUrl && (
-                          <p className="text-sm text-music-green mt-2">✓ Audio file uploaded successfully!</p>
+                          <div className="mt-3 p-3 bg-green-900/20 border border-green-700 rounded-lg">
+                            <p className="text-sm text-green-400 flex items-center">
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Audio file uploaded successfully! Ready to transform.
+                            </p>
+                          </div>
                         )}
                       </div>
 
@@ -829,34 +817,21 @@ export default function Home() {
                         />
                       </div>
 
-                      {/* Lyrics Field */}
+                      {/* Prompt Field */}
                       <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <label className="block text-sm font-semibold text-gray-300">
-                            <Mic className="inline mr-2 h-4 w-4 text-music-green" />
-                            Lyrics (Optional)
-                          </label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenLyricsGenerator('audio')}
-                            className="border-music-purple text-music-purple hover:bg-music-purple hover:text-white"
-                            data-testid="button-generate-lyrics-audio"
-                          >
-                            <WandSparkles className="mr-1 h-3 w-3" />
-                            AI Generate
-                          </Button>
-                        </div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-3">
+                          <MessageSquare className="inline mr-2 h-4 w-4 text-music-green" />
+                          Description (Optional)
+                        </label>
                         <Textarea
-                          value={audioLyrics}
-                          onChange={(e) => setAudioLyrics(e.target.value)}
-                          placeholder="[Verse 1]&#10;Add lyrics to overlay on the audio&#10;&#10;[Chorus]&#10;Transform the melody with vocals"
-                          rows={6}
+                          value={audioPrompt}
+                          onChange={(e) => setAudioPrompt(e.target.value)}
+                          placeholder="A calm and relaxing piano track with soft melodies"
+                          rows={3}
                           className="bg-music-dark border-gray-600 text-white placeholder-gray-300 focus:border-music-green resize-none"
-                          data-testid="textarea-audio-lyrics"
+                          data-testid="textarea-audio-prompt"
                         />
-                        <p className="text-xs text-gray-400 mt-2">Add lyrics to be sung over the transformed audio. Leave empty to keep instrumental.</p>
+                        <p className="text-xs text-gray-400 mt-2">Describe the desired result for your audio transformation (e.g., "A calm and relaxing piano track with soft melodies")</p>
                       </div>
 
                       {/* Visibility Selector */}
@@ -1028,11 +1003,11 @@ export default function Home() {
                       </li>
                       <li className="flex items-start">
                         <CheckCircle className="text-music-green mr-3 mt-1 h-4 w-4" />
-                        <span>Specify target genres to guide the transformation style</span>
+                        <span>Specify style tags to guide the transformation direction</span>
                       </li>
                       <li className="flex items-start">
                         <CheckCircle className="text-music-green mr-3 mt-1 h-4 w-4" />
-                        <span>Add lyrics to create a vocal version of instrumental tracks</span>
+                        <span>Add a description to specify the desired musical result</span>
                       </li>
                       <li className="flex items-start">
                         <CheckCircle className="text-music-green mr-3 mt-1 h-4 w-4" />
@@ -1113,6 +1088,13 @@ export default function Home() {
         onClose={() => setShowLyricsModal(false)}
         onUseLyrics={handleUseLyrics}
         duration={currentLyricsTarget === 'text' ? duration[0] : 60}
+      />
+
+      {/* Audio Upload Modal */}
+      <AudioUploadModal
+        isOpen={showAudioUploadModal}
+        onClose={() => setShowAudioUploadModal(false)}
+        onUploadComplete={handleAudioUploadComplete}
       />
     </div>
   );

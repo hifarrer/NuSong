@@ -1,9 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import bcrypt from "bcryptjs";
+import fs from "fs";
+import path from "path";
 import { storage } from "./storage";
 import { pool } from "./db";
 import { setupCustomAuth, requireAuth } from "./customAuth";
+import * as kieService from "./kieService";
 import { 
   insertTextToMusicSchema, 
   insertAudioToMusicSchema, 
@@ -120,6 +123,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Local development upload endpoint
+  app.put("/api/objects/local-upload/:objectId", requireAuth, async (req, res) => {
+    try {
+      if (process.env.NODE_ENV !== "development") {
+        return res.status(403).json({ message: "Local upload only available in development" });
+      }
+
+      const { objectId } = req.params;
+      const storageService = getStorageService();
+      
+      if (!(storageService instanceof LocalStorageService)) {
+        return res.status(400).json({ message: "Local upload only available with LocalStorageService" });
+      }
+
+      // Handle the file upload
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk) => {
+        chunks.push(chunk);
+      });
+
+      req.on('end', () => {
+        try {
+          const buffer = Buffer.concat(chunks);
+          const uploadsDir = path.join(process.cwd(), 'local-storage', 'uploads');
+          
+          // Ensure uploads directory exists
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+          
+          const filePath = path.join(uploadsDir, objectId);
+          fs.writeFileSync(filePath, buffer);
+          
+          console.log(`✅ File uploaded to: ${filePath}`);
+          res.status(200).json({ message: "Upload successful" });
+        } catch (error) {
+          console.error("Error saving file:", error);
+          res.status(500).json({ message: "Failed to save file" });
+        }
+      });
+
+      req.on('error', (error) => {
+        console.error("Upload error:", error);
+        res.status(500).json({ message: "Upload failed" });
+      });
+
+    } catch (error) {
+      console.error("Error handling local upload:", error);
+      res.status(500).json({ message: "Failed to handle upload" });
+    }
+  });
+
   // Text-to-music generation using KIE.ai
   app.post("/api/generate-text-to-music", requireAuth, async (req: any, res) => {
     try {
@@ -159,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.incrementUserGenerationCount(userId);
       
       // Build prompt for KIE.ai
-      const { prompt, style, title } = buildPromptFromTags(validation.tags, validation.lyrics);
+      const { prompt, style, title } = buildPromptFromTags(validation.tags, validation.lyrics || undefined);
       
       // Log the input parameters
       console.log(`\n=== TEXT-TO-MUSIC KIE.AI REQUEST ===`);
@@ -222,11 +277,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Audio-to-music generation
+  // Audio-to-music generation using KIE.ai
   app.post("/api/generate-audio-to-music", requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const validation = insertAudioToMusicSchema.parse(req.body);
+      const validation = insertAudioToMusicSchema.parse(req.body) as any;
       
       // Check if user can generate more music
       const generationCheck = await storage.canUserGenerateMusic(userId);
@@ -253,51 +308,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const publicAudioUrl = await storageService.getObjectEntityPublicUrl(validation.inputAudioUrl, 7200); // 2 hours
       
-      // Prepare API request payload
-      const apiPayload = {
-        audio_url: publicAudioUrl,
-        tags: validation.tags,
-        original_tags: validation.tags, // Copy tags to original_tags as required by FAL.ai
-        lyrics: validation.lyrics || "",
+      // Use KIE.ai for audio-to-music generation
+      const kieParams = {
+        uploadUrl: publicAudioUrl,
+        prompt: validation.prompt || `A ${validation.tags} style track`, // Use provided prompt or generate from tags
+        style: validation.tags,
+        title: validation.title || "Audio Transformation",
+        customMode: true,
+        instrumental: true,
+        model: "V4",
+        negativeTags: "",
+        vocalGender: "",
+        styleWeight: 0.65,
+        weirdnessConstraint: 0.65,
+        audioWeight: 0.65
       };
 
-      // Log the input parameters being sent to FAL.ai
-      console.log(`\n=== AUDIO-TO-MUSIC API REQUEST ===`);
+      console.log(`\n=== AUDIO-TO-MUSIC KIE.AI REQUEST ===`);
       console.log(`User ID: ${userId}`);
       console.log(`Generation ID: ${generation.id}`);
-      console.log(`API Payload being sent to FAL.ai:`);
-      console.log(JSON.stringify(apiPayload, null, 2));
-      console.log(`==================================\n`);
+      console.log(`KIE.ai Parameters:`, JSON.stringify(kieParams, null, 2));
+      console.log(`====================================\n`);
 
-      // Submit request to FAL.ai
-      const falResponse = await fetch("https://queue.fal.run/fal-ai/ace-step/audio-to-audio", {
-        method: "POST",
-        headers: {
-          "Authorization": `Key ${FAL_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(apiPayload)
-      });
+      const kieResult = await kieService.generateAudioToMusic(kieParams);
 
-      if (!falResponse.ok) {
-        const errorText = await falResponse.text();
-        console.error("FAL.ai API error:", errorText);
-        await storage.updateMusicGeneration(generation.id, { status: "failed" });
-        return res.status(500).json({ message: "Failed to submit audio generation request" });
-      }
-
-      const falResult = await falResponse.json();
-      const requestId = falResult.request_id;
-
-      // Update generation with FAL request ID
+      // Update generation with KIE task ID
       await storage.updateMusicGeneration(generation.id, {
         status: "generating",
-        falRequestId: requestId,
+        kieTaskId: kieResult.data.taskId,
       });
 
-      res.json({ generationId: generation.id, requestId });
+      res.json({ generationId: generation.id, taskId: kieResult.data.taskId });
     } catch (error) {
-      console.error("Error generating audio-to-music:", error);
+      console.error("Error generating audio-to-music with KIE.ai:", error);
       res.status(500).json({ message: "Failed to generate audio-to-music" });
     }
   });

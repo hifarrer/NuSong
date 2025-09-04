@@ -21,6 +21,22 @@ export interface KieMusicGenerationParams {
   audioWeight?: number;
 }
 
+export interface KieAudioToMusicParams {
+  uploadUrl: string;
+  prompt: string;
+  style: string;
+  title: string;
+  customMode?: boolean;
+  instrumental?: boolean;
+  model?: string;
+  negativeTags?: string;
+  callBackUrl?: string;
+  vocalGender?: string;
+  styleWeight?: number;
+  weirdnessConstraint?: number;
+  audioWeight?: number;
+}
+
 export interface KieGenerationResponse {
   code: number;
   msg: string;
@@ -183,6 +199,82 @@ export async function checkTaskStatus(taskId: string): Promise<KieTaskStatusResp
       console.error(`❌ Error stack:`, error.stack);
     }
     throw new Error('Failed to check task status with KIE.ai');
+  }
+}
+
+export async function generateAudioToMusic(params: KieAudioToMusicParams): Promise<KieGenerationResponse> {
+  const { 
+    uploadUrl,
+    prompt, 
+    style, 
+    title, 
+    customMode = true,
+    instrumental = true, 
+    model = "V4", 
+    callBackUrl,
+    negativeTags = "",
+    vocalGender = "",
+    styleWeight = 0.65,
+    weirdnessConstraint = 0.65,
+    audioWeight = 0.65
+  } = params;
+  
+  try {
+    const requestBody = {
+      uploadUrl,
+      prompt,
+      style,
+      title,
+      customMode,
+      instrumental,
+      model,
+      negativeTags,
+      callBackUrl,
+      vocalGender,
+      styleWeight,
+      weirdnessConstraint,
+      audioWeight
+    };
+
+    console.log(`\n=== KIE.AI AUDIO-TO-MUSIC GENERATION REQUEST ===`);
+    console.log(`API Base: ${KIE_API_BASE}`);
+    console.log(`API Key: ${KIE_API_KEY ? `${KIE_API_KEY.substring(0, 8)}...` : 'MISSING'}`);
+    console.log(`Request Body:`, JSON.stringify(requestBody, null, 2));
+    console.log(`===============================================\n`);
+
+    const response = await fetch(`${KIE_API_BASE}/generate/upload-cover`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${KIE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('KIE.ai upload-cover API error:', response.status, errorText);
+      throw new Error(`KIE.ai API error: ${response.status} ${errorText}`);
+    }
+
+    const result = await response.json() as any; // Use any for debugging
+    
+    console.log(`📋 KIE.ai upload-cover API Response:`, JSON.stringify(result, null, 2));
+    
+    // Check if response structure is as expected
+    if (!result || !result.data || !result.data.taskId) {
+      console.error('❌ Unexpected KIE.ai response structure:', result);
+      throw new Error(`Invalid KIE.ai response: ${JSON.stringify(result)}`);
+    }
+     
+    console.log(`✅ KIE.ai audio-to-music generation started successfully`);
+    console.log(`Task ID: ${result.data.taskId}`);
+    console.log(`Full response:`, JSON.stringify(result, null, 2));
+     
+    return result as KieGenerationResponse;
+  } catch (error) {
+    console.error('KIE.ai audio-to-music generation error:', error);
+    throw new Error('Failed to generate audio-to-music with KIE.ai');
   }
 }
 

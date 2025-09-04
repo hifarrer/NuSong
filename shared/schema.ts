@@ -95,7 +95,6 @@ export const insertTextToMusicSchema = createInsertSchema(musicGenerations).pick
 
 export const insertAudioToMusicSchema = createInsertSchema(musicGenerations).pick({
   tags: true,
-  lyrics: true,
   inputAudioUrl: true,
   visibility: true,
   title: true,
@@ -103,6 +102,7 @@ export const insertAudioToMusicSchema = createInsertSchema(musicGenerations).pic
   type: z.literal("audio-to-music").default("audio-to-music"),
   inputAudioUrl: z.string().min(1, "Audio file URL is required"),
   visibility: z.enum(["public", "private"]).default("public"),
+  prompt: z.string().optional(), // Add prompt field for the text description
 });
 
 export const updateMusicGenerationVisibilitySchema = z.object({

@@ -38,10 +38,9 @@ export class LocalStorageService {
   // Gets the upload URL for an object entity.
   async getObjectEntityUploadURL(): Promise<string> {
     const objectId = randomUUID();
-    const fullPath = `/local-storage/uploads/${objectId}`;
     
-    // For local development, return a local path
-    return `file://${path.join(UPLOADS_DIR, objectId)}`;
+    // For local development, return a server endpoint that can handle the upload
+    return `http://localhost:5000/api/objects/local-upload/${objectId}`;
   }
 
   // Gets the object entity file from the object path.
@@ -78,6 +77,12 @@ export class LocalStorageService {
       const url = new URL(rawPath);
       const filename = path.basename(url.pathname);
       return `/objects/uploads/${filename}`;
+    }
+    
+    if (rawPath.startsWith("http://localhost:5000/api/objects/local-upload/")) {
+      // Extract the object ID from the local upload URL
+      const objectId = rawPath.split("/").pop();
+      return `/objects/uploads/${objectId}`;
     }
     
     if (!rawPath.startsWith("https://storage.googleapis.com/")) {
