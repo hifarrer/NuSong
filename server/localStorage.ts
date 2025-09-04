@@ -64,7 +64,7 @@ export class LocalStorageService {
 
     return {
       exists: async () => [true],
-      createReadStream: () => fs.createReadStream(filePath),
+      createReadStream: (opts?: any) => fs.createReadStream(filePath, opts || {}),
       getMetadata: async () => [{
         contentType: this.getContentType(filePath),
         size: fs.statSync(filePath).size

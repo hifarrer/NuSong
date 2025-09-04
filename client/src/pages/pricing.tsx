@@ -14,7 +14,7 @@ export default function Pricing() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [billingCycle, setBillingCycle] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   
   const { data: plans = [], isLoading } = useQuery<SubscriptionPlan[]>({
     queryKey: ["/api/plans"],
@@ -22,7 +22,7 @@ export default function Pricing() {
 
   // Stripe checkout mutation
   const checkoutMutation = useMutation({
-    mutationFn: async ({ planId, billingCycle }: { planId: string; billingCycle: 'weekly' | 'monthly' | 'yearly' }) => {
+    mutationFn: async ({ planId, billingCycle }: { planId: string; billingCycle: 'monthly' | 'yearly' }) => {
       const response = await apiRequest("/api/stripe/create-checkout-session", "POST", {
         planId,
         billingCycle,
@@ -53,7 +53,7 @@ export default function Pricing() {
     },
   });
 
-  const handleSubscribe = (planId: string, billingCycle: 'weekly' | 'monthly' | 'yearly') => {
+  const handleSubscribe = (planId: string, billingCycle: 'monthly' | 'yearly') => {
     if (!user) {
       setLocation("/auth");
       return;
@@ -65,9 +65,6 @@ export default function Pricing() {
 
     let hasPriceId = false;
     switch (billingCycle) {
-      case 'weekly':
-        hasPriceId = !!plan.weeklyPriceId;
-        break;
       case 'monthly':
         hasPriceId = !!plan.monthlyPriceId;
         break;
@@ -127,8 +124,6 @@ export default function Pricing() {
   const getPlanPrice = (plan: SubscriptionPlan) => {
     if (plan.name === 'Free') return '0';
     switch (billingCycle) {
-      case 'weekly':
-        return plan.weeklyPrice || '0';
       case 'monthly':
         return plan.monthlyPrice || '0';
       case 'yearly':
@@ -140,8 +135,6 @@ export default function Pricing() {
 
   const getBillingPeriod = () => {
     switch (billingCycle) {
-      case 'weekly':
-        return 'week';
       case 'monthly':
         return 'month';
       case 'yearly':
@@ -160,13 +153,6 @@ export default function Pricing() {
           const monthly = parseFloat(plan.monthlyPrice);
           const yearly = parseFloat(plan.yearlyPrice);
           return Math.round((1 - (yearly / (monthly * 12))) * 100);
-        }
-        break;
-      case 'monthly':
-        if (plan.weeklyPrice && plan.monthlyPrice) {
-          const weekly = parseFloat(plan.weeklyPrice);
-          const monthly = parseFloat(plan.monthlyPrice);
-          return Math.round((1 - (monthly / (weekly * 4))) * 100);
         }
         break;
     }
@@ -205,17 +191,6 @@ export default function Pricing() {
           
           {/* Billing Cycle Buttons */}
           <div className="flex items-center justify-center space-x-2 bg-gray-800/50 rounded-lg p-4 max-w-md mx-auto">
-            <Button
-              variant={billingCycle === 'weekly' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setBillingCycle('weekly')}
-              className={billingCycle === 'weekly' 
-                ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                : 'border-gray-600 text-purple-400 hover:bg-gray-700 hover:text-purple-300'
-              }
-            >
-              Weekly
-            </Button>
             <Button
               variant={billingCycle === 'monthly' ? 'default' : 'outline'}
               size="sm"
@@ -298,7 +273,6 @@ export default function Pricing() {
                     {plan.name !== 'Free' && getSavingsPercentage(plan) > 0 && (
                       <div className="text-sm text-green-400 font-medium">
                         {billingCycle === 'yearly' && 'Save ' + getSavingsPercentage(plan) + '% vs monthly'}
-                        {billingCycle === 'monthly' && 'Save ' + getSavingsPercentage(plan) + '% vs weekly'}
                       </div>
                     )}
                   </div>

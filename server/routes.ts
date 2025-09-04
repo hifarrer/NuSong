@@ -1086,15 +1086,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve generated audio files from storage
+  // Serve generated audio files from storage (supports HTTP Range for seeking)
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
       const storageService = getStorageService();
-      
       const objectFile = await storageService.getObjectEntityFile(req.path);
-      
-      // Stream the file with proper content type
-      await storageService.downloadObject(objectFile, res);
+
+      // Fetch metadata for content-type and total size
+      const [metadata] = await objectFile.getMetadata();
+      const totalSize = Number(metadata.size || 0);
+      const contentType = metadata.contentType || 'application/octet-stream';
+
+      const range = req.headers.range;
+      if (range && totalSize > 0) {
+        // Parse Range: bytes=start-end
+        const match = /bytes=(\d+)-(\d*)/.exec(range);
+        if (match) {
+          const start = parseInt(match[1], 10);
+          const end = match[2] ? Math.min(parseInt(match[2], 10), totalSize - 1) : totalSize - 1;
+          if (start <= end && start < totalSize) {
+            const chunkSize = end - start + 1;
+            res.writeHead(206, {
+              'Content-Range': `bytes ${start}-${end}/${totalSize}`,
+              'Accept-Ranges': 'bytes',
+              'Content-Length': chunkSize,
+              'Content-Type': contentType,
+              'Cache-Control': `public, max-age=3600`,
+            });
+
+            const stream = objectFile.createReadStream({ start, end });
+            stream.on('error', (err: any) => {
+              console.error('Stream error (range):', err);
+              if (!res.headersSent) res.sendStatus(500);
+            });
+            return stream.pipe(res);
+          }
+        }
+        // Invalid range → 416
+        res.status(416).set({
+          'Content-Range': `bytes */${totalSize}`,
+        }).end();
+        return;
+      }
+
+      // No range header: stream entire file
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Content-Length': totalSize || undefined,
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': `public, max-age=3600`,
+      });
+      const stream = objectFile.createReadStream();
+      stream.on('error', (err: any) => {
+        console.error('Stream error (full):', err);
+        if (!res.headersSent) res.sendStatus(500);
+      });
+      stream.pipe(res);
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {
