@@ -331,15 +331,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`KIE.ai Parameters:`, JSON.stringify(kieParams, null, 2));
       console.log(`====================================\n`);
 
-      const kieResult = await kieService.generateAudioToMusic(kieParams);
+      try {
+        const kieResult = await kieService.generateAudioToMusic(kieParams);
 
-      // Update generation with KIE task ID
-      await storage.updateMusicGeneration(generation.id, {
-        status: "generating",
-        kieTaskId: kieResult.data.taskId,
-      });
+        // Update generation with KIE task ID
+        await storage.updateMusicGeneration(generation.id, {
+          status: "generating",
+          kieTaskId: kieResult.data.taskId,
+        });
 
-      res.json({ generationId: generation.id, taskId: kieResult.data.taskId });
+        res.json({ generationId: generation.id, taskId: kieResult.data.taskId });
+      } catch (apiError) {
+        console.error("KIE.ai request failed:", apiError);
+        // Mark generation as failed so client polling stops
+        await storage.updateMusicGeneration(generation.id, { status: "failed" });
+        return res.status(500).json({ message: "KIE.ai generation failed" });
+      }
     } catch (error) {
       console.error("Error generating audio-to-music with KIE.ai:", error);
       res.status(500).json({ message: "Failed to generate audio-to-music" });

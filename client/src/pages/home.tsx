@@ -192,6 +192,7 @@ export default function Home() {
 
   // Shared generation error handler
   const handleGenerationError = (error: any) => {
+    setIsGenerating(false);
     if (isUnauthorizedError(error)) {
       toast({
         title: "Unauthorized",
@@ -217,7 +218,7 @@ export default function Home() {
 
     toast({
       title: "Generation Failed",
-      description: "Failed to start music generation. Please try again.",
+      description: "There was an error generating your music. Please try again.",
       variant: "destructive",
     });
   };
@@ -234,7 +235,7 @@ export default function Home() {
 
   // Audio-to-music generation mutation
   const generateAudioToMusicMutation = useMutation({
-    mutationFn: async (data: { tags: string; lyrics: string; inputAudioUrl: string; title?: string; visibility: "public" | "private" }) => {
+    mutationFn: async (data: { tags: string; prompt: string; inputAudioUrl: string; title?: string; visibility: "public" | "private" }) => {
       const response = await apiRequest("/api/generate-audio-to-music", "POST", data);
       return await response.json();
     },
@@ -263,6 +264,7 @@ export default function Home() {
       return;
     }
 
+    setIsGenerating(true);
     generateTextToMusicMutation.mutate({
       tags: tags.trim(),
       lyrics: lyrics.trim(),
@@ -302,6 +304,7 @@ export default function Home() {
       return;
     }
 
+    setIsGenerating(true);
     generateAudioToMusicMutation.mutate({
       tags: audioTags.trim(),
       prompt: audioPrompt.trim(),
