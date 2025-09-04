@@ -317,6 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customMode: true,
         instrumental: true,
         model: "V4",
+        callBackUrl: process.env.KIE_CALLBACK_URL || "https://example.com/callback",
         negativeTags: "",
         vocalGender: "",
         styleWeight: 0.65,
