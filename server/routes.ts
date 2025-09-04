@@ -336,9 +336,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const { status, response } = statusResponse.data as any;
             if (status === 'SUCCESS' && response?.sunoData && response.sunoData.length > 0) {
               const sunoData = response.sunoData[0];
+              // Try to upload to GCS from status path as well
+              let statusAudioUrlToSave = sunoData.audioUrl;
+              try {
+                if (process.env.STORAGE_PROVIDER === 'gcs') {
+                  console.log('☁️ GCS upload attempt (status primary):', {
+                    provider: process.env.STORAGE_PROVIDER,
+                    bucket: process.env.GCS_BUCKET_NAME || 'NOT SET',
+                    sourceUrl: sunoData.audioUrl,
+                    generationId: id,
+                  });
+                  const storageService = getStorageService();
+                  const resp = await fetch(sunoData.audioUrl);
+                  console.log(`☁️ GCS fetch (status primary) status: ${resp.status}`);
+                  const arrBuf = await resp.arrayBuffer();
+                  console.log(`☁️ GCS fetch (status primary) bytes: ${arrBuf.byteLength}`);
+                  const buf = new Uint8Array(arrBuf);
+                  const filename = `${id}.mp3`;
+                  statusAudioUrlToSave = await storageService.uploadAudioBuffer(buf, filename);
+                  console.log(`☁️ Uploaded primary track (status) to GCS path: ${statusAudioUrlToSave}`);
+                } else {
+                  console.log('☁️ Skipping GCS upload (status primary): STORAGE_PROVIDER is not gcs');
+                }
+              } catch (e) {
+                console.error('GCS upload error (status primary), falling back to remote URL:', e);
+              }
+
               const updated = await storage.updateMusicGeneration(id, {
                 status: 'completed',
-                audioUrl: sunoData.audioUrl,
+                audioUrl: statusAudioUrlToSave,
                 imageUrl: sunoData.imageUrl,
                 title: sunoData.title || generation.title,
               });
