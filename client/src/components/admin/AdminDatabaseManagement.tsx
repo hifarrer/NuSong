@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table as TableComponent, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   Database, 
   Table, 
@@ -15,7 +17,8 @@ import {
   CreditCard,
   Settings,
   BarChart3,
-  Shield
+  Shield,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +66,7 @@ const tableDescriptions: Record<string, string> = {
 export function AdminDatabaseManagement() {
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
+  const [modalTable, setModalTable] = useState<string | null>(null);
 
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery<DatabaseStats>({
     queryKey: ["/api/admin/database/stats"],
@@ -71,6 +75,11 @@ export function AdminDatabaseManagement() {
   const { data: tableData, isLoading: tableLoading, refetch: refetchTable } = useQuery<TableData>({
     queryKey: ["/api/admin/database/table", selectedTable],
     enabled: !!selectedTable,
+  });
+
+  const { data: modalTableData, isLoading: modalTableLoading } = useQuery<TableData>({
+    queryKey: ["/api/admin/database/table", modalTable],
+    enabled: !!modalTable,
   });
 
   const { data: allTables, isLoading: tablesLoading } = useQuery<string[]>({
@@ -263,7 +272,7 @@ export function AdminDatabaseManagement() {
 
                     {isExpanded && (
                       <div className="px-4 pb-4 border-t border-gray-700">
-                        <div className="pt-3">
+                        <div className="pt-3 space-y-2">
                           <Button
                             onClick={() => handleTableSelect(tableName)}
                             variant="outline"
@@ -271,8 +280,102 @@ export function AdminDatabaseManagement() {
                             className="w-full bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
                           >
                             <Eye className="h-4 w-4 mr-2" />
-                            View Table Data
+                            View Schema
                           </Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                onClick={() => setModalTable(tableName)}
+                                variant="outline"
+                                size="sm"
+                                className="w-full bg-purple-600/20 border-purple-500 text-purple-300 hover:bg-purple-600/30"
+                              >
+                                <Table className="h-4 w-4 mr-2" />
+                                View Table Data
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-6xl max-h-[80vh] bg-gray-900 border-gray-700">
+                              <DialogHeader>
+                                <DialogTitle className="text-white flex items-center">
+                                  <Table className="h-5 w-5 mr-2" />
+                                  {tableName} - Table Data
+                                </DialogTitle>
+                              </DialogHeader>
+                              <div className="overflow-auto max-h-[60vh]">
+                                {modalTableLoading ? (
+                                  <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                                    <span className="ml-2 text-gray-400">Loading table data...</span>
+                                  </div>
+                                ) : modalTableData ? (
+                                  <div className="space-y-4">
+                                    {/* Table Info */}
+                                    <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+                                      <div>
+                                        <h3 className="text-lg font-semibold text-white">{modalTableData.tableName}</h3>
+                                        <p className="text-gray-400">
+                                          {modalTableData.rowCount.toLocaleString()} total rows • Showing first 10 rows
+                                        </p>
+                                      </div>
+                                      <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+                                        {modalTableData.columns.length} columns
+                                      </Badge>
+                                    </div>
+
+                                    {/* Table Data */}
+                                    {modalTableData.sampleData.length > 0 ? (
+                                      <div className="border border-gray-700 rounded-lg overflow-hidden">
+                                        <TableComponent>
+                                          <TableHeader>
+                                            <TableRow className="bg-gray-800 border-gray-700">
+                                              {modalTableData.columns.map((column) => (
+                                                <TableHead key={column.column_name} className="text-white font-mono text-xs">
+                                                  <div className="space-y-1">
+                                                    <div className="font-semibold text-white">{column.column_name}</div>
+                                                    <div className="text-gray-300 text-xs">
+                                                      {formatDataType(column.data_type)}
+                                                      {column.is_nullable === 'NO' && (
+                                                        <span className="text-red-400 ml-1">*</span>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                </TableHead>
+                                              ))}
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {modalTableData.sampleData.map((row, index) => (
+                                              <TableRow key={index} className="border-gray-700 hover:bg-gray-800/50">
+                                                {modalTableData.columns.map((column) => {
+                                                  const value = row[column.column_name];
+                                                  return (
+                                                    <TableCell key={column.column_name} className="font-mono text-xs text-white">
+                                                      <div className="max-w-xs truncate text-white" title={String(value)}>
+                                                        {formatValue(value, column.data_type)}
+                                                      </div>
+                                                    </TableCell>
+                                                  );
+                                                })}
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </TableComponent>
+                                      </div>
+                                    ) : (
+                                      <div className="text-center py-8 text-gray-400">
+                                        <Table className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                        <p>No data found in this table</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-8 text-gray-400">
+                                    <p>Failed to load table data</p>
+                                  </div>
+                                )}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       </div>
                     )}

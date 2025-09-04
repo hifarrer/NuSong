@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
+import { pool } from "./db";
 import { setupCustomAuth, requireAuth } from "./customAuth";
 import { 
   insertTextToMusicSchema, 
@@ -1631,35 +1632,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get database statistics
   app.get('/api/admin/database/stats', isAdminAuthenticated, async (req, res) => {
     try {
+      console.log('🔍 Getting database statistics...');
       const client = await pool.connect();
       
       try {
-        // Get all table names
+        // First, let's check what schemas exist
+        const schemasResult = await client.query(`
+          SELECT schema_name 
+          FROM information_schema.schemata 
+          WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
+          ORDER BY schema_name
+        `);
+        console.log('📋 Available schemas:', schemasResult.rows.map((r: any) => r.schema_name));
+        
+        // Get all table names from all schemas (not just public)
         const tablesResult = await client.query(`
-          SELECT table_name 
+          SELECT table_schema, table_name 
           FROM information_schema.tables 
-          WHERE table_schema = 'public' 
+          WHERE table_schema NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
           AND table_type = 'BASE TABLE'
-          ORDER BY table_name
+          ORDER BY table_schema, table_name
         `);
         
-        const tableNames = tablesResult.rows.map(row => row.table_name);
+        console.log('📊 Found tables:', tablesResult.rows);
+        const tableNames = tablesResult.rows.map((row: any) => row.table_name);
         
         // Get row counts for each table
         const tableStats = [];
         let totalRows = 0;
         
-        for (const tableName of tableNames) {
+        for (const row of tablesResult.rows) {
+          const { table_schema, table_name } = row as any;
           try {
-            const countResult = await client.query(`SELECT COUNT(*) as count FROM ${tableName}`);
+            const countResult = await client.query(`SELECT COUNT(*) as count FROM "${table_schema}"."${table_name}"`);
             const rowCount = parseInt(countResult.rows[0].count);
-            tableStats.push({ tableName, rowCount });
+            tableStats.push({ tableName: table_name, rowCount });
             totalRows += rowCount;
+            console.log(`✅ ${table_schema}.${table_name}: ${rowCount} rows`);
           } catch (error) {
-            console.error(`Error counting rows in ${tableName}:`, error);
-            tableStats.push({ tableName, rowCount: 0 });
+            console.error(`❌ Error counting rows in ${table_schema}.${table_name}:`, error);
+            tableStats.push({ tableName: table_name, rowCount: 0 });
           }
         }
+        
+        console.log('📈 Final stats:', { totalTables: tableNames.length, totalRows, tableStats });
         
         res.json({
           totalTables: tableNames.length,
@@ -1670,8 +1686,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         client.release();
       }
     } catch (error) {
-      console.error('Error getting database stats:', error);
-      res.status(500).json({ message: 'Failed to get database statistics' });
+      console.error('❌ Error getting database stats:', error);
+      res.status(500).json({ message: 'Failed to get database statistics', error: (error as Error).message });
     }
   });
 
@@ -1684,12 +1700,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await client.query(`
           SELECT table_name 
           FROM information_schema.tables 
-          WHERE table_schema = 'public' 
+          WHERE table_schema NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
           AND table_type = 'BASE TABLE'
           ORDER BY table_name
         `);
         
-        const tableNames = result.rows.map(row => row.table_name);
+        const tableNames = result.rows.map((row: any) => row.table_name);
         res.json(tableNames);
       } finally {
         client.release();
@@ -1713,6 +1729,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const client = await pool.connect();
       
       try {
+        // First, find which schema the table is in
+        const schemaResult = await client.query(`
+          SELECT table_schema 
+          FROM information_schema.tables 
+          WHERE table_name = $1 
+          AND table_schema NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
+          LIMIT 1
+        `, [tableName]);
+        
+        if (schemaResult.rows.length === 0) {
+          return res.status(404).json({ message: 'Table not found' });
+        }
+        
+        const tableSchema = schemaResult.rows[0].table_schema;
+        
         // Get table columns
         const columnsResult = await client.query(`
           SELECT 
@@ -1722,24 +1753,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             column_default
           FROM information_schema.columns 
           WHERE table_name = $1 
-          AND table_schema = 'public'
+          AND table_schema = $2
           ORDER BY ordinal_position
-        `, [tableName]);
+        `, [tableName, tableSchema]);
         
         // Get sample data (first 10 rows)
         const sampleResult = await client.query(`
-          SELECT * FROM ${tableName} 
+          SELECT * FROM "${tableSchema}"."${tableName}" 
           ORDER BY 
             CASE 
-              WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = 'created_at') 
+              WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND table_schema = $2 AND column_name = 'created_at') 
               THEN 'created_at' 
-              ELSE (SELECT column_name FROM information_schema.columns WHERE table_name = $1 ORDER BY ordinal_position LIMIT 1)
+              ELSE (SELECT column_name FROM information_schema.columns WHERE table_name = $1 AND table_schema = $2 ORDER BY ordinal_position LIMIT 1)
             END DESC
           LIMIT 10
-        `, [tableName]);
+        `, [tableName, tableSchema]);
         
         // Get total row count
-        const countResult = await client.query(`SELECT COUNT(*) as count FROM ${tableName}`);
+        const countResult = await client.query(`SELECT COUNT(*) as count FROM "${tableSchema}"."${tableName}"`);
         const rowCount = parseInt(countResult.rows[0].count);
         
         res.json({
