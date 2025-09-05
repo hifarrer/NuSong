@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Music, Play, Pause, Download, ExternalLink, User, Calendar, ArrowLeft, Disc } from "lucide-react";
+import { Music, Play, Pause, ExternalLink, User, Calendar, ArrowLeft, Disc } from "lucide-react";
 import { createSlug } from "@/lib/urlUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -92,22 +92,6 @@ export default function PublicTrack() {
     setIsPlaying(!isPlaying);
   };
 
-  const handleDownload = async (audioUrl: string, title?: string) => {
-    try {
-      const response = await fetch(audioUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = title ? `${title}.mp3` : 'track.mp3';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -237,15 +221,6 @@ export default function PublicTrack() {
                     <Play className="w-5 h-5 mr-2" />
                   )}
                   {isPlaying ? 'Pause' : 'Play'}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="border-gray-600"
-                  onClick={() => handleDownload(data.track.audioUrl, data.track.title)}
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  Download
                 </Button>
                 <Button
                   variant="outline"

@@ -1209,6 +1209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedGeneration = await storage.updateMusicGeneration(id, {
         visibility: validation.visibility,
         title: validation.title,
+        albumId: validation.albumId,
       });
 
       res.json(updatedGeneration);

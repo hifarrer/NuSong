@@ -17,7 +17,8 @@ import {
   Mail,
   Key,
   ChevronRight,
-  LogOut
+  LogOut,
+  ExternalLink
 } from "lucide-react";
 
 import type { SubscriptionPlan } from "@shared/schema";
@@ -364,9 +365,22 @@ export default function ProfilePage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-300">Username</label>
-                <div className="mt-1 text-white bg-music-dark px-3 py-2 rounded-md border border-gray-600 flex items-center">
-                  <User className="mr-2 h-4 w-4 text-gray-400" />
-                  {(user as any)?.username || 'Not set'}
+                <div className="mt-1 text-white bg-music-dark px-3 py-2 rounded-md border border-gray-600 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <User className="mr-2 h-4 w-4 text-gray-400" />
+                    {(user as any)?.username || 'Not set'}
+                  </div>
+                  {(user as any)?.username && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-music-blue text-music-blue hover:bg-music-blue hover:text-white"
+                      onClick={() => window.open(`/u/${(user as any).username}`, '_blank')}
+                    >
+                      <ExternalLink className="mr-1 h-3 w-3" />
+                      Public Profile
+                    </Button>
+                  )}
                 </div>
               </div>
               <div>

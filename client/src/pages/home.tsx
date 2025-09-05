@@ -1576,6 +1576,43 @@ function TrackCard({ track, user, albums }: { track: MusicGeneration; user: any,
     },
   });
 
+  const updateAlbumMutation = useMutation({
+    mutationFn: async (albumId: string) => {
+      const response = await apiRequest(`/api/generation/${track.id}/visibility`, "PATCH", { 
+        visibility: track.visibility,
+        title: track.title,
+        albumId: albumId
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-generations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/albums"] });
+      toast({
+        title: "Track moved",
+        description: "Track has been moved to the selected album.",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Update failed",
+        description: "Could not move track to album.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest(`/api/generation/${track.id}`, "DELETE");
@@ -1748,6 +1785,29 @@ function TrackCard({ track, user, albums }: { track: MusicGeneration; user: any,
                 <SelectItem value="private" className="text-white hover:bg-gray-700 text-xs">
                   Private  
                 </SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select 
+              value={(track as any).albumId || ""} 
+              onValueChange={(albumId: string) => updateAlbumMutation.mutate(albumId)}
+              disabled={updateAlbumMutation.isPending}
+            >
+              <SelectTrigger className="w-full sm:w-40 bg-music-secondary border-gray-600 text-white text-xs">
+                <SelectValue placeholder="Select album">
+                  {albums.find(a => a.id === (track as any).albumId)?.name || "No album"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-music-dark border-gray-600">
+                {albums.map((album) => (
+                  <SelectItem 
+                    key={album.id} 
+                    value={album.id} 
+                    className="text-white hover:bg-gray-700 text-xs"
+                  >
+                    {album.name}{album.isDefault ? " (Default)" : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             

@@ -139,6 +139,7 @@ export const insertAudioToMusicSchema = createInsertSchema(musicGenerations).pic
 export const updateMusicGenerationVisibilitySchema = z.object({
   visibility: z.enum(["public", "private"]),
   title: z.string().optional(),
+  albumId: z.string().optional(),
 });
 
 export type InsertTextToMusic = z.infer<typeof insertTextToMusicSchema>;
