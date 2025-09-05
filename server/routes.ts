@@ -363,6 +363,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public user profile (no auth required)
+  app.get('/api/profile/:username', async (req: any, res) => {
+    try {
+      const { username } = req.params;
+      
+      const profileData = await storage.getUserPublicProfile(username);
+      if (!profileData) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      res.json({
+        user: {
+          id: profileData.user.id,
+          username: profileData.user.username,
+          firstName: profileData.user.firstName,
+          lastName: profileData.user.lastName,
+          profileImageUrl: profileData.user.profileImageUrl,
+          createdAt: profileData.user.createdAt
+        },
+        albums: profileData.albums.map(album => ({
+          id: album.id,
+          name: album.name,
+          coverUrl: album.coverUrl,
+          createdAt: album.createdAt
+        })),
+        tracks: profileData.tracks.map(track => ({
+          id: track.id,
+          title: track.title,
+          tags: track.tags,
+          lyrics: track.lyrics,
+          audioUrl: track.audioUrl,
+          imageUrl: track.imageUrl,
+          duration: track.duration,
+          type: track.type,
+          createdAt: track.createdAt
+        }))
+      });
+    } catch (error) {
+      console.error('Error getting public profile:', error);
+      res.status(500).json({ message: 'Failed to get public profile' });
+    }
+  });
+
   // Public album view (no auth required)
   app.get('/api/share/:token', async (req: any, res) => {
     try {
@@ -379,6 +422,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Album not found' });
       }
       
+      // Get user details
+      const user = await storage.getUserById(album.userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Album owner not found' });
+      }
+      
       // Get all public tracks in this album
       const tracks = await storage.getMusicGenerationsByAlbumId(shareableLink.albumId);
       const publicTracks = tracks.filter(track => track.visibility === 'public');
@@ -389,6 +438,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: album.name,
           coverUrl: album.coverUrl,
           createdAt: album.createdAt
+        },
+        user: {
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          profileImageUrl: user.profileImageUrl
         },
         tracks: publicTracks.map(track => ({
           id: track.id,

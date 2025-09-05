@@ -29,6 +29,7 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique().notNull(),
+  username: varchar("username").unique(),
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
   passwordHash: varchar("password_hash"), // Made optional for Google OAuth users

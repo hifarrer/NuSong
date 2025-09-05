@@ -58,11 +58,12 @@ app.use((req, res, next) => {
     console.error("Album backfill failed:", e);
   }
   
-  // Create shareable_links table if it doesn't exist
+  // Run database migrations
   try {
-    await storage.createShareableLinksTable();
+    const { runMigrations } = await import('../scripts/deploy-migrations.js');
+    await runMigrations();
   } catch (e) {
-    console.error("Shareable links table creation failed:", e);
+    console.error("Database migrations failed:", e);
   }
   
   const server = await registerRoutes(app);

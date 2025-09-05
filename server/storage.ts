@@ -34,6 +34,8 @@ export interface IStorage {
   getUserById(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserPublicProfile(username: string): Promise<{ user: User; albums: Album[]; tracks: MusicGeneration[] } | undefined>;
   createUser(user: Omit<UpsertUser, 'id'>): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserEmail(userId: string, newEmail: string): Promise<User | undefined>;
@@ -136,6 +138,38 @@ export class DatabaseStorage implements IStorage {
   async getUserByGoogleId(googleId: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.googleId, googleId));
     return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserPublicProfile(username: string): Promise<{ user: User; albums: Album[]; tracks: MusicGeneration[] } | undefined> {
+    const user = await this.getUserByUsername(username);
+    if (!user) {
+      return undefined;
+    }
+
+    // Get all albums for the user
+    const userAlbums = await this.getUserAlbums(user.id);
+
+    // Get all public tracks for the user
+    const userTracks = await db
+      .select()
+      .from(musicGenerations)
+      .where(and(
+        eq(musicGenerations.userId, user.id),
+        eq(musicGenerations.visibility, "public"),
+        eq(musicGenerations.status, "completed")
+      ))
+      .orderBy(desc(musicGenerations.createdAt));
+
+    return {
+      user,
+      albums: userAlbums,
+      tracks: userTracks
+    };
   }
 
   async createUser(userData: Omit<UpsertUser, 'id'>): Promise<User> {

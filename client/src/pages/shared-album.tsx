@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Music, Play, Pause, Volume2, VolumeX, Download, ExternalLink } from "lucide-react";
+import { Music, Play, Pause, Volume2, VolumeX, Download, ExternalLink, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/loading-spinner";
-import { AudioPlayer } from "@/components/ui/audio-player";
+import { ControlledAudioPlayer } from "@/components/ui/controlled-audio-player";
 import { Header } from "@/components/Header";
 
 interface Album {
@@ -12,6 +12,14 @@ interface Album {
   name: string;
   coverUrl?: string;
   createdAt: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl?: string;
 }
 
 interface Track {
@@ -28,6 +36,7 @@ interface Track {
 
 interface SharedAlbumData {
   album: Album;
+  user: User;
   tracks: Track[];
 }
 
@@ -141,6 +150,18 @@ export default function SharedAlbum() {
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
                 {data.album.name}
               </h1>
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                <User className="w-4 h-4 text-gray-400" />
+                <p className="text-gray-400">
+                  by{' '}
+                  <a 
+                    href={`/profile/${data.user.username}`}
+                    className="text-music-blue hover:text-music-blue/80 transition-colors cursor-pointer"
+                  >
+                    {data.user.firstName} {data.user.lastName}
+                  </a>
+                </p>
+              </div>
               <p className="text-gray-400 mb-4">
                 {data.tracks.length} track{data.tracks.length !== 1 ? 's' : ''}
               </p>
@@ -232,7 +253,7 @@ export default function SharedAlbum() {
         {/* Audio Player */}
         {currentTrack && (
           <div className="fixed bottom-0 left-0 right-0 bg-music-secondary border-t border-gray-700 p-4">
-            <AudioPlayer
+            <ControlledAudioPlayer
               src={currentTrack.audioUrl}
               title={currentTrack.title || 'Untitled Track'}
               isPlaying={isPlaying}
