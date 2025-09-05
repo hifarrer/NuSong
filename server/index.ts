@@ -48,6 +48,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Check if running locally (development)
+const isLocal = process.env.NODE_ENV === 'development' || 
+               process.env.NODE_ENV !== 'production' ||
+               !process.env.DATABASE_URL?.includes('render.com');
+
 (async () => {
   // Initialize Google Auth Service
   GoogleAuthService.initialize();
@@ -57,13 +62,19 @@ app.use((req, res, next) => {
     await runMigrations();
   } catch (e) {
     console.error("Database migrations failed:", e);
+    // Don't exit - continue with server startup
   }
   
   // Backfill albums/default album for existing songs (after migrations)
-  try {
-    await storage.backfillAlbums();
-  } catch (e) {
-    console.error("Album backfill failed:", e);
+  if (isLocal) {
+    console.log("🏠 Running locally - skipping album backfill (database not accessible)");
+  } else {
+    try {
+      await storage.backfillAlbums();
+    } catch (e) {
+      console.error("Album backfill failed:", e);
+      // Don't exit - continue with server startup
+    }
   }
   
   const server = await registerRoutes(app);

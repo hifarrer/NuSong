@@ -72,9 +72,23 @@ function getStorageService() {
   }
 }
 
+// Check if running locally (development)
+const isLocal = process.env.NODE_ENV === 'development' || 
+               process.env.NODE_ENV !== 'production' ||
+               !process.env.DATABASE_URL?.includes('render.com');
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default admin user
-  await initializeDefaultAdmin();
+  if (isLocal) {
+    console.log("🏠 Running locally - skipping admin initialization (database not accessible)");
+  } else {
+    try {
+      await initializeDefaultAdmin();
+    } catch (e) {
+      console.error("Admin initialization failed:", e);
+      // Don't exit - continue with server startup
+    }
+  }
   
   // Custom auth setup
   setupCustomAuth(app);

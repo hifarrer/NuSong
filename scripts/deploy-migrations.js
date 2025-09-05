@@ -10,10 +10,31 @@ const pool = new Pool({
 });
 
 async function runMigrations() {
-  const client = await pool.connect();
+  let client;
   
   try {
     console.log('🚀 Starting database migrations...');
+    
+    // Check if we're running locally (development) vs production
+    const isLocal = process.env.NODE_ENV === 'development' || 
+                   process.env.NODE_ENV !== 'production' ||
+                   !process.env.DATABASE_URL?.includes('render.com');
+    
+    if (isLocal) {
+      console.log('🏠 Running locally - skipping migrations (will run on production deployment)');
+      return;
+    }
+    
+    // Test connection first with a timeout
+    console.log('🔌 Testing database connection...');
+    client = await Promise.race([
+      pool.connect(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout')), 10000)
+      )
+    ]);
+    
+    console.log('✅ Database connection successful');
     
     // Migration 1: Add username column to users table
     console.log('📝 Migration 1: Adding username column...');
@@ -80,10 +101,17 @@ async function runMigrations() {
     console.log('🎉 All migrations completed successfully!');
     
   } catch (error) {
+    if (error.message === 'Connection timeout' || error.code === 'ETIMEDOUT') {
+      console.log('⚠️  Database connection timeout - skipping migrations (likely running locally)');
+      console.log('💡 Migrations will run automatically when deployed to production');
+      return; // Don't throw error, just skip migrations
+    }
     console.error('❌ Migration failed:', error);
     throw error;
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 

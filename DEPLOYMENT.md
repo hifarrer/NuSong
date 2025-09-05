@@ -6,9 +6,11 @@ This guide explains how database migrations are automatically handled during dep
 
 The server automatically runs database migrations when it starts up. This happens in the following order:
 
-1. **Album Backfill** - Ensures all users have default albums
-2. **Database Migrations** - Runs all pending migrations
+1. **Database Migrations** - Runs all pending migrations (production only)
+2. **Album Backfill** - Ensures all users have default albums
 3. **Server Routes** - Starts the application
+
+**Note**: Migrations are automatically skipped when running locally to avoid connection timeouts to production databases.
 
 ## Migration Script
 
@@ -48,8 +50,12 @@ node scripts/deploy-migrations.js
 3. **Check Logs**: Look for migration success messages in server logs
 
 ### Expected Log Output:
+
+**Production Deployment:**
 ```
 🚀 Starting database migrations...
+🔌 Testing database connection...
+✅ Database connection successful
 📝 Migration 1: Adding username column...
 ✅ Username column added successfully
 👤 Migration 2: Generating usernames for existing users...
@@ -59,6 +65,14 @@ node scripts/deploy-migrations.js
 🔗 Migration 3: Creating shareable_links table...
 ✅ Shareable links table created successfully
 🎉 All migrations completed successfully!
+```
+
+**Local Development:**
+```
+🚀 Starting database migrations...
+🏠 Running locally - skipping migrations (will run on production deployment)
+🏠 Running locally - skipping album backfill (database not accessible)
+🏠 Running locally - skipping admin initialization (database not accessible)
 ```
 
 ## Error Handling
