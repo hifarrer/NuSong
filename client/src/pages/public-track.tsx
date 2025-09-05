@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ControlledAudioPlayer } from "@/components/ui/controlled-audio-player";
 import { Header } from "@/components/Header";
+import { useToast } from "@/hooks/use-toast";
 
 interface User {
   id: string;
@@ -44,6 +45,7 @@ interface PublicTrackData {
 
 export default function PublicTrack() {
   const [location, navigate] = useLocation();
+  const { toast } = useToast();
   const pathParts = location.split('/');
   const username = pathParts[2]; // /u/username/albumslug/trackid
   const albumSlug = pathParts[3];
@@ -175,12 +177,12 @@ export default function PublicTrack() {
         <div className="max-w-2xl mx-auto">
           <Card className="bg-music-secondary border-gray-700">
             <CardContent className="p-8">
-              {/* Track Image */}
+              {/* Album Cover Image */}
               <div className="w-full aspect-square max-w-md mx-auto rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center mb-6">
-                {data.track.imageUrl ? (
+                {data.album.coverUrl ? (
                   <img 
-                    src={data.track.imageUrl} 
-                    alt={data.track.title || 'Track'} 
+                    src={data.album.coverUrl} 
+                    alt={data.album.name} 
                     className="w-full h-full object-cover" 
                   />
                 ) : (
@@ -249,9 +251,21 @@ export default function PublicTrack() {
                   variant="outline"
                   size="lg"
                   className="border-gray-600"
-                  onClick={() => {
-                    const shareUrl = window.location.href;
-                    navigator.clipboard.writeText(shareUrl);
+                  onClick={async () => {
+                    try {
+                      const shareUrl = window.location.href;
+                      await navigator.clipboard.writeText(shareUrl);
+                      toast({
+                        title: "Link Copied!",
+                        description: "Track link has been copied to your clipboard.",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Share Failed",
+                        description: "Failed to copy link to clipboard.",
+                        variant: "destructive",
+                      });
+                    }
                   }}
                 >
                   <ExternalLink className="w-5 h-5 mr-2" />

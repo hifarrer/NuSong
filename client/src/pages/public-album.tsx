@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Music, Play, Pause, Download, ExternalLink, User, Calendar, ArrowLeft } from "lucide-react";
+import { Music, Play, Pause, Download, ExternalLink, User, Calendar, ArrowLeft, Share2, Eye } from "lucide-react";
 import { createSlug } from "@/lib/urlUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ControlledAudioPlayer } from "@/components/ui/controlled-audio-player";
 import { Header } from "@/components/Header";
+import { useToast } from "@/hooks/use-toast";
 
 interface User {
   id: string;
@@ -44,6 +45,7 @@ interface PublicAlbumData {
 
 export default function PublicAlbum() {
   const [location, navigate] = useLocation();
+  const { toast } = useToast();
   const pathParts = location.split('/');
   const username = pathParts[2]; // /u/username/albumslug
   const albumSlug = pathParts[3];
@@ -116,10 +118,22 @@ export default function PublicAlbum() {
     const shareUrl = `${window.location.origin}/u/${username}/${albumSlug}/${trackId}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
-      // You might want to add a toast notification here
+      toast({
+        title: "Link Copied!",
+        description: "Track link has been copied to your clipboard.",
+      });
     } catch (error) {
       console.error('Error copying track URL:', error);
+      toast({
+        title: "Share Failed",
+        description: "Failed to copy link to clipboard.",
+        variant: "destructive",
+      });
     }
+  };
+
+  const handleOpenTrack = (trackId: string) => {
+    navigate(`/u/${username}/${albumSlug}/${trackId}`);
   };
 
   const formatDate = (dateString: string) => {
@@ -300,9 +314,19 @@ export default function PublicAlbum() {
                         variant="outline"
                         size="sm"
                         className="border-gray-600"
-                        onClick={() => handleShareTrack(track.id)}
+                        onClick={() => handleOpenTrack(track.id)}
+                        title="View Track"
                       >
-                        <ExternalLink className="w-4 h-4" />
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-gray-600"
+                        onClick={() => handleShareTrack(track.id)}
+                        title="Share Track"
+                      >
+                        <Share2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

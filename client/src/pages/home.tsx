@@ -101,6 +101,12 @@ export default function Home() {
   const [albumIdText, setAlbumIdText] = useState<string>("");
   const [albumIdAudio, setAlbumIdAudio] = useState<string>("");
   const [libraryAlbumId, setLibraryAlbumId] = useState<string>("");
+  
+  // Clear share URL when album selection changes
+  const handleLibraryAlbumChange = (albumId: string) => {
+    setLibraryAlbumId(albumId);
+    setShareUrl(""); // Clear cached share URL to force regeneration
+  };
   const [showCreateAlbum, setShowCreateAlbum] = useState(false);
   const [newAlbumName, setNewAlbumName] = useState("");
   const [newAlbumCoverUrl, setNewAlbumCoverUrl] = useState("");
@@ -426,37 +432,34 @@ export default function Home() {
   };
 
   const copyShareLink = async (albumId: string) => {
-    let url = shareUrl;
-    if (!url) {
-      url = await generateShareLink(albumId);
-    }
-    
-    if (url) {
-      try {
-        await navigator.clipboard.writeText(url);
-        toast({ 
-          title: 'Link copied!', 
-          description: 'Share link copied to clipboard.' 
-        });
-      } catch (error) {
-        console.error('Error copying to clipboard:', error);
-        toast({ 
-          title: 'Copy failed', 
-          description: 'Could not copy link to clipboard.', 
-          variant: 'destructive' 
-        });
-      }
+    try {
+      const url = await generateShareLink(albumId);
+      await navigator.clipboard.writeText(url);
+      toast({ 
+        title: 'Link copied!', 
+        description: 'Share link copied to clipboard.' 
+      });
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast({ 
+        title: 'Copy failed', 
+        description: 'Could not copy link to clipboard.', 
+        variant: 'destructive' 
+      });
     }
   };
 
   const openShareLink = async (albumId: string) => {
-    let url = shareUrl;
-    if (!url) {
-      url = await generateShareLink(albumId);
-    }
-    
-    if (url) {
+    try {
+      const url = await generateShareLink(albumId);
       window.open(url, '_blank');
+    } catch (error) {
+      console.error('Error opening share link:', error);
+      toast({ 
+        title: 'Open failed', 
+        description: 'Could not open share link.', 
+        variant: 'destructive' 
+      });
     }
   };
 
@@ -1220,7 +1223,7 @@ export default function Home() {
                   {/* Album Filter */}
                   <div className="mb-4 flex items-center gap-2">
                     <label className="text-sm text-gray-300">Album</label>
-                    <Select value={libraryAlbumId} onValueChange={(val: string) => setLibraryAlbumId(val)}>
+                    <Select value={libraryAlbumId} onValueChange={handleLibraryAlbumChange}>
                       <SelectTrigger className="w-64 bg-music-dark border-gray-600 text-white focus:border-music-blue">
                         <SelectValue placeholder="All albums" />
                       </SelectTrigger>
