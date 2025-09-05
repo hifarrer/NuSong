@@ -408,6 +408,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // KIE API Callback endpoint (temporary)
+  app.post('/api/kie/callback', async (req: any, res) => {
+    try {
+      console.log('KIE Callback received:', JSON.stringify(req.body, null, 2));
+      
+      const { code, msg, data } = req.body;
+      
+      if (code !== 200) {
+        console.error('KIE callback error:', msg);
+        return res.status(400).json({ message: 'KIE callback error', error: msg });
+      }
+      
+      if (!data || !data.data || !Array.isArray(data.data)) {
+        console.error('Invalid KIE callback data structure');
+        return res.status(400).json({ message: 'Invalid callback data structure' });
+      }
+      
+      // Format the data for email
+      const emailData = {
+        callbackType: data.callbackType,
+        taskId: data.task_id,
+        tracks: data.data.map((track: any) => ({
+          id: track.id,
+          audioUrl: track.audio_url,
+          sourceAudioUrl: track.source_audio_url,
+          streamAudioUrl: track.stream_audio_url,
+          sourceStreamAudioUrl: track.source_stream_audio_url,
+          imageUrl: track.image_url,
+          sourceImageUrl: track.source_image_url,
+          prompt: track.prompt,
+          modelName: track.model_name,
+          title: track.title,
+          tags: track.tags,
+          createTime: track.createTime,
+          duration: track.duration
+        }))
+      };
+      
+      // Send email with the data
+      await EmailService.sendKieCallbackEmail(emailData);
+      
+      console.log('KIE callback processed successfully');
+      res.json({ message: 'Callback processed successfully' });
+      
+    } catch (error) {
+      console.error('Error processing KIE callback:', error);
+      res.status(500).json({ message: 'Failed to process callback' });
+    }
+  });
+
   // Local development upload endpoint
   app.put("/api/objects/local-upload/:objectId", requireAuth, async (req, res) => {
     try {

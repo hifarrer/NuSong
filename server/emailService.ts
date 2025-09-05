@@ -341,4 +341,114 @@ This link will expire in 1 hour. If you didn't request a password reset, you can
       throw new Error('Failed to send password reset email');
     }
   }
+
+  static async sendKieCallbackEmail(callbackData: any): Promise<void> {
+    try {
+      const { callbackType, taskId, tracks } = callbackData;
+      
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+          <h2 style="color: #3b82f6;">KIE API Callback Received</h2>
+          
+          <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+            <h3 style="margin: 0 0 8px 0; color: #374151;">Callback Details</h3>
+            <p style="margin: 4px 0;"><strong>Type:</strong> ${callbackType}</p>
+            <p style="margin: 4px 0;"><strong>Task ID:</strong> ${taskId}</p>
+            <p style="margin: 4px 0;"><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+          </div>
+          
+          <h3 style="color: #374151; margin-top: 24px;">Generated Tracks (${tracks.length})</h3>
+          
+          ${tracks.map((track: any, index: number) => `
+            <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0; background: #ffffff;">
+              <h4 style="margin: 0 0 12px 0; color: #1f2937;">Track ${index + 1}: ${track.title || 'Untitled'}</h4>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px;">
+                <div>
+                  <p style="margin: 4px 0; font-size: 14px;"><strong>ID:</strong> ${track.id}</p>
+                  <p style="margin: 4px 0; font-size: 14px;"><strong>Model:</strong> ${track.modelName}</p>
+                  <p style="margin: 4px 0; font-size: 14px;"><strong>Duration:</strong> ${track.duration ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, '0')}` : 'N/A'}</p>
+                  <p style="margin: 4px 0; font-size: 14px;"><strong>Created:</strong> ${track.createTime}</p>
+                </div>
+                <div>
+                  <p style="margin: 4px 0; font-size: 14px;"><strong>Tags:</strong> ${track.tags}</p>
+                </div>
+              </div>
+              
+              <div style="margin: 12px 0;">
+                <p style="margin: 4px 0; font-size: 14px;"><strong>Prompt:</strong></p>
+                <div style="background: #f9fafb; padding: 8px; border-radius: 4px; font-size: 14px; white-space: pre-wrap;">${track.prompt}</div>
+              </div>
+              
+              <div style="margin: 12px 0;">
+                <p style="margin: 4px 0; font-size: 14px;"><strong>Audio URLs:</strong></p>
+                <ul style="margin: 4px 0; padding-left: 20px; font-size: 14px;">
+                  <li><a href="${track.audioUrl}" target="_blank">Audio URL</a></li>
+                  <li><a href="${track.sourceAudioUrl}" target="_blank">Source Audio URL</a></li>
+                  <li><a href="${track.streamAudioUrl}" target="_blank">Stream Audio URL</a></li>
+                  <li><a href="${track.sourceStreamAudioUrl}" target="_blank">Source Stream Audio URL</a></li>
+                </ul>
+              </div>
+              
+              <div style="margin: 12px 0;">
+                <p style="margin: 4px 0; font-size: 14px;"><strong>Image URLs:</strong></p>
+                <ul style="margin: 4px 0; padding-left: 20px; font-size: 14px;">
+                  <li><a href="${track.imageUrl}" target="_blank">Image URL</a></li>
+                  <li><a href="${track.sourceImageUrl}" target="_blank">Source Image URL</a></li>
+                </ul>
+              </div>
+            </div>
+          `).join('')}
+          
+          <div style="margin-top: 24px; padding: 16px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <p style="margin: 0; font-size: 14px; color: #92400e;">
+              <strong>Note:</strong> This is a temporary callback handler. The data above contains all the information received from the KIE API.
+            </p>
+          </div>
+        </div>
+      `;
+      
+      const text = `
+KIE API Callback Received
+
+Callback Details:
+- Type: ${callbackType}
+- Task ID: ${taskId}
+- Timestamp: ${new Date().toISOString()}
+
+Generated Tracks (${tracks.length}):
+
+${tracks.map((track: any, index: number) => `
+Track ${index + 1}: ${track.title || 'Untitled'}
+- ID: ${track.id}
+- Model: ${track.modelName}
+- Duration: ${track.duration ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, '0')}` : 'N/A'}
+- Created: ${track.createTime}
+- Tags: ${track.tags}
+- Prompt: ${track.prompt}
+- Audio URL: ${track.audioUrl}
+- Source Audio URL: ${track.sourceAudioUrl}
+- Stream Audio URL: ${track.streamAudioUrl}
+- Source Stream Audio URL: ${track.sourceStreamAudioUrl}
+- Image URL: ${track.imageUrl}
+- Source Image URL: ${track.sourceImageUrl}
+`).join('\n')}
+
+Note: This is a temporary callback handler. The data above contains all the information received from the KIE API.
+      `;
+
+      await resend.emails.send({
+        from: 'NuSong KIE Callback <contact@notifications.nusong.ai>',
+        to: 'contact@nusong.ai',
+        subject: `[KIE Callback] ${callbackType} - Task ${taskId} - ${tracks.length} track(s)`,
+        html,
+        text,
+      } as any);
+      
+      console.log('KIE callback email sent successfully');
+    } catch (error) {
+      console.error('Failed to send KIE callback email:', error);
+      throw new Error('Failed to send KIE callback email');
+    }
+  }
 }

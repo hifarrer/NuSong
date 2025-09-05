@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation } from "wouter";
 import { Music, Play, Pause, Volume2, VolumeX, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +32,8 @@ interface SharedAlbumData {
 }
 
 export default function SharedAlbum() {
-  const { token } = useParams<{ token: string }>();
+  const [location] = useLocation();
+  const token = location.split('/share/')[1];
   const [data, setData] = useState<SharedAlbumData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
