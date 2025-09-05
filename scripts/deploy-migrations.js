@@ -82,14 +82,14 @@ async function runMigrations() {
     // Migration 2: Generate usernames for existing users
     console.log('👤 Migration 2: Generating usernames for existing users...');
     const result = await client.query(`
-      SELECT id, "firstName", "lastName", email 
+      SELECT id, first_name, last_name, email 
       FROM "users" 
       WHERE "username" IS NULL
     `);
     
     let generatedCount = 0;
     for (const user of result.rows) {
-      const baseUsername = `${user.firstName.toLowerCase()}${user.lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
+      const baseUsername = `${user.first_name.toLowerCase()}${user.last_name.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
       let username = baseUsername;
       let counter = 1;
       
@@ -114,7 +114,7 @@ async function runMigrations() {
       );
       
       generatedCount++;
-      console.log(`  Generated username: ${username} for ${user.firstName} ${user.lastName}`);
+      console.log(`  Generated username: ${username} for ${user.first_name} ${user.last_name}`);
     }
     console.log(`✅ Generated ${generatedCount} usernames`);
     
