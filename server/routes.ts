@@ -185,6 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Generate album cover via Wavespeed.ai and store to GCS
   app.post('/api/albums/:id/generate-cover', requireAuth, async (req: any, res) => {
+    console.log('Generate cover endpoint hit:', { userId: req.user?.id, albumId: req.params.id, prompt: req.body?.prompt });
     try {
       const userId = req.user.id;
       const { id } = req.params;
@@ -292,6 +293,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ album: updated, coverUrl: publicUrl });
     } catch (error) {
       console.error('Error generating album cover:', error);
+      console.error('Error details:', { 
+        message: error.message, 
+        stack: error.stack,
+        userId: req.user?.id,
+        albumId: req.params.id,
+        prompt: req.body?.prompt 
+      });
       res.status(500).json({ message: 'Failed to generate album cover' });
     }
   });
