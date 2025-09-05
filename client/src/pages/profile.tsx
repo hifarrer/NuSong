@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,18 @@ export default function ProfilePage() {
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
+  });
+  const [usernameData, setUsernameData] = useState({
+    newUsername: (user as any)?.username || "",
+  });
+  const [usernameAvailability, setUsernameAvailability] = useState<{
+    checking: boolean;
+    available: boolean | null;
+    message: string;
+  }>({
+    checking: false,
+    available: null,
+    message: "",
   });
 
   // Fetch subscription plans
@@ -133,6 +145,33 @@ export default function ProfilePage() {
     },
   });
 
+  // Update username mutation
+  const updateUsernameMutation = useMutation({
+    mutationFn: async (data: { newUsername: string }) => {
+      const response = await apiRequest("PUT", "/api/user/username", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setUsernameAvailability({
+        checking: false,
+        available: null,
+        message: "",
+      });
+      toast({
+        title: "Username updated successfully",
+        description: "Your username has been changed.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update username",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
 
 
   const handleUpdateEmail = async (e: React.FormEvent) => {
@@ -170,6 +209,95 @@ export default function ProfilePage() {
       currentPassword: passwordData.currentPassword,
       newPassword: passwordData.newPassword,
     });
+  };
+
+  // Debounce timer ref
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Check username availability
+  const checkUsernameAvailability = useCallback(async (username: string) => {
+    if (!username || username === (user as any)?.username) {
+      setUsernameAvailability({
+        checking: false,
+        available: null,
+        message: "",
+      });
+      return;
+    }
+
+    if (username.length < 3 || username.length > 30) {
+      setUsernameAvailability({
+        checking: false,
+        available: false,
+        message: "Username must be between 3 and 30 characters",
+      });
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      setUsernameAvailability({
+        checking: false,
+        available: false,
+        message: "Username can only contain letters, numbers, underscores, and hyphens",
+      });
+      return;
+    }
+
+    setUsernameAvailability({
+      checking: true,
+      available: null,
+      message: "Checking availability...",
+    });
+
+    try {
+      const response = await apiRequest(`/api/user/username/check/${encodeURIComponent(username)}`, 'GET');
+      const data = await response.json();
+      
+      setUsernameAvailability({
+        checking: false,
+        available: data.available,
+        message: data.message,
+      });
+    } catch (error) {
+      setUsernameAvailability({
+        checking: false,
+        available: false,
+        message: "Error checking availability",
+      });
+    }
+  }, [user]);
+
+  // Debounced username check
+  const debouncedCheckUsername = useCallback((username: string) => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(() => {
+      checkUsernameAvailability(username);
+    }, 500);
+  }, [checkUsernameAvailability]);
+
+  const handleUpdateUsername = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (usernameData.newUsername === (user as any)?.username) {
+      toast({
+        title: "No changes made",
+        description: "The username is the same as your current username.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (usernameAvailability.available !== true) {
+      toast({
+        title: "Invalid username",
+        description: "Please choose an available username.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateUsernameMutation.mutate({ newUsername: usernameData.newUsername });
   };
 
   const getCurrentPlan = () => {
@@ -235,12 +363,80 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div>
+                <label className="text-sm font-medium text-gray-300">Username</label>
+                <div className="mt-1 text-white bg-music-dark px-3 py-2 rounded-md border border-gray-600 flex items-center">
+                  <User className="mr-2 h-4 w-4 text-gray-400" />
+                  {(user as any)?.username || 'Not set'}
+                </div>
+              </div>
+              <div>
                 <label className="text-sm font-medium text-gray-300">Current Email</label>
                 <div className="mt-1 text-white bg-music-dark px-3 py-2 rounded-md border border-gray-600 flex items-center">
                   <Mail className="mr-2 h-4 w-4 text-gray-400" />
                   {(user as any)?.email || 'Not set'}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Update Username */}
+          <Card className="bg-music-secondary border-gray-700">
+            <CardHeader>
+              <CardTitle className="flex items-center text-white">
+                <User className="mr-2 h-5 w-5 text-music-accent" />
+                Update Username
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUpdateUsername} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-300">New Username</label>
+                  <div className="mt-1 relative">
+                    <Input
+                      type="text"
+                      value={usernameData.newUsername}
+                      onChange={(e) => {
+                        setUsernameData({ newUsername: e.target.value });
+                        debouncedCheckUsername(e.target.value);
+                      }}
+                      className="bg-music-dark border-gray-600 text-white"
+                      placeholder="Enter new username"
+                      required
+                      minLength={3}
+                      maxLength={30}
+                      pattern="[a-zA-Z0-9_-]+"
+                      data-testid="input-new-username"
+                    />
+                    {usernameAvailability.checking && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-music-blue"></div>
+                      </div>
+                    )}
+                  </div>
+                  {usernameAvailability.message && (
+                    <p className={`mt-1 text-sm ${
+                      usernameAvailability.available === true 
+                        ? 'text-green-400' 
+                        : usernameAvailability.available === false 
+                        ? 'text-red-400' 
+                        : 'text-gray-400'
+                    }`}>
+                      {usernameAvailability.message}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    3-30 characters, letters, numbers, underscores, and hyphens only
+                  </p>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={updateUsernameMutation.isPending || usernameAvailability.available !== true}
+                  className="bg-music-accent hover:bg-music-accent/80"
+                  data-testid="button-update-username"
+                >
+                  {updateUsernameMutation.isPending ? "Updating..." : "Update Username"}
+                </Button>
+              </form>
             </CardContent>
           </Card>
 

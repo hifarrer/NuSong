@@ -420,6 +420,84 @@ export function setupCustomAuth(app: Express) {
     }
   });
 
+  // Check username availability route
+  app.get('/api/user/username/check/:username', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const userId = req.session.userId!;
+      
+      if (!username || typeof username !== 'string') {
+        return res.status(400).json({ message: 'Username is required' });
+      }
+
+      // Basic username validation
+      if (username.length < 3 || username.length > 30) {
+        return res.status(400).json({ message: 'Username must be between 3 and 30 characters' });
+      }
+
+      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        return res.status(400).json({ message: 'Username can only contain letters, numbers, underscores, and hyphens' });
+      }
+
+      // Check if username exists
+      const existingUser = await storage.getUserByUsername(username);
+      
+      // If username exists and it's not the current user's username, it's not available
+      if (existingUser && existingUser.id !== userId) {
+        return res.json({ available: false, message: 'Username is not available' });
+      }
+
+      res.json({ available: true, message: 'Username is available' });
+    } catch (error) {
+      console.error('Check username availability error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Update user username route
+  app.put('/api/user/username', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { newUsername } = req.body;
+      if (!newUsername || typeof newUsername !== 'string') {
+        return res.status(400).json({ message: 'New username is required' });
+      }
+
+      const userId = req.session.userId!;
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Basic username validation
+      if (newUsername.length < 3 || newUsername.length > 30) {
+        return res.status(400).json({ message: 'Username must be between 3 and 30 characters' });
+      }
+
+      if (!/^[a-zA-Z0-9_-]+$/.test(newUsername)) {
+        return res.status(400).json({ message: 'Username can only contain letters, numbers, underscores, and hyphens' });
+      }
+
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(newUsername);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({ message: 'Username is not available' });
+      }
+
+      // Update username
+      const updatedUser = await storage.updateUser(userId, { username: newUsername });
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const { passwordHash: _, ...userWithoutPassword } = updatedUser;
+      res.json({ message: 'Username updated successfully', user: userWithoutPassword });
+    } catch (error) {
+      console.error('Update username error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Update user avatar route
   app.put('/api/user/avatar', requireAuth, async (req: Request, res: Response) => {
     try {

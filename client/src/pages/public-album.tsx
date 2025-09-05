@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Music, Play, Pause, Download, ExternalLink, User, Calendar, ArrowLeft } from "lucide-react";
+import { createSlug } from "@/lib/urlUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/loading-spinner";
@@ -44,8 +45,8 @@ interface PublicAlbumData {
 export default function PublicAlbum() {
   const [location, navigate] = useLocation();
   const pathParts = location.split('/');
-  const username = pathParts[2]; // /u/username/albumid
-  const albumId = pathParts[3];
+  const username = pathParts[2]; // /u/username/albumslug
+  const albumSlug = pathParts[3];
   
   const [data, setData] = useState<PublicAlbumData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,7 @@ export default function PublicAlbum() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-    if (!username || !albumId) {
+    if (!username || !albumSlug) {
       setError("Invalid album URL");
       setLoading(false);
       return;
@@ -62,7 +63,7 @@ export default function PublicAlbum() {
 
     const fetchPublicAlbum = async () => {
       try {
-        const response = await fetch(`/api/u/${username}/${albumId}`);
+        const response = await fetch(`/api/u/${username}/${albumSlug}`);
         if (!response.ok) {
           if (response.status === 404) {
             setError("Album not found");
@@ -83,7 +84,7 @@ export default function PublicAlbum() {
     };
 
     fetchPublicAlbum();
-  }, [username, albumId]);
+  }, [username, albumSlug]);
 
   const handlePlay = (track: Track) => {
     if (currentTrack?.id === track.id) {
@@ -112,7 +113,7 @@ export default function PublicAlbum() {
   };
 
   const handleShareTrack = async (trackId: string) => {
-    const shareUrl = `${window.location.origin}/u/${username}/${albumId}/${trackId}`;
+    const shareUrl = `${window.location.origin}/u/${username}/${albumSlug}/${trackId}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
       // You might want to add a toast notification here
@@ -220,7 +221,7 @@ export default function PublicAlbum() {
                   variant="outline"
                   className="border-gray-600"
                   onClick={() => {
-                    const shareUrl = `${window.location.origin}/u/${username}/${albumId}`;
+                    const shareUrl = `${window.location.origin}/u/${username}/${albumSlug}`;
                     navigator.clipboard.writeText(shareUrl);
                   }}
                 >

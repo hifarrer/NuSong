@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Music, Play, Pause, Download, ExternalLink, User, Calendar, ArrowLeft, Disc } from "lucide-react";
+import { createSlug } from "@/lib/urlUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/loading-spinner";
@@ -44,8 +45,8 @@ interface PublicTrackData {
 export default function PublicTrack() {
   const [location, navigate] = useLocation();
   const pathParts = location.split('/');
-  const username = pathParts[2]; // /u/username/albumid/trackid
-  const albumId = pathParts[3];
+  const username = pathParts[2]; // /u/username/albumslug/trackid
+  const albumSlug = pathParts[3];
   const trackId = pathParts[4];
   
   const [data, setData] = useState<PublicTrackData | null>(null);
@@ -54,7 +55,7 @@ export default function PublicTrack() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-    if (!username || !albumId || !trackId) {
+    if (!username || !albumSlug || !trackId) {
       setError("Invalid track URL");
       setLoading(false);
       return;
@@ -62,7 +63,7 @@ export default function PublicTrack() {
 
     const fetchPublicTrack = async () => {
       try {
-        const response = await fetch(`/api/u/${username}/${albumId}/${trackId}`);
+        const response = await fetch(`/api/u/${username}/${albumSlug}/${trackId}`);
         if (!response.ok) {
           if (response.status === 404) {
             setError("Track not found");
@@ -83,7 +84,7 @@ export default function PublicTrack() {
     };
 
     fetchPublicTrack();
-  }, [username, albumId, trackId]);
+  }, [username, albumSlug, trackId]);
 
   const handlePlay = () => {
     setIsPlaying(!isPlaying);
@@ -162,7 +163,7 @@ export default function PublicTrack() {
           <span className="text-gray-600 self-center">/</span>
           <Button 
             variant="ghost" 
-            onClick={() => navigate(`/u/${username}/${albumId}`)}
+            onClick={() => navigate(`/u/${username}/${albumSlug}`)}
             className="text-gray-400 hover:text-white"
           >
             <Disc className="w-4 h-4 mr-2" />
@@ -204,7 +205,7 @@ export default function PublicTrack() {
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <Disc className="w-4 h-4 text-gray-400" />
                   <button 
-                    onClick={() => navigate(`/u/${username}/${albumId}`)}
+                    onClick={() => navigate(`/u/${username}/${albumSlug}`)}
                     className="text-gray-400 hover:text-white transition-colors cursor-pointer"
                   >
                     {data.album.name}

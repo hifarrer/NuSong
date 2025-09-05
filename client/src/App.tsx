@@ -51,8 +51,8 @@ function Router() {
       <Route path="/track/:id" component={TrackPage} />
       <Route path="/share/:token" component={SharedAlbum} />
       <Route path="/profile/:username" component={PublicProfile} />
-      <Route path="/u/:username/:albumId/:trackId" component={PublicTrack} />
-      <Route path="/u/:username/:albumId" component={PublicAlbum} />
+      <Route path="/u/:username/:albumSlug/:trackId" component={PublicTrack} />
+      <Route path="/u/:username/:albumSlug" component={PublicAlbum} />
       <Route path="/u/:username" component={PublicProfile} />
       
       {/* Main app routes */}

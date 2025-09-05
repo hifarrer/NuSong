@@ -35,6 +35,7 @@ import {
 import { generateLyrics } from "./openaiService";
 import { generateMusic, buildPromptFromTags, checkTaskStatus } from "./kieService";
 import { ObjectNotFoundError } from "./objectStorage";
+import { createSlug } from "./urlUtils";
 import { 
   createCheckoutSession, 
   createCustomerPortalSession, 
@@ -341,8 +342,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Album not found' });
       }
       
-      // Generate new hierarchical share URL as primary
-      const newShareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${id}`;
+      // Generate new hierarchical share URL as primary using album name slug
+      const albumSlug = createSlug(album.name);
+      const newShareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${albumSlug}`;
       
       // Still create token-based link for backwards compatibility
       const shareableLink = await storage.createShareableLink(id, userId);
@@ -374,8 +376,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Album not found' });
       }
       
-      // Generate new hierarchical share URL as primary
-      const newShareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${id}`;
+      // Generate new hierarchical share URL as primary using album name slug
+      const albumSlug = createSlug(album.name);
+      const newShareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${albumSlug}`;
       
       const shareableLink = await storage.getShareableLinkByAlbumId(id);
       if (!shareableLink) {
@@ -428,7 +431,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Track not found' });
       }
       
-      const shareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${track.albumId}/${id}`;
+      // Get album to create slug
+      const album = await storage.getAlbumById(track.albumId);
+      if (!album || !album.name) {
+        return res.status(404).json({ message: 'Album not found' });
+      }
+      const albumSlug = createSlug(album.name);
+      const shareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${albumSlug}/${id}`;
       
       res.json({ shareUrl });
     } catch (error) {
@@ -524,9 +533,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public album view (no auth required)
-  app.get('/api/u/:username/:albumId', async (req: any, res) => {
+  app.get('/api/u/:username/:albumSlug', async (req: any, res) => {
     try {
-      const { username, albumId } = req.params;
+      const { username, albumSlug } = req.params;
       
       // Get user by username
       const user = await storage.getUserByUsername(username);
@@ -534,14 +543,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'User not found' });
       }
       
-      // Get album and verify it belongs to the user
-      const album = await storage.getAlbumById(albumId);
-      if (!album || album.userId !== user.id) {
+      // Get all albums for the user and find the one with matching slug
+      const userAlbums = await storage.getUserAlbums(user.id);
+      const album = userAlbums.find(album => createSlug(album.name) === albumSlug);
+      
+      if (!album) {
         return res.status(404).json({ message: 'Album not found' });
       }
       
       // Get public tracks in the album
-      const tracks = await storage.getMusicGenerationsByAlbumId(albumId);
+      const tracks = await storage.getMusicGenerationsByAlbumId(album.id);
       const publicTracks = tracks.filter(track => 
         track.visibility === 'public' && track.status === 'completed'
       );
@@ -580,9 +591,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public track view (no auth required)
-  app.get('/api/u/:username/:albumId/:trackId', async (req: any, res) => {
+  app.get('/api/u/:username/:albumSlug/:trackId', async (req: any, res) => {
     try {
-      const { username, albumId, trackId } = req.params;
+      const { username, albumSlug, trackId } = req.params;
       
       // Get user by username
       const user = await storage.getUserByUsername(username);
@@ -590,15 +601,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'User not found' });
       }
       
-      // Get album and verify it belongs to the user
-      const album = await storage.getAlbumById(albumId);
-      if (!album || album.userId !== user.id) {
+      // Get all albums for the user and find the one with matching slug
+      const userAlbums = await storage.getUserAlbums(user.id);
+      const album = userAlbums.find(album => createSlug(album.name) === albumSlug);
+      
+      if (!album) {
         return res.status(404).json({ message: 'Album not found' });
       }
       
       // Get track and verify it belongs to the album and user
       const track = await storage.getMusicGeneration(trackId);
-      if (!track || track.userId !== user.id || track.albumId !== albumId) {
+      if (!track || track.userId !== user.id || track.albumId !== album.id) {
         return res.status(404).json({ message: 'Track not found' });
       }
       
