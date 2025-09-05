@@ -55,3 +55,5 @@ If GCS is not configured, it falls back to:
 - Use environment variables in production
 - Consider using IAM roles instead of service account keys for production
 - Set up proper CORS configuration if needed
+
+- ok
