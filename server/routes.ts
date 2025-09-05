@@ -204,20 +204,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Kick off generation
+      const requestBody = {
+        enable_base64_output: false,
+        enable_prompt_expansion: true,
+        enable_sync_mode: false,
+        prompt: `create an album cover for ${String(prompt)}`,
+        seed: -1,
+        size: '822*822',
+      };
+      
+      console.log('Wavespeed request:', {
+        url: 'https://api.wavespeed.ai/api/v3/bytedance/dreamina-v3.1/text-to-image',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey.substring(0, 10)}...`,
+        },
+        body: requestBody,
+      });
+      
       const createResp = await fetch('https://api.wavespeed.ai/api/v3/bytedance/dreamina-v3.1/text-to-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({
-          enable_base64_output: false,
-          enable_prompt_expansion: true,
-          enable_sync_mode: false,
-          prompt: `create an album cover for ${String(prompt)}`,
-          seed: -1,
-          size: '822*822',
-        }),
+        body: JSON.stringify(requestBody),
       });
       if (!createResp.ok) {
         const txt = await createResp.text();
