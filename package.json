@@ -16,7 +16,7 @@
     "db:migrate-weekly": "node scripts/migrate-to-weekly.js",
     "db:migrate-google-oauth": "tsx scripts/migrate-google-oauth.js",
     "db:migrate-albums": "tsx scripts/migrate-albums.js",
-    "db:migrate": "node scripts/deploy-migrations.js",
+    "db:migrate": "node scripts/run-migrations.js",
     "test:gcs": "tsx test-gcs.js"
   },
   "dependencies": {
