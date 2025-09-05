@@ -151,22 +151,21 @@ async function runMigrations() {
   }
 }
 
-async function main() {
-  try {
-    await runMigrations();
+// Only run if this script is executed directly (not when imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  // Run migrations when script is executed directly
+  runMigrations().then(() => {
     console.log('✅ Database deployment completed successfully');
     process.exit(0);
-  } catch (error) {
-    console.error('❌ Database deployment failed:', error);
+  }).catch((error) => {
+    console.error('❌ Migration script failed:', error);
     process.exit(1);
-  } finally {
-    await pool.end();
-  }
-}
-
-// Only run if this script is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+  }).finally(() => {
+    pool.end();
+  });
+} else {
+  // When imported, just export the function without running anything
+  console.log('📦 Migration script imported (not executed directly)');
 }
 
 export { runMigrations };
