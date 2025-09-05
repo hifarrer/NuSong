@@ -51,19 +51,19 @@ app.use((req, res, next) => {
 (async () => {
   // Initialize Google Auth Service
   GoogleAuthService.initialize();
-  // Backfill albums/default album for existing songs
-  try {
-    await storage.backfillAlbums();
-  } catch (e) {
-    console.error("Album backfill failed:", e);
-  }
-  
-  // Run database migrations
+  // Run database migrations first
   try {
     const { runMigrations } = await import('../scripts/deploy-migrations.js');
     await runMigrations();
   } catch (e) {
     console.error("Database migrations failed:", e);
+  }
+  
+  // Backfill albums/default album for existing songs (after migrations)
+  try {
+    await storage.backfillAlbums();
+  } catch (e) {
+    console.error("Album backfill failed:", e);
   }
   
   const server = await registerRoutes(app);

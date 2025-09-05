@@ -79,8 +79,10 @@ If you need to rollback changes:
 
 Ensure these are set in production:
 
-- `DATABASE_URL` - PostgreSQL connection string
+- `DATABASE_URL` - PostgreSQL connection string (with SSL support)
 - All other existing environment variables
+
+**Note**: The system now uses `DATABASE_URL` for database connections with SSL enabled automatically.
 
 ## Monitoring
 
@@ -94,9 +96,11 @@ After deployment, check:
 
 ### Common Issues:
 
-1. **Connection Timeout**: Check `DATABASE_URL` and network access
-2. **Permission Errors**: Ensure database user has CREATE/ALTER permissions
-3. **Duplicate Usernames**: Should be handled automatically
+1. **SSL/TLS Required**: Fixed - SSL is now enabled automatically
+2. **Connection Timeout**: Check `DATABASE_URL` and network access
+3. **Permission Errors**: Ensure database user has CREATE/ALTER permissions
+4. **Duplicate Usernames**: Should be handled automatically
+5. **Column Not Found**: Fixed - migrations now run before album backfill
 
 ### Manual Fixes:
 
