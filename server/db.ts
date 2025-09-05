@@ -2,9 +2,18 @@ import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
+// Debug: Log database configuration
+console.log('🔍 Database configuration:');
+console.log('  DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('  DATABASE_URL preview:', process.env.DATABASE_URL?.substring(0, 50) + '...');
+
+// Clean the DATABASE_URL (remove any extra quotes or whitespace)
+const cleanDatabaseUrl = process.env.DATABASE_URL?.trim().replace(/^["']|["']$/g, '');
+console.log('🔍 Cleaned DATABASE_URL:', cleanDatabaseUrl);
+
 // Use DATABASE_URL for consistency with drizzle config
-const dbConfig = process.env.DATABASE_URL ? {
-  connectionString: process.env.DATABASE_URL,
+const dbConfig = cleanDatabaseUrl ? {
+  connectionString: cleanDatabaseUrl,
   ssl: {
     rejectUnauthorized: false
   }
@@ -19,7 +28,9 @@ const dbConfig = process.env.DATABASE_URL ? {
   }
 };
 
-if (!process.env.DATABASE_URL && (!dbConfig.host || !dbConfig.database || !dbConfig.password)) {
+console.log('🔍 Using dbConfig:', cleanDatabaseUrl ? 'DATABASE_URL' : 'individual env vars');
+
+if (!cleanDatabaseUrl && (!dbConfig.host || !dbConfig.database || !dbConfig.password)) {
   throw new Error(
     "Database configuration incomplete. Please check DATABASE_URL or PGHOST, PGDATABASE, and PGPASSWORD environment variables.",
   );

@@ -2,18 +2,53 @@ import { Pool } from 'pg';
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Debug: Log the DATABASE_URL before creating pool
+console.log('🔍 DATABASE_URL for migrations:', process.env.DATABASE_URL);
+
+// Clean the DATABASE_URL (remove any extra quotes or whitespace)
+const cleanDatabaseUrl = process.env.DATABASE_URL?.trim().replace(/^["']|["']$/g, '');
+console.log('🔍 Cleaned DATABASE_URL:', cleanDatabaseUrl);
+
+// Try to parse the URL to check for issues
+try {
+  const url = new URL(cleanDatabaseUrl);
+  console.log('🔍 Parsed URL components:');
+  console.log('  Protocol:', url.protocol);
+  console.log('  Host:', url.hostname);
+  console.log('  Port:', url.port);
+  console.log('  Database:', url.pathname.substring(1));
+  console.log('  Username:', url.username);
+} catch (e) {
+  console.error('❌ Failed to parse DATABASE_URL:', e);
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: cleanDatabaseUrl,
   ssl: {
     rejectUnauthorized: false
   }
 });
 
+// Prevent duplicate execution
+let isRunning = false;
+
 async function runMigrations() {
+  if (isRunning) {
+    console.log('⚠️  Migrations already running, skipping...');
+    return;
+  }
+  
+  isRunning = true;
   let client;
   
   try {
     console.log('🚀 Starting database migrations...');
+    
+    // Debug: Log environment info
+    console.log('🔍 Environment check:');
+    console.log('  NODE_ENV:', process.env.NODE_ENV);
+    console.log('  DATABASE_URL exists:', !!process.env.DATABASE_URL);
+    console.log('  DATABASE_URL preview:', process.env.DATABASE_URL?.substring(0, 50) + '...');
     
     // Check if we're running locally (development) vs production
     const isLocal = process.env.NODE_ENV === 'development' || 
@@ -112,6 +147,7 @@ async function runMigrations() {
     if (client) {
       client.release();
     }
+    isRunning = false;
   }
 }
 
