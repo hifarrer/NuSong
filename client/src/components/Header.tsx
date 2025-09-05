@@ -41,36 +41,6 @@ export function Header({ currentPage }: HeaderProps) {
             >
               Pricing
             </a>
-            <a 
-              href="/contact" 
-              className={`transition-colors ${
-                currentPage === 'contact' 
-                  ? 'text-music-blue font-medium' 
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Contact
-            </a>
-            <a 
-              href="/privacy" 
-              className={`transition-colors ${
-                currentPage === 'privacy' 
-                  ? 'text-music-blue font-medium' 
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Privacy
-            </a>
-            <a 
-              href="/terms" 
-              className={`transition-colors ${
-                currentPage === 'terms' 
-                  ? 'text-music-blue font-medium' 
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Terms
-            </a>
           </nav>
           
           {/* User Menu */}

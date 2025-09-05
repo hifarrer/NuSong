@@ -199,7 +199,7 @@ export default function PublicAlbum() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black/50 flex items-center justify-center">
+      <div className="bg-black/50 flex items-center justify-center py-20">
         <LoadingSpinner />
       </div>
     );
@@ -207,7 +207,7 @@ export default function PublicAlbum() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-black/50">
+      <div className="bg-black/50">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">

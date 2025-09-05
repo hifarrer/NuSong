@@ -465,14 +465,14 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black/50 flex items-center justify-center">
+      <div className="bg-black/50 flex items-center justify-center py-20">
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen text-white">
+    <div className="text-white">
       {/* Header */}
       <Header currentPage="create" />
 

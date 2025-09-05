@@ -35,7 +35,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen text-white">
+    <div className="text-white">
       <Header currentPage="home" />
 
       {/* Hero Section */}

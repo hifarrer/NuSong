@@ -25,6 +25,7 @@ import PublicProfile from "@/pages/public-profile";
 import PublicAlbum from "@/pages/public-album";
 import PublicTrack from "@/pages/public-track";
 import PlaylistsPage from "@/pages/playlists";
+import { Footer } from "@/components/Footer";
 // Use direct path to video in public folder
 const backgroundVideo = "/nusongBG.mp4";
 
@@ -57,15 +58,25 @@ function Router() {
       <Route path="/u/:username" component={PublicProfile} />
       
       {/* Main app routes */}
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
+      {isLoading ? (
+        // Show loading state for all routes while authentication is loading
+        <Route path="*" component={() => (
+          <div className="min-h-screen bg-music-dark flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-music-blue mx-auto mb-4"></div>
+              <p className="text-gray-400">Loading...</p>
+            </div>
+          </div>
+        )} />
+      ) : isAuthenticated ? (
         <>
           <Route path="/" component={Home} />
           <Route path="/library" component={MyLibrary} />
           <Route path="/playlists" component={PlaylistsPage} />
           <Route path="/profile" component={Profile} />
         </>
+      ) : (
+        <Route path="/" component={Landing} />
       )}
       <Route component={NotFound} />
     </Switch>
@@ -96,9 +107,12 @@ function App() {
         </div>
         
         {/* Content overlay with semi-transparent background for readability */}
-        <div className="relative min-h-screen bg-black/40" style={{ zIndex: 1 }}>
+        <div className="relative min-h-screen bg-black/40 flex flex-col" style={{ zIndex: 1 }}>
           <Toaster />
-          <Router />
+          <div className="flex-1">
+            <Router />
+          </div>
+          <Footer />
         </div>
       </TooltipProvider>
     </QueryClientProvider>
