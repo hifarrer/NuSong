@@ -60,6 +60,7 @@ export interface IStorage {
   getGenerationById(id: string): Promise<MusicGeneration | undefined>;
   findGenerationByKieTaskId(kieTaskId: string): Promise<MusicGeneration | undefined>;
   getUserMusicGenerations(userId: string): Promise<MusicGeneration[]>;
+  getMusicGenerationsByAlbumId(albumId: string): Promise<MusicGeneration[]>;
   getPublicMusicGenerations(): Promise<MusicGeneration[]>;
   getAllMusicGenerationsWithUsers(): Promise<Array<MusicGeneration & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> }>>;
   deleteMusicGeneration(id: string): Promise<void>;
@@ -742,6 +743,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(musicGenerations.userId, userId))
       .orderBy(desc(musicGenerations.createdAt))
       .limit(50);
+  }
+
+  async getMusicGenerationsByAlbumId(albumId: string): Promise<MusicGeneration[]> {
+    return await db
+      .select()
+      .from(musicGenerations)
+      .where(eq(musicGenerations.albumId, albumId))
+      .orderBy(desc(musicGenerations.createdAt));
   }
 
   async getPublicMusicGenerations(): Promise<MusicGeneration[]> {
