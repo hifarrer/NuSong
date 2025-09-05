@@ -42,8 +42,11 @@ interface PublicProfileData {
 }
 
 export default function PublicProfile() {
-  const [location] = useLocation();
-  const username = location.split('/profile/')[1];
+  const [location, navigate] = useLocation();
+  // Support both old /profile/username and new /u/username URLs
+  const username = location.includes('/profile/') 
+    ? location.split('/profile/')[1]
+    : location.split('/u/')[1];
   const [data, setData] = useState<PublicProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -288,7 +291,11 @@ export default function PublicProfile() {
               </div>
             ) : (
               data.albums.map((album) => (
-                <Card key={album.id} className="bg-music-secondary border-gray-700 hover:border-gray-600 transition-colors">
+                <Card 
+                  key={album.id} 
+                  className="bg-music-secondary border-gray-700 hover:border-gray-600 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/u/${username}/${album.id}`)}
+                >
                   <CardContent className="p-4">
                     <div className="aspect-square rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center mb-4">
                       {album.coverUrl ? (

@@ -1,18 +1,11 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Music, Play, Pause, Volume2, VolumeX, Download, ExternalLink, User } from "lucide-react";
+import { Music, Play, Pause, Download, ExternalLink, User, Calendar, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ControlledAudioPlayer } from "@/components/ui/controlled-audio-player";
 import { Header } from "@/components/Header";
-
-interface Album {
-  id: string;
-  name: string;
-  coverUrl?: string;
-  createdAt: string;
-}
 
 interface User {
   id: string;
@@ -20,6 +13,14 @@ interface User {
   firstName: string;
   lastName: string;
   profileImageUrl?: string;
+  createdAt: string;
+}
+
+interface Album {
+  id: string;
+  name: string;
+  coverUrl?: string;
+  createdAt: string;
 }
 
 interface Track {
@@ -34,34 +35,37 @@ interface Track {
   createdAt: string;
 }
 
-interface SharedAlbumData {
-  album: Album;
+interface PublicAlbumData {
   user: User;
+  album: Album;
   tracks: Track[];
 }
 
-export default function SharedAlbum() {
-  const [location] = useLocation();
-  const token = location.split('/share/')[1];
-  const [data, setData] = useState<SharedAlbumData | null>(null);
+export default function PublicAlbum() {
+  const [location, navigate] = useLocation();
+  const pathParts = location.split('/');
+  const username = pathParts[2]; // /u/username/albumid
+  const albumId = pathParts[3];
+  
+  const [data, setData] = useState<PublicAlbumData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      setError("Invalid share link");
+    if (!username || !albumId) {
+      setError("Invalid album URL");
       setLoading(false);
       return;
     }
 
-    const fetchSharedAlbum = async () => {
+    const fetchPublicAlbum = async () => {
       try {
-        const response = await fetch(`/api/share/${token}`);
+        const response = await fetch(`/api/u/${username}/${albumId}`);
         if (!response.ok) {
           if (response.status === 404) {
-            setError("Album not found or link has expired");
+            setError("Album not found");
           } else {
             setError("Failed to load album");
           }
@@ -71,15 +75,15 @@ export default function SharedAlbum() {
         const albumData = await response.json();
         setData(albumData);
       } catch (err) {
-        console.error("Error fetching shared album:", err);
+        console.error("Error fetching public album:", err);
         setError("Failed to load album");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSharedAlbum();
-  }, [token]);
+    fetchPublicAlbum();
+  }, [username, albumId]);
 
   const handlePlay = (track: Track) => {
     if (currentTrack?.id === track.id) {
@@ -107,6 +111,24 @@ export default function SharedAlbum() {
     }
   };
 
+  const handleShareTrack = async (trackId: string) => {
+    const shareUrl = `${window.location.origin}/u/${username}/${albumId}/${trackId}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      // You might want to add a toast notification here
+    } catch (error) {
+      console.error('Error copying track URL:', error);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black/50 flex items-center justify-center">
@@ -124,6 +146,14 @@ export default function SharedAlbum() {
             <Music className="h-16 w-16 text-gray-600 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-white mb-2">Album Not Found</h1>
             <p className="text-gray-400">{error}</p>
+            <Button 
+              variant="outline" 
+              className="mt-4" 
+              onClick={() => navigate(`/u/${username}`)}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Profile
+            </Button>
           </div>
         </div>
       </div>
@@ -134,18 +164,32 @@ export default function SharedAlbum() {
     <div className="min-h-screen bg-black/50">
       <Header />
       <div className="container mx-auto px-4 py-8">
+        {/* Navigation */}
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(`/u/${username}`)}
+            className="text-gray-400 hover:text-white"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to {data.user.firstName} {data.user.lastName}'s Profile
+          </Button>
+        </div>
+
         {/* Album Header */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            {data.album.coverUrl && (
-              <div className="w-32 h-32 md:w-48 md:h-48 rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center">
+            <div className="w-32 h-32 md:w-48 md:h-48 rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center">
+              {data.album.coverUrl ? (
                 <img 
                   src={data.album.coverUrl} 
                   alt={data.album.name} 
                   className="w-full h-full object-cover" 
                 />
-              </div>
-            )}
+              ) : (
+                <Music className="w-12 h-12 text-gray-600" />
+              )}
+            </div>
             <div className="text-center md:text-left">
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
                 {data.album.name}
@@ -154,12 +198,18 @@ export default function SharedAlbum() {
                 <User className="w-4 h-4 text-gray-400" />
                 <p className="text-gray-400">
                   by{' '}
-                  <a 
-                    href={`/u/${data.user.username}`}
+                  <button 
+                    onClick={() => navigate(`/u/${data.user.username}`)}
                     className="text-music-blue hover:text-music-blue/80 transition-colors cursor-pointer"
                   >
                     {data.user.firstName} {data.user.lastName}
-                  </a>
+                  </button>
+                </p>
+              </div>
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                <Calendar className="w-4 h-4 text-gray-400" />
+                <p className="text-gray-400">
+                  Created {formatDate(data.album.createdAt)}
                 </p>
               </div>
               <p className="text-gray-400 mb-4">
@@ -169,7 +219,10 @@ export default function SharedAlbum() {
                 <Button
                   variant="outline"
                   className="border-gray-600"
-                  onClick={() => window.open(window.location.href, '_blank')}
+                  onClick={() => {
+                    const shareUrl = `${window.location.origin}/u/${username}/${albumId}`;
+                    navigator.clipboard.writeText(shareUrl);
+                  }}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Share Album
@@ -241,6 +294,14 @@ export default function SharedAlbum() {
                         onClick={() => handleDownload(track.audioUrl, track.title)}
                       >
                         <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-gray-600"
+                        onClick={() => handleShareTrack(track.id)}
+                      >
+                        <ExternalLink className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

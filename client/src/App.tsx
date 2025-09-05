@@ -22,6 +22,8 @@ import VerifyEmailPage from "@/pages/verify-email";
 import ResetPasswordPage from "@/pages/reset-password";
 import SharedAlbum from "@/pages/shared-album";
 import PublicProfile from "@/pages/public-profile";
+import PublicAlbum from "@/pages/public-album";
+import PublicTrack from "@/pages/public-track";
 // Use direct path to video in public folder
 const backgroundVideo = "/nusongBG.mp4";
 
@@ -49,6 +51,9 @@ function Router() {
       <Route path="/track/:id" component={TrackPage} />
       <Route path="/share/:token" component={SharedAlbum} />
       <Route path="/profile/:username" component={PublicProfile} />
+      <Route path="/u/:username/:albumId/:trackId" component={PublicTrack} />
+      <Route path="/u/:username/:albumId" component={PublicAlbum} />
+      <Route path="/u/:username" component={PublicProfile} />
       
       {/* Main app routes */}
       {isLoading || !isAuthenticated ? (

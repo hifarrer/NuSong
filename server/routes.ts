@@ -333,11 +333,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { id } = req.params;
       
+      // Get user and album details for new hierarchical URL
+      const user = await storage.getUser(userId);
+      const album = await storage.getAlbumById(id);
+      
+      if (!user || !album || album.userId !== userId) {
+        return res.status(404).json({ message: 'Album not found' });
+      }
+      
+      // Generate new hierarchical share URL as primary
+      const newShareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${id}`;
+      
+      // Still create token-based link for backwards compatibility
       const shareableLink = await storage.createShareableLink(id, userId);
-      const shareUrl = `${req.protocol}://${req.get('host')}/share/${shareableLink.token}`;
+      const tokenShareUrl = `${req.protocol}://${req.get('host')}/share/${shareableLink.token}`;
       
       res.json({ 
-        shareUrl,
+        shareUrl: newShareUrl,
+        tokenShareUrl: tokenShareUrl,
         token: shareableLink.token,
         expiresAt: shareableLink.expiresAt 
       });
@@ -353,27 +366,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { id } = req.params;
       
-      // Verify album belongs to user
+      // Get user and album details for new hierarchical URL
+      const user = await storage.getUser(userId);
       const album = await storage.getAlbumById(id);
-      if (!album || album.userId !== userId) {
+      
+      if (!user || !album || album.userId !== userId) {
         return res.status(404).json({ message: 'Album not found' });
       }
+      
+      // Generate new hierarchical share URL as primary
+      const newShareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${id}`;
       
       const shareableLink = await storage.getShareableLinkByAlbumId(id);
       if (!shareableLink) {
         return res.status(404).json({ message: 'No shareable link found' });
       }
       
-      const shareUrl = `${req.protocol}://${req.get('host')}/share/${shareableLink.token}`;
+      const tokenShareUrl = `${req.protocol}://${req.get('host')}/share/${shareableLink.token}`;
       
       res.json({ 
-        shareUrl,
+        shareUrl: newShareUrl,
+        tokenShareUrl: tokenShareUrl,
         token: shareableLink.token,
         expiresAt: shareableLink.expiresAt 
       });
     } catch (error) {
       console.error('Error getting shareable link:', error);
       res.status(500).json({ message: 'Failed to get shareable link' });
+    }
+  });
+
+  // Generate profile share URL
+  app.get('/api/profile/share', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      const shareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}`;
+      
+      res.json({ shareUrl });
+    } catch (error) {
+      console.error('Error getting profile share URL:', error);
+      res.status(500).json({ message: 'Failed to get profile share URL' });
+    }
+  });
+
+  // Generate track share URL
+  app.get('/api/tracks/:id/share', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      
+      const user = await storage.getUser(userId);
+      const track = await storage.getMusicGeneration(id);
+      
+      if (!user || !track || track.userId !== userId) {
+        return res.status(404).json({ message: 'Track not found' });
+      }
+      
+      const shareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${track.albumId}/${id}`;
+      
+      res.json({ shareUrl });
+    } catch (error) {
+      console.error('Error getting track share URL:', error);
+      res.status(500).json({ message: 'Failed to get track share URL' });
     }
   });
 
@@ -417,6 +477,166 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error getting public profile:', error);
       res.status(500).json({ message: 'Failed to get public profile' });
+    }
+  });
+
+  // New hierarchical URL structure - Public user profile (no auth required)
+  app.get('/api/u/:username', async (req: any, res) => {
+    try {
+      const { username } = req.params;
+      
+      const profileData = await storage.getUserPublicProfile(username);
+      if (!profileData) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      res.json({
+        user: {
+          id: profileData.user.id,
+          username: profileData.user.username,
+          firstName: profileData.user.firstName,
+          lastName: profileData.user.lastName,
+          profileImageUrl: profileData.user.profileImageUrl,
+          createdAt: profileData.user.createdAt
+        },
+        albums: profileData.albums.map(album => ({
+          id: album.id,
+          name: album.name,
+          coverUrl: album.coverUrl,
+          createdAt: album.createdAt
+        })),
+        tracks: profileData.tracks.map(track => ({
+          id: track.id,
+          title: track.title,
+          tags: track.tags,
+          lyrics: track.lyrics,
+          audioUrl: track.audioUrl,
+          imageUrl: track.imageUrl,
+          duration: track.duration,
+          type: track.type,
+          createdAt: track.createdAt
+        }))
+      });
+    } catch (error) {
+      console.error('Error getting public profile:', error);
+      res.status(500).json({ message: 'Failed to get public profile' });
+    }
+  });
+
+  // Public album view (no auth required)
+  app.get('/api/u/:username/:albumId', async (req: any, res) => {
+    try {
+      const { username, albumId } = req.params;
+      
+      // Get user by username
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Get album and verify it belongs to the user
+      const album = await storage.getAlbumById(albumId);
+      if (!album || album.userId !== user.id) {
+        return res.status(404).json({ message: 'Album not found' });
+      }
+      
+      // Get public tracks in the album
+      const tracks = await storage.getMusicGenerationsByAlbumId(albumId);
+      const publicTracks = tracks.filter(track => 
+        track.visibility === 'public' && track.status === 'completed'
+      );
+      
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          profileImageUrl: user.profileImageUrl,
+          createdAt: user.createdAt
+        },
+        album: {
+          id: album.id,
+          name: album.name,
+          coverUrl: album.coverUrl,
+          createdAt: album.createdAt
+        },
+        tracks: publicTracks.map(track => ({
+          id: track.id,
+          title: track.title,
+          tags: track.tags,
+          lyrics: track.lyrics,
+          audioUrl: track.audioUrl,
+          imageUrl: track.imageUrl,
+          duration: track.duration,
+          type: track.type,
+          createdAt: track.createdAt
+        }))
+      });
+    } catch (error) {
+      console.error('Error getting public album:', error);
+      res.status(500).json({ message: 'Failed to get public album' });
+    }
+  });
+
+  // Public track view (no auth required)
+  app.get('/api/u/:username/:albumId/:trackId', async (req: any, res) => {
+    try {
+      const { username, albumId, trackId } = req.params;
+      
+      // Get user by username
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Get album and verify it belongs to the user
+      const album = await storage.getAlbumById(albumId);
+      if (!album || album.userId !== user.id) {
+        return res.status(404).json({ message: 'Album not found' });
+      }
+      
+      // Get track and verify it belongs to the album and user
+      const track = await storage.getMusicGeneration(trackId);
+      if (!track || track.userId !== user.id || track.albumId !== albumId) {
+        return res.status(404).json({ message: 'Track not found' });
+      }
+      
+      // Verify track is public
+      if (track.visibility !== 'public' || track.status !== 'completed') {
+        return res.status(404).json({ message: 'Track not found' });
+      }
+      
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          profileImageUrl: user.profileImageUrl,
+          createdAt: user.createdAt
+        },
+        album: {
+          id: album.id,
+          name: album.name,
+          coverUrl: album.coverUrl,
+          createdAt: album.createdAt
+        },
+        track: {
+          id: track.id,
+          title: track.title,
+          tags: track.tags,
+          lyrics: track.lyrics,
+          audioUrl: track.audioUrl,
+          imageUrl: track.imageUrl,
+          duration: track.duration,
+          type: track.type,
+          createdAt: track.createdAt
+        }
+      });
+    } catch (error) {
+      console.error('Error getting public track:', error);
+      res.status(500).json({ message: 'Failed to get public track' });
     }
   });
 
