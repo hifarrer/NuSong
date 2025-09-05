@@ -79,6 +79,7 @@ export interface IStorage {
   getShareableLinkByToken(token: string): Promise<ShareableLink | undefined>;
   getShareableLinkByAlbumId(albumId: string): Promise<ShareableLink | undefined>;
   deactivateShareableLink(token: string): Promise<void>;
+  createShareableLinksTable(): Promise<void>;
   
   // Admin operations
   getAdminUser(id: string): Promise<AdminUser | undefined>;
@@ -685,6 +686,29 @@ export class DatabaseStorage implements IStorage {
       .update(shareableLinks)
       .set({ isActive: false })
       .where(eq(shareableLinks.token, token));
+  }
+
+  async createShareableLinksTable(): Promise<void> {
+    try {
+      // Check if table exists by trying to query it
+      await db.execute(sql`SELECT 1 FROM "shareable_links" LIMIT 1`);
+      console.log('Shareable links table already exists');
+    } catch (error) {
+      // Table doesn't exist, create it
+      console.log('Creating shareable_links table...');
+      await db.execute(sql`
+        CREATE TABLE "shareable_links" (
+          "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+          "token" varchar UNIQUE NOT NULL,
+          "album_id" varchar NOT NULL REFERENCES "albums"("id"),
+          "user_id" varchar NOT NULL REFERENCES "users"("id"),
+          "is_active" boolean NOT NULL DEFAULT true,
+          "expires_at" timestamp,
+          "created_at" timestamp DEFAULT now()
+        )
+      `);
+      console.log('Shareable links table created successfully');
+    }
   }
 
   async getMusicGeneration(id: string): Promise<MusicGeneration | undefined> {

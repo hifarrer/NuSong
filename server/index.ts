@@ -58,6 +58,13 @@ app.use((req, res, next) => {
     console.error("Album backfill failed:", e);
   }
   
+  // Create shareable_links table if it doesn't exist
+  try {
+    await storage.createShareableLinksTable();
+  } catch (e) {
+    console.error("Shareable links table creation failed:", e);
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
