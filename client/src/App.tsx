@@ -20,6 +20,7 @@ import TrackPage from "@/pages/track";
 import CheckEmailPage from "@/pages/check-email";
 import VerifyEmailPage from "@/pages/verify-email";
 import ResetPasswordPage from "@/pages/reset-password";
+import SharedAlbum from "@/pages/shared-album";
 // Use direct path to video in public folder
 const backgroundVideo = "/nusongBG.mp4";
 
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/auth" component={Auth} />
       <Route path="/track/:id" component={TrackPage} />
+      <Route path="/share/:token" component={SharedAlbum} />
       
       {/* Main app routes */}
       {isLoading || !isAuthenticated ? (

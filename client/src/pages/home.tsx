@@ -40,7 +40,9 @@ import {
   Trash2,
   Star,
   MessageSquare,
-  ExternalLink
+  ExternalLink,
+  Share2,
+  Copy
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
@@ -106,6 +108,9 @@ export default function Home() {
   const [editAlbumPrompt, setEditAlbumPrompt] = useState("");
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [generatedCoverUrl, setGeneratedCoverUrl] = useState<string>("");
+  const [shareUrl, setShareUrl] = useState<string>("");
+  const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -385,6 +390,72 @@ export default function Home() {
         description: "Failed to copy link to clipboard.",
         variant: "destructive",
       });
+    }
+  };
+
+  // Share album functionality
+  const generateShareLink = async (albumId: string) => {
+    try {
+      setIsGeneratingShareLink(true);
+      
+      // First try to get existing share link
+      try {
+        const response = await apiRequest(`/api/albums/${albumId}/share`, 'GET');
+        const data = await response.json();
+        setShareUrl(data.shareUrl);
+        return data.shareUrl;
+      } catch (error) {
+        // If no existing link, create a new one
+        const response = await apiRequest(`/api/albums/${albumId}/share`, 'POST');
+        const data = await response.json();
+        setShareUrl(data.shareUrl);
+        return data.shareUrl;
+      }
+    } catch (error) {
+      console.error('Error generating share link:', error);
+      toast({ 
+        title: 'Share failed', 
+        description: 'Could not generate share link.', 
+        variant: 'destructive' 
+      });
+      return null;
+    } finally {
+      setIsGeneratingShareLink(false);
+    }
+  };
+
+  const copyShareLink = async (albumId: string) => {
+    let url = shareUrl;
+    if (!url) {
+      url = await generateShareLink(albumId);
+    }
+    
+    if (url) {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({ 
+          title: 'Link copied!', 
+          description: 'Share link copied to clipboard.' 
+        });
+      } catch (error) {
+        console.error('Error copying to clipboard:', error);
+        toast({ 
+          title: 'Copy failed', 
+          description: 'Could not copy link to clipboard.', 
+          variant: 'destructive' 
+        });
+      }
+    }
+  };
+
+  const openShareLink = async (albumId: string) => {
+    let url = shareUrl;
+    if (!url) {
+      url = await generateShareLink(albumId);
+    }
+    
+    if (url) {
+      window.open(url, '_blank');
     }
   };
 
@@ -1166,7 +1237,37 @@ export default function Home() {
                       setEditAlbumName((current as any)?.name || "");
                       setShowEditAlbum(true);
                     }}>Edit Album</Button>
-                    <Button type="button" variant="outline" className="border-gray-600">Share Album</Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="border-gray-600"
+                        disabled={isGeneratingShareLink || !libraryAlbumId}
+                        onClick={() => copyShareLink(libraryAlbumId)}
+                      >
+                        {isGeneratingShareLink ? (
+                          <>
+                            <LoadingSpinner className="w-4 h-4 mr-2" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy Link
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="border-gray-600"
+                        disabled={isGeneratingShareLink || !libraryAlbumId}
+                        onClick={() => openShareLink(libraryAlbumId)}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Open
+                      </Button>
+                    </div>
                   </div>
                   {!generations || !Array.isArray(generations) || generations.length === 0 ? (
                     <div className="text-center py-8 sm:py-12">
@@ -1260,7 +1361,12 @@ export default function Home() {
       </Dialog>
 
       {/* Edit Album Modal */}
-      <Dialog open={showEditAlbum} onOpenChange={setShowEditAlbum}>
+      <Dialog open={showEditAlbum} onOpenChange={(open) => {
+        setShowEditAlbum(open);
+        if (!open) {
+          setGeneratedCoverUrl('');
+        }
+      }}>
         <DialogContent className="bg-music-secondary border-gray-700 max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-white">Edit Album</DialogTitle>
@@ -1274,7 +1380,7 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Generate Cover</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Describe your ideal cover image</label>
               <Textarea
                 value={editAlbumPrompt}
                 onChange={(e) => setEditAlbumPrompt(e.target.value)}
@@ -1288,8 +1394,10 @@ export default function Home() {
                   onClick={async () => {
                     try {
                       setIsGeneratingCover(true);
+                      setGeneratedCoverUrl('');
                       const resp = await apiRequest(`/api/albums/${libraryAlbumId}/generate-cover`, 'POST', { prompt: editAlbumPrompt.trim() });
                       const data = await resp.json();
+                      setGeneratedCoverUrl(data.coverUrl);
                       toast({ title: 'Cover updated', description: 'Album cover was generated successfully.' });
                       queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
                       setEditAlbumPrompt('');
@@ -1304,6 +1412,16 @@ export default function Home() {
                   {isGeneratingCover ? 'Generating…' : 'Generate Cover'}
                 </Button>
               </div>
+              
+              {/* Show generated image preview */}
+              {generatedCoverUrl && (
+                <div className="mt-4">
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Generated Cover Preview</label>
+                  <div className="w-32 h-32 rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center">
+                    <img src={generatedCoverUrl} alt="Generated cover" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

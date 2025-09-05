@@ -232,15 +232,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         body: JSON.stringify(requestBody),
       });
+      
+      console.log('Wavespeed response status:', createResp.status, createResp.statusText);
+      
       if (!createResp.ok) {
         const txt = await createResp.text();
+        console.error('Wavespeed API error:', { status: createResp.status, statusText: createResp.statusText, body: txt });
         return res.status(500).json({ message: 'Failed to start cover generation', detail: txt });
       }
       const createData = await createResp.json();
+      console.log('Wavespeed create response:', createData);
+      
       const requestId = createData?.data?.id || createData?.id || createData?.requestId;
       if (!requestId) {
+        console.error('No requestId found in Wavespeed response:', createData);
         return res.status(500).json({ message: 'Invalid Wavespeed response' });
       }
+      
+      console.log('Wavespeed requestId:', requestId);
 
       // Poll for result (simple short-poll loop up to ~30s)
       let imageUrl: string | undefined;
@@ -301,6 +310,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
         prompt: req.body?.prompt 
       });
       res.status(500).json({ message: 'Failed to generate album cover' });
+    }
+  });
+
+  // Create shareable link for album
+  app.post('/api/albums/:id/share', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      
+      const shareableLink = await storage.createShareableLink(id, userId);
+      const shareUrl = `${req.protocol}://${req.get('host')}/share/${shareableLink.token}`;
+      
+      res.json({ 
+        shareUrl,
+        token: shareableLink.token,
+        expiresAt: shareableLink.expiresAt 
+      });
+    } catch (error) {
+      console.error('Error creating shareable link:', error);
+      res.status(500).json({ message: 'Failed to create shareable link' });
+    }
+  });
+
+  // Get existing shareable link for album
+  app.get('/api/albums/:id/share', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      
+      // Verify album belongs to user
+      const album = await storage.getAlbumById(id);
+      if (!album || album.userId !== userId) {
+        return res.status(404).json({ message: 'Album not found' });
+      }
+      
+      const shareableLink = await storage.getShareableLinkByAlbumId(id);
+      if (!shareableLink) {
+        return res.status(404).json({ message: 'No shareable link found' });
+      }
+      
+      const shareUrl = `${req.protocol}://${req.get('host')}/share/${shareableLink.token}`;
+      
+      res.json({ 
+        shareUrl,
+        token: shareableLink.token,
+        expiresAt: shareableLink.expiresAt 
+      });
+    } catch (error) {
+      console.error('Error getting shareable link:', error);
+      res.status(500).json({ message: 'Failed to get shareable link' });
+    }
+  });
+
+  // Public album view (no auth required)
+  app.get('/api/share/:token', async (req: any, res) => {
+    try {
+      const { token } = req.params;
+      
+      const shareableLink = await storage.getShareableLinkByToken(token);
+      if (!shareableLink) {
+        return res.status(404).json({ message: 'Shareable link not found or expired' });
+      }
+      
+      // Get album details
+      const album = await storage.getAlbumById(shareableLink.albumId);
+      if (!album) {
+        return res.status(404).json({ message: 'Album not found' });
+      }
+      
+      // Get all public tracks in this album
+      const tracks = await storage.getMusicGenerationsByAlbumId(shareableLink.albumId);
+      const publicTracks = tracks.filter(track => track.visibility === 'public');
+      
+      res.json({
+        album: {
+          id: album.id,
+          name: album.name,
+          coverUrl: album.coverUrl,
+          createdAt: album.createdAt
+        },
+        tracks: publicTracks.map(track => ({
+          id: track.id,
+          title: track.title,
+          tags: track.tags,
+          lyrics: track.lyrics,
+          audioUrl: track.audioUrl,
+          imageUrl: track.imageUrl,
+          duration: track.duration,
+          type: track.type,
+          createdAt: track.createdAt
+        }))
+      });
+    } catch (error) {
+      console.error('Error getting shared album:', error);
+      res.status(500).json({ message: 'Failed to get shared album' });
     }
   });
 

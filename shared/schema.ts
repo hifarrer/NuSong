@@ -66,6 +66,17 @@ export const albums = pgTable("albums", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Shareable links table
+export const shareableLinks = pgTable("shareable_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  token: varchar("token").unique().notNull(),
+  albumId: varchar("album_id").notNull().references(() => albums.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  isActive: boolean("is_active").notNull().default(true),
+  expiresAt: timestamp("expires_at"), // Optional expiration
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Music generation records
 export const musicGenerations = pgTable("music_generations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -94,6 +105,8 @@ export type InsertUser = typeof users.$inferInsert;
 export type UpsertUser = typeof users.$inferInsert;
 export type Album = typeof albums.$inferSelect;
 export type InsertAlbum = typeof albums.$inferInsert;
+export type ShareableLink = typeof shareableLinks.$inferSelect;
+export type InsertShareableLink = typeof shareableLinks.$inferInsert;
 
 export const insertTextToMusicSchema = createInsertSchema(musicGenerations).pick({
   tags: true,

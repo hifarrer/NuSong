@@ -20,6 +20,9 @@ import {
   albums,
   type Album,
   type InsertAlbum,
+  shareableLinks,
+  type ShareableLink,
+  type InsertShareableLink,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, count, asc } from "drizzle-orm";
@@ -70,6 +73,12 @@ export interface IStorage {
   updateAlbum(id: string, updates: Partial<Album>): Promise<Album>;
   getAlbumById(id: string): Promise<Album | undefined>;
   backfillAlbums(): Promise<void>;
+  
+  // Shareable links operations
+  createShareableLink(albumId: string, userId: string): Promise<ShareableLink>;
+  getShareableLinkByToken(token: string): Promise<ShareableLink | undefined>;
+  getShareableLinkByAlbumId(albumId: string): Promise<ShareableLink | undefined>;
+  deactivateShareableLink(token: string): Promise<void>;
   
   // Admin operations
   getAdminUser(id: string): Promise<AdminUser | undefined>;
@@ -623,6 +632,59 @@ export class DatabaseStorage implements IStorage {
         .set({ albumId: def.id, updatedAt: new Date() })
         .where(and(eq(musicGenerations.userId, u.id), sql`${musicGenerations.albumId} IS NULL`));
     }
+  }
+
+  // Shareable links implementation
+  async createShareableLink(albumId: string, userId: string): Promise<ShareableLink> {
+    // Generate a unique token
+    const token = crypto.randomUUID().replace(/-/g, '');
+    
+    // Check if album exists and belongs to user
+    const album = await this.getAlbumById(albumId);
+    if (!album || album.userId !== userId) {
+      throw new Error('Album not found or access denied');
+    }
+    
+    // Deactivate any existing shareable link for this album
+    const existingLink = await this.getShareableLinkByAlbumId(albumId);
+    if (existingLink) {
+      await this.deactivateShareableLink(existingLink.token);
+    }
+    
+    const [link] = await db
+      .insert(shareableLinks)
+      .values({
+        token,
+        albumId,
+        userId,
+        isActive: true,
+      })
+      .returning();
+    
+    return link;
+  }
+
+  async getShareableLinkByToken(token: string): Promise<ShareableLink | undefined> {
+    const [link] = await db
+      .select()
+      .from(shareableLinks)
+      .where(and(eq(shareableLinks.token, token), eq(shareableLinks.isActive, true)));
+    return link;
+  }
+
+  async getShareableLinkByAlbumId(albumId: string): Promise<ShareableLink | undefined> {
+    const [link] = await db
+      .select()
+      .from(shareableLinks)
+      .where(and(eq(shareableLinks.albumId, albumId), eq(shareableLinks.isActive, true)));
+    return link;
+  }
+
+  async deactivateShareableLink(token: string): Promise<void> {
+    await db
+      .update(shareableLinks)
+      .set({ isActive: false })
+      .where(eq(shareableLinks.token, token));
   }
 
   async getMusicGeneration(id: string): Promise<MusicGeneration | undefined> {
