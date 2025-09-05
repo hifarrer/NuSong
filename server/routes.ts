@@ -250,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(202).json({ message: 'Generation in progress', requestId });
       }
 
-      // Download the image and upload to GCS
+      // Download the image and upload using the same flow as audio uploader (signed PUT → normalize → sign public)
       const imgResp = await fetch(imageUrl);
       if (!imgResp.ok) {
         return res.status(500).json({ message: 'Failed to download generated image' });
@@ -259,24 +259,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const buffer = Buffer.from(arrayBuf);
 
       const storageService = getStorageService();
-      const filename = `album_covers/${id}_${Date.now()}.jpg`;
-
-      let objectPath: string;
-      if ('uploadAudioBuffer' in storageService) {
-        // Reuse upload method, content-type set there (audio), but path is just a key. We implement a small custom path here via GCS/local.
-        // We’ll prefer GCS/local implementations for image upload.
-        if ((storageService as any).uploadImageBuffer) {
-          objectPath = await (storageService as any).uploadImageBuffer(buffer, filename);
-        } else if ((storageService as any).uploadAudioBuffer) {
-          // Fallback to existing method with different path
-          objectPath = await (storageService as any).uploadAudioBuffer(buffer, filename);
-        } else {
-          return res.status(500).json({ message: 'No upload method available' });
-        }
-      } else {
-        return res.status(500).json({ message: 'Storage service not available' });
+      // 1) Get a signed upload URL
+      const uploadURL = await storageService.getObjectEntityUploadURL();
+      // 2) Upload the image bytes
+      const putResp = await fetch(uploadURL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: buffer,
+      });
+      if (!putResp.ok) {
+        const t = await putResp.text().catch(() => '');
+        console.error('Cover upload failed:', putResp.status, t);
+        return res.status(500).json({ message: 'Failed to upload generated image' });
       }
-
+      // 3) Normalize path
+      const objectPath = storageService.normalizeObjectEntityPath(uploadURL);
+      // 4) Get a public, signed URL
       const publicUrl = await storageService.getObjectEntityPublicUrl(objectPath, 24 * 3600);
       const updated = await storage.updateAlbum(id, { coverUrl: publicUrl } as any);
       res.json({ album: updated, coverUrl: publicUrl });
