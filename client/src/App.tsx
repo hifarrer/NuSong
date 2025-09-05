@@ -24,6 +24,7 @@ import SharedAlbum from "@/pages/shared-album";
 import PublicProfile from "@/pages/public-profile";
 import PublicAlbum from "@/pages/public-album";
 import PublicTrack from "@/pages/public-track";
+import PlaylistsPage from "@/pages/playlists";
 // Use direct path to video in public folder
 const backgroundVideo = "/nusongBG.mp4";
 
@@ -62,6 +63,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/library" component={MyLibrary} />
+          <Route path="/playlists" component={PlaylistsPage} />
           <Route path="/profile" component={Profile} />
         </>
       )}

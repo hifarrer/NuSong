@@ -19,6 +19,8 @@ import {
   insertSiteSettingSchema,
   updateSiteSettingSchema,
   updateUserSchema,
+  insertPlaylistSchema,
+  updatePlaylistSchema,
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { LocalStorageService } from "./localStorage";
@@ -2475,6 +2477,197 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error getting table data:', error);
       res.status(500).json({ message: 'Failed to get table data' });
+    }
+  });
+
+  // ===== PLAYLIST ENDPOINTS =====
+
+  // Create playlist tables (migration endpoint)
+  app.post('/api/admin/create-playlist-tables', isAdminAuthenticated, async (req: any, res) => {
+    try {
+      const client = await pool.connect();
+      
+      try {
+        console.log('Creating playlist tables...');
+        
+        // Create playlists table
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS playlists (
+            id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            name VARCHAR NOT NULL,
+            description TEXT,
+            is_public BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+          );
+        `);
+        
+        // Create playlist_tracks table
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS playlist_tracks (
+            id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+            playlist_id VARCHAR NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+            track_id VARCHAR NOT NULL REFERENCES music_generations(id) ON DELETE CASCADE,
+            added_at TIMESTAMP DEFAULT NOW(),
+            position INTEGER NOT NULL DEFAULT 0
+          );
+        `);
+        
+        // Create indexes for better performance
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_playlists_user_id ON playlists(user_id);
+        `);
+        
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_playlist_tracks_playlist_id ON playlist_tracks(playlist_id);
+        `);
+        
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_playlist_tracks_track_id ON playlist_tracks(track_id);
+        `);
+        
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_playlist_tracks_position ON playlist_tracks(playlist_id, position);
+        `);
+        
+        // Add unique constraint to prevent duplicate tracks in the same playlist
+        await client.query(`
+          ALTER TABLE playlist_tracks 
+          ADD CONSTRAINT IF NOT EXISTS unique_playlist_track 
+          UNIQUE (playlist_id, track_id);
+        `);
+        
+        console.log('✅ Playlist tables created successfully!');
+        res.json({ message: 'Playlist tables created successfully!' });
+        
+      } catch (error) {
+        console.error('❌ Error creating playlist tables:', error);
+        res.status(500).json({ message: 'Failed to create playlist tables', error: error.message });
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('Database connection error:', error);
+      res.status(500).json({ message: 'Database connection failed', error: error.message });
+    }
+  });
+
+  // Get user's playlists
+  app.get('/api/playlists', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const userPlaylists = await storage.getUserPlaylists(userId);
+      res.json(userPlaylists);
+    } catch (error) {
+      console.error('Error fetching playlists:', error);
+      res.status(500).json({ message: 'Failed to fetch playlists' });
+    }
+  });
+
+  // Create new playlist
+  app.post('/api/playlists', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const validation = insertPlaylistSchema.parse(req.body);
+      
+      const playlist = await storage.createPlaylist(userId, validation);
+      res.status(201).json(playlist);
+    } catch (error) {
+      console.error('Error creating playlist:', error);
+      res.status(500).json({ message: 'Failed to create playlist' });
+    }
+  });
+
+  // Update playlist
+  app.patch('/api/playlists/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const validation = updatePlaylistSchema.parse(req.body);
+      
+      const playlist = await storage.updatePlaylist(id, userId, validation);
+      if (!playlist) {
+        return res.status(404).json({ message: 'Playlist not found' });
+      }
+      
+      res.json(playlist);
+    } catch (error) {
+      console.error('Error updating playlist:', error);
+      res.status(500).json({ message: 'Failed to update playlist' });
+    }
+  });
+
+  // Delete playlist
+  app.delete('/api/playlists/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      
+      const success = await storage.deletePlaylist(id, userId);
+      if (!success) {
+        return res.status(404).json({ message: 'Playlist not found' });
+      }
+      
+      res.json({ message: 'Playlist deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting playlist:', error);
+      res.status(500).json({ message: 'Failed to delete playlist' });
+    }
+  });
+
+  // Get playlist tracks
+  app.get('/api/playlists/:id/tracks', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      
+      const tracks = await storage.getPlaylistTracks(id, userId);
+      res.json(tracks);
+    } catch (error) {
+      console.error('Error fetching playlist tracks:', error);
+      res.status(500).json({ message: 'Failed to fetch playlist tracks' });
+    }
+  });
+
+  // Add track to playlist
+  app.post('/api/playlists/:id/tracks', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id: playlistId } = req.params;
+      const { trackId } = req.body;
+      
+      if (!trackId) {
+        return res.status(400).json({ message: 'Track ID is required' });
+      }
+      
+      const success = await storage.addTrackToPlaylist(playlistId, trackId, userId);
+      if (!success) {
+        return res.status(404).json({ message: 'Playlist or track not found' });
+      }
+      
+      res.json({ message: 'Track added to playlist successfully' });
+    } catch (error) {
+      console.error('Error adding track to playlist:', error);
+      res.status(500).json({ message: 'Failed to add track to playlist' });
+    }
+  });
+
+  // Remove track from playlist
+  app.delete('/api/playlists/:playlistId/tracks/:trackId', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { playlistId, trackId } = req.params;
+      
+      const success = await storage.removeTrackFromPlaylist(playlistId, trackId, userId);
+      if (!success) {
+        return res.status(404).json({ message: 'Playlist or track not found' });
+      }
+      
+      res.json({ message: 'Track removed from playlist successfully' });
+    } catch (error) {
+      console.error('Error removing track from playlist:', error);
+      res.status(500).json({ message: 'Failed to remove track from playlist' });
     }
   });
 

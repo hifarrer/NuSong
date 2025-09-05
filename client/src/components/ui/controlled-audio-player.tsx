@@ -8,6 +8,7 @@ interface ControlledAudioPlayerProps {
   title?: string;
   isPlaying: boolean;
   onPlayPause: () => void;
+  onEnded?: () => void;
   className?: string;
 }
 
@@ -16,6 +17,7 @@ export function ControlledAudioPlayer({
   title, 
   isPlaying, 
   onPlayPause, 
+  onEnded,
   className 
 }: ControlledAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -52,7 +54,11 @@ export function ControlledAudioPlayer({
     const setAudioTime = () => setCurrentTime(audio.currentTime);
 
     const handleEnded = () => {
-      onPlayPause(); // This will set isPlaying to false
+      if (onEnded) {
+        onEnded(); // Use custom onEnded callback if provided
+      } else {
+        onPlayPause(); // Default behavior: pause the player
+      }
     };
 
     audio.addEventListener("loadeddata", setAudioData);
@@ -64,7 +70,7 @@ export function ControlledAudioPlayer({
       audio.removeEventListener("timeupdate", setAudioTime);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [onPlayPause]);
+  }, [onPlayPause, onEnded]);
 
   const handleSeek = (value: number[]) => {
     const audio = audioRef.current;

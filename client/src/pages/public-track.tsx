@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Music, Play, Pause, ExternalLink, User, Calendar, ArrowLeft, Disc } from "lucide-react";
+import { Music, Play, Pause, ExternalLink, User, Calendar, ArrowLeft, Disc, Plus } from "lucide-react";
 import { createSlug } from "@/lib/urlUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { ControlledAudioPlayer } from "@/components/ui/controlled-audio-player";
 import { Header } from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
+import { AddToPlaylistModal } from "@/components/AddToPlaylistModal";
+import { useAuth } from "@/hooks/useAuth";
 
 interface User {
   id: string;
@@ -55,6 +57,8 @@ export default function PublicTrack() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!username || !albumSlug || !trackId) {
@@ -90,6 +94,18 @@ export default function PublicTrack() {
 
   const handlePlay = () => {
     setIsPlaying(!isPlaying);
+  };
+
+  const handleAddToPlaylist = () => {
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "Please log in to add tracks to playlists.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowAddToPlaylistModal(true);
   };
 
 
@@ -246,6 +262,17 @@ export default function PublicTrack() {
                   <ExternalLink className="w-5 h-5 mr-2" />
                   Share
                 </Button>
+                {user && (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="border-music-blue text-music-blue hover:bg-music-blue hover:text-white"
+                    onClick={handleAddToPlaylist}
+                  >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Add to Playlist
+                  </Button>
+                )}
               </div>
 
               {/* Lyrics */}
@@ -278,6 +305,14 @@ export default function PublicTrack() {
             onPlayPause={handlePlay}
           />
         </div>
+
+        {/* Add to Playlist Modal */}
+        <AddToPlaylistModal
+          isOpen={showAddToPlaylistModal}
+          onClose={() => setShowAddToPlaylistModal(false)}
+          trackId={data.track.id}
+          trackTitle={data.track.title}
+        />
       </div>
     </div>
   );

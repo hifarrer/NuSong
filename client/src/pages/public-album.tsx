@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Music, Play, Pause, Download, ExternalLink, User, Calendar, ArrowLeft, Share2, Eye } from "lucide-react";
+import { Music, Play, Pause, Download, ExternalLink, User, Calendar, ArrowLeft, Share2, Eye, Plus } from "lucide-react";
 import { createSlug } from "@/lib/urlUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { ControlledAudioPlayer } from "@/components/ui/controlled-audio-player";
 import { Header } from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
+import { AddToPlaylistModal } from "@/components/AddToPlaylistModal";
+import { useAuth } from "@/hooks/useAuth";
 
 interface User {
   id: string;
@@ -55,6 +57,11 @@ export default function PublicAlbum() {
   const [error, setError] = useState<string | null>(null);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playlistMode, setPlaylistMode] = useState(false);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false);
+  const [selectedTrackForPlaylist, setSelectedTrackForPlaylist] = useState<Track | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!username || !albumSlug) {
@@ -94,7 +101,53 @@ export default function PublicAlbum() {
     } else {
       setCurrentTrack(track);
       setIsPlaying(true);
+      setPlaylistMode(false); // Exit playlist mode when manually selecting a track
     }
+  };
+
+  const handlePlayAll = () => {
+    if (!data || data.tracks.length === 0) return;
+    
+    if (playlistMode && isPlaying) {
+      // If already in playlist mode and playing, just pause
+      setIsPlaying(false);
+    } else {
+      // Start playlist mode from the beginning
+      setPlaylistMode(true);
+      setCurrentTrackIndex(0);
+      setCurrentTrack(data.tracks[0]);
+      setIsPlaying(true);
+    }
+  };
+
+  const handleTrackEnd = () => {
+    if (!playlistMode || !data) return;
+    
+    const nextIndex = currentTrackIndex + 1;
+    if (nextIndex < data.tracks.length) {
+      // Play next track
+      setCurrentTrackIndex(nextIndex);
+      setCurrentTrack(data.tracks[nextIndex]);
+      setIsPlaying(true);
+    } else {
+      // End of playlist
+      setPlaylistMode(false);
+      setCurrentTrackIndex(0);
+      setIsPlaying(false);
+    }
+  };
+
+  const handleAddToPlaylist = (track: Track) => {
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "Please log in to add tracks to playlists.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedTrackForPlaylist(track);
+    setShowAddToPlaylistModal(true);
   };
 
   const handleDownload = async (audioUrl: string, title?: string) => {
@@ -232,6 +285,19 @@ export default function PublicAlbum() {
               </p>
               <div className="flex gap-2 justify-center md:justify-start">
                 <Button
+                  variant="default"
+                  className="bg-music-blue hover:bg-music-blue/80"
+                  onClick={handlePlayAll}
+                  disabled={!data || data.tracks.length === 0}
+                >
+                  {playlistMode && isPlaying ? (
+                    <Pause className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Play className="w-4 h-4 mr-2" />
+                  )}
+                  {playlistMode && isPlaying ? 'Pause All' : 'Play All'}
+                </Button>
+                <Button
                   variant="outline"
                   className="border-gray-600"
                   onClick={() => {
@@ -328,6 +394,17 @@ export default function PublicAlbum() {
                       >
                         <Share2 className="w-4 h-4" />
                       </Button>
+                      {user && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-music-blue text-music-blue hover:bg-music-blue hover:text-white"
+                          onClick={() => handleAddToPlaylist(track)}
+                          title="Add to Playlist"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -344,9 +421,21 @@ export default function PublicAlbum() {
               title={currentTrack.title || 'Untitled Track'}
               isPlaying={isPlaying}
               onPlayPause={() => setIsPlaying(!isPlaying)}
+              onEnded={handleTrackEnd}
             />
           </div>
         )}
+
+        {/* Add to Playlist Modal */}
+        <AddToPlaylistModal
+          isOpen={showAddToPlaylistModal}
+          onClose={() => {
+            setShowAddToPlaylistModal(false);
+            setSelectedTrackForPlaylist(null);
+          }}
+          trackId={selectedTrackForPlaylist?.id || ""}
+          trackTitle={selectedTrackForPlaylist?.title}
+        />
       </div>
     </div>
   );

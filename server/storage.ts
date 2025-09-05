@@ -23,6 +23,10 @@ import {
   shareableLinks,
   type ShareableLink,
   type InsertShareableLink,
+  playlists,
+  playlistTracks,
+  type InsertPlaylist,
+  type UpdatePlaylist,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, count, asc } from "drizzle-orm";
@@ -115,6 +119,15 @@ export interface IStorage {
   getSiteSetting(key: string): Promise<SiteSetting | undefined>;
   upsertSiteSetting(setting: InsertSiteSetting): Promise<SiteSetting>;
   deleteSiteSetting(key: string): Promise<void>;
+  
+  // Playlist operations
+  getUserPlaylists(userId: string): Promise<any[]>;
+  createPlaylist(userId: string, data: InsertPlaylist): Promise<any>;
+  updatePlaylist(playlistId: string, userId: string, data: UpdatePlaylist): Promise<any>;
+  deletePlaylist(playlistId: string, userId: string): Promise<boolean>;
+  getPlaylistTracks(playlistId: string, userId: string): Promise<any[]>;
+  addTrackToPlaylist(playlistId: string, trackId: string, userId: string): Promise<boolean>;
+  removeTrackFromPlaylist(playlistId: string, trackId: string, userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1040,6 +1053,152 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(adminUsers.id, adminId));
+  }
+
+  // ===== PLAYLIST METHODS =====
+
+  async getUserPlaylists(userId: string) {
+    return await db
+      .select()
+      .from(playlists)
+      .where(eq(playlists.userId, userId))
+      .orderBy(desc(playlists.createdAt));
+  }
+
+  async createPlaylist(userId: string, data: InsertPlaylist) {
+    const [playlist] = await db
+      .insert(playlists)
+      .values({
+        userId,
+        name: data.name,
+        description: data.description,
+        isPublic: data.isPublic,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return playlist;
+  }
+
+  async updatePlaylist(playlistId: string, userId: string, data: UpdatePlaylist) {
+    const [playlist] = await db
+      .update(playlists)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(playlists.id, playlistId), eq(playlists.userId, userId)))
+      .returning();
+    return playlist;
+  }
+
+  async deletePlaylist(playlistId: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(playlists)
+      .where(and(eq(playlists.id, playlistId), eq(playlists.userId, userId)));
+    return result.rowCount > 0;
+  }
+
+  async getPlaylistTracks(playlistId: string, userId: string) {
+    // First verify the playlist belongs to the user
+    const playlist = await db
+      .select()
+      .from(playlists)
+      .where(and(eq(playlists.id, playlistId), eq(playlists.userId, userId)))
+      .limit(1);
+
+    if (playlist.length === 0) {
+      throw new Error('Playlist not found');
+    }
+
+    // Get tracks in the playlist with track details
+    return await db
+      .select({
+        id: musicGenerations.id,
+        title: musicGenerations.title,
+        tags: musicGenerations.tags,
+        lyrics: musicGenerations.lyrics,
+        audioUrl: musicGenerations.audioUrl,
+        imageUrl: musicGenerations.imageUrl,
+        duration: musicGenerations.duration,
+        type: musicGenerations.type,
+        visibility: musicGenerations.visibility,
+        status: musicGenerations.status,
+        createdAt: musicGenerations.createdAt,
+        userId: musicGenerations.userId,
+        albumId: musicGenerations.albumId,
+        addedAt: playlistTracks.addedAt,
+        position: playlistTracks.position,
+      })
+      .from(playlistTracks)
+      .innerJoin(musicGenerations, eq(playlistTracks.trackId, musicGenerations.id))
+      .where(eq(playlistTracks.playlistId, playlistId))
+      .orderBy(asc(playlistTracks.position), asc(playlistTracks.addedAt));
+  }
+
+  async addTrackToPlaylist(playlistId: string, trackId: string, userId: string): Promise<boolean> {
+    // First verify the playlist belongs to the user
+    const playlist = await db
+      .select()
+      .from(playlists)
+      .where(and(eq(playlists.id, playlistId), eq(playlists.userId, userId)))
+      .limit(1);
+
+    if (playlist.length === 0) {
+      return false;
+    }
+
+    // Check if track already exists in playlist
+    const existingTrack = await db
+      .select()
+      .from(playlistTracks)
+      .where(and(eq(playlistTracks.playlistId, playlistId), eq(playlistTracks.trackId, trackId)))
+      .limit(1);
+
+    if (existingTrack.length > 0) {
+      return false; // Track already in playlist
+    }
+
+    // Get the next position
+    const lastTrack = await db
+      .select({ position: playlistTracks.position })
+      .from(playlistTracks)
+      .where(eq(playlistTracks.playlistId, playlistId))
+      .orderBy(desc(playlistTracks.position))
+      .limit(1);
+
+    const nextPosition = lastTrack.length > 0 ? lastTrack[0].position + 1 : 0;
+
+    // Add track to playlist
+    await db
+      .insert(playlistTracks)
+      .values({
+        playlistId,
+        trackId,
+        position: nextPosition,
+        addedAt: new Date(),
+      });
+
+    return true;
+  }
+
+  async removeTrackFromPlaylist(playlistId: string, trackId: string, userId: string): Promise<boolean> {
+    // First verify the playlist belongs to the user
+    const playlist = await db
+      .select()
+      .from(playlists)
+      .where(and(eq(playlists.id, playlistId), eq(playlists.userId, userId)))
+      .limit(1);
+
+    if (playlist.length === 0) {
+      return false;
+    }
+
+    const result = await db
+      .delete(playlistTracks)
+      .where(and(eq(playlistTracks.playlistId, playlistId), eq(playlistTracks.trackId, trackId)));
+
+    return result.rowCount > 0;
   }
 }
 

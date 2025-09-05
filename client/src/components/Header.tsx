@@ -77,6 +77,12 @@ export function Header({ currentPage }: HeaderProps) {
           <div className="flex items-center space-x-4">
             {!isLoading && user ? (
               <>
+                <a href="/library" className="text-gray-300 hover:text-white transition-colors px-3 py-2">
+                  Library
+                </a>
+                <a href="/playlists" className="text-gray-300 hover:text-white transition-colors px-3 py-2">
+                  Playlists
+                </a>
                 <a href="/profile" className="flex items-center space-x-3 hover:bg-gray-800/50 rounded-lg px-3 py-2 transition-colors">
                   <Avatar className="w-8 h-8">
                     {(user as any)?.profileImageUrl ? (

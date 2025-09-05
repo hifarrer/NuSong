@@ -285,6 +285,49 @@ export const updateUserSchema = z.object({
   generationsUsedThisMonth: z.number().optional(),
 });
 
+// Playlists table
+export const playlists = pgTable("playlists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  isPublic: boolean("is_public").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Playlist tracks table (many-to-many relationship between playlists and tracks)
+export const playlistTracks = pgTable("playlist_tracks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  playlistId: varchar("playlist_id").notNull().references(() => playlists.id, { onDelete: "cascade" }),
+  trackId: varchar("track_id").notNull().references(() => musicGenerations.id, { onDelete: "cascade" }),
+  addedAt: timestamp("added_at").defaultNow(),
+  position: integer("position").notNull().default(0), // For ordering tracks in playlist
+});
+
+// Playlist schemas
+export const insertPlaylistSchema = z.object({
+  name: z.string().min(1, "Playlist name is required").max(100, "Playlist name must be less than 100 characters"),
+  description: z.string().max(500, "Description must be less than 500 characters").optional(),
+  isPublic: z.boolean().default(false),
+});
+
+export const updatePlaylistSchema = z.object({
+  name: z.string().min(1, "Playlist name is required").max(100, "Playlist name must be less than 100 characters").optional(),
+  description: z.string().max(500, "Description must be less than 500 characters").optional(),
+  isPublic: z.boolean().optional(),
+});
+
+export const addTrackToPlaylistSchema = z.object({
+  playlistId: z.string().min(1, "Playlist ID is required"),
+  trackId: z.string().min(1, "Track ID is required"),
+});
+
+export const removeTrackFromPlaylistSchema = z.object({
+  playlistId: z.string().min(1, "Playlist ID is required"),
+  trackId: z.string().min(1, "Track ID is required"),
+});
+
 export type AdminLogin = z.infer<typeof adminLoginSchema>;
 export type InsertAdminUserForm = z.infer<typeof insertAdminUserSchema>;
 export type UpdateAdminUserForm = z.infer<typeof updateAdminUserSchema>;
@@ -293,3 +336,7 @@ export type UpdateSubscriptionPlanForm = z.infer<typeof updateSubscriptionPlanSc
 export type InsertSiteSettingForm = z.infer<typeof insertSiteSettingSchema>;
 export type UpdateSiteSettingForm = z.infer<typeof updateSiteSettingSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
+export type InsertPlaylistForm = z.infer<typeof insertPlaylistSchema>;
+export type UpdatePlaylistForm = z.infer<typeof updatePlaylistSchema>;
+export type AddTrackToPlaylistForm = z.infer<typeof addTrackToPlaylistSchema>;
+export type RemoveTrackFromPlaylistForm = z.infer<typeof removeTrackFromPlaylistSchema>;
