@@ -53,6 +53,16 @@ export function Header({ currentPage }: HeaderProps) {
                 >
                   Playlists
                 </a>
+                <a 
+                  href="/my-band" 
+                  className={`transition-colors ${
+                    currentPage === 'my-band' 
+                      ? 'text-music-blue font-medium' 
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  My Band
+                </a>
               </>
             )}
           </nav>

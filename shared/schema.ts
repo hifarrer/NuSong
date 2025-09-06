@@ -342,3 +342,60 @@ export type InsertPlaylistForm = z.infer<typeof insertPlaylistSchema>;
 export type UpdatePlaylistForm = z.infer<typeof updatePlaylistSchema>;
 export type AddTrackToPlaylistForm = z.infer<typeof addTrackToPlaylistSchema>;
 export type RemoveTrackFromPlaylistForm = z.infer<typeof removeTrackFromPlaylistSchema>;
+
+// Bands table
+export const bands = pgTable("bands", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Band members table
+export const bandMembers = pgTable("band_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bandId: varchar("band_id").notNull().references(() => bands.id, { onDelete: "cascade" }),
+  name: varchar("name").notNull(),
+  role: varchar("role").notNull(), // Lead Singer, Guitarist, Drummer, etc.
+  imageUrl: varchar("image_url"),
+  description: text("description"), // User's description for AI generation
+  position: integer("position").notNull().default(1), // 1-4 for ordering
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Band schemas
+export const insertBandSchema = z.object({
+  name: z.string().min(1, "Band name is required").max(100, "Band name must be less than 100 characters"),
+  description: z.string().max(500, "Description must be less than 500 characters").optional(),
+});
+
+export const updateBandSchema = z.object({
+  name: z.string().min(1, "Band name is required").max(100, "Band name must be less than 100 characters").optional(),
+  description: z.string().max(500, "Description must be less than 500 characters").optional(),
+});
+
+export const insertBandMemberSchema = z.object({
+  name: z.string().min(1, "Member name is required").max(100, "Member name must be less than 100 characters"),
+  role: z.string().min(1, "Role is required").max(100, "Role must be less than 100 characters"),
+  description: z.string().max(500, "Description must be less than 500 characters").optional(),
+  position: z.number().min(1).max(4),
+});
+
+export const updateBandMemberSchema = z.object({
+  name: z.string().min(1, "Member name is required").max(100, "Member name must be less than 100 characters").optional(),
+  role: z.string().min(1, "Role is required").max(100, "Role must be less than 100 characters").optional(),
+  description: z.string().max(500, "Description must be less than 500 characters").optional(),
+  position: z.number().min(1).max(4).optional(),
+});
+
+export type Band = typeof bands.$inferSelect;
+export type InsertBand = typeof bands.$inferInsert;
+export type BandMember = typeof bandMembers.$inferSelect;
+export type InsertBandMember = typeof bandMembers.$inferInsert;
+export type InsertBandForm = z.infer<typeof insertBandSchema>;
+export type UpdateBandForm = z.infer<typeof updateBandSchema>;
+export type InsertBandMemberForm = z.infer<typeof insertBandMemberSchema>;
+export type UpdateBandMemberForm = z.infer<typeof updateBandMemberSchema>;

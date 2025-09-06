@@ -21,6 +21,10 @@ import {
   updateUserSchema,
   insertPlaylistSchema,
   updatePlaylistSchema,
+  insertBandSchema,
+  updateBandSchema,
+  insertBandMemberSchema,
+  updateBandMemberSchema,
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { LocalStorageService } from "./localStorage";
@@ -47,6 +51,7 @@ import {
   reactivateSubscription
 } from "./stripeService";
 import { EmailService } from "./emailService";
+import { wavespeedService } from "./wavespeedService";
 import Stripe from 'stripe';
 import { spawn } from 'child_process';
 import type { Request } from 'express';
@@ -370,8 +375,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error generating album cover:', error);
       console.error('Error details:', { 
-        message: error.message, 
-        stack: error.stack,
+        message: error instanceof Error ? error.message : String(error), 
+        stack: error instanceof Error ? error.stack : undefined,
         userId: req.user?.id,
         albumId: req.params.id,
         prompt: req.body?.prompt 
@@ -395,7 +400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Generate new hierarchical share URL as primary using album name slug
-      const albumSlug = createSlug(album.name);
+      const albumSlug = createSlug(album.name || 'untitled');
       const newShareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${albumSlug}`;
       
       // Still create token-based link for backwards compatibility
@@ -429,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Generate new hierarchical share URL as primary using album name slug
-      const albumSlug = createSlug(album.name);
+      const albumSlug = createSlug(album.name || 'untitled');
       const newShareUrl = `${req.protocol}://${req.get('host')}/u/${user.username}/${albumSlug}`;
       
       const shareableLink = await storage.getShareableLinkByAlbumId(id);
@@ -481,6 +486,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!user || !track || track.userId !== userId) {
         return res.status(404).json({ message: 'Track not found' });
+      }
+      
+      if (!track.albumId) {
+        return res.status(400).json({ message: 'Track is not associated with an album' });
       }
       
       // Get album to create slug
@@ -1775,7 +1784,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updates.planEndDate = null;
       }
 
-      const updatedUser = await storage.updateUser(id, updates);
+      // Convert string dates to Date objects if present
+      const processedUpdates: any = { ...updates };
+      if (processedUpdates.planStartDate && typeof processedUpdates.planStartDate === 'string') {
+        processedUpdates.planStartDate = new Date(processedUpdates.planStartDate);
+      }
+      if (processedUpdates.planEndDate && typeof processedUpdates.planEndDate === 'string') {
+        processedUpdates.planEndDate = new Date(processedUpdates.planEndDate);
+      }
+
+      const updatedUser = await storage.updateUser(id, processedUpdates);
       
       // Remove password hash from response
       const { passwordHash, ...userResponse } = updatedUser;
@@ -1840,7 +1858,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const updatedUser = await storage.updateUser(id, updates);
+      // Convert string dates to Date objects if present
+      const processedUpdates: any = { ...updates };
+      if (processedUpdates.planStartDate && typeof processedUpdates.planStartDate === 'string') {
+        processedUpdates.planStartDate = new Date(processedUpdates.planStartDate);
+      }
+      if (processedUpdates.planEndDate && typeof processedUpdates.planEndDate === 'string') {
+        processedUpdates.planEndDate = new Date(processedUpdates.planEndDate);
+      }
+
+      const updatedUser = await storage.updateUser(id, processedUpdates);
       
       // Remove password hash from response
       const { passwordHash, ...userResponse } = updatedUser;
@@ -2656,13 +2683,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
       } catch (error) {
         console.error('❌ Error creating playlist tables:', error);
-        res.status(500).json({ message: 'Failed to create playlist tables', error: error.message });
+        res.status(500).json({ message: 'Failed to create playlist tables', error: error instanceof Error ? error.message : String(error) });
       } finally {
         client.release();
       }
     } catch (error) {
       console.error('Database connection error:', error);
-      res.status(500).json({ message: 'Database connection failed', error: error.message });
+      res.status(500).json({ message: 'Database connection failed', error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -2781,6 +2808,301 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error removing track from playlist:', error);
       res.status(500).json({ message: 'Failed to remove track from playlist' });
+    }
+  });
+
+  // Band routes
+  // Get user's band
+  app.get('/api/band', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      const bandResult = await pool.query(
+        'SELECT * FROM bands WHERE user_id = $1',
+        [userId]
+      );
+      
+      if (bandResult.rows.length === 0) {
+        return res.json({ band: null, members: [] });
+      }
+      
+      const band = bandResult.rows[0];
+      
+      const membersResult = await pool.query(
+        'SELECT * FROM band_members WHERE band_id = $1 ORDER BY position ASC',
+        [band.id]
+      );
+      
+      res.json({ 
+        band, 
+        members: membersResult.rows 
+      });
+    } catch (error) {
+      console.error('Error fetching band:', error);
+      res.status(500).json({ message: 'Failed to fetch band' });
+    }
+  });
+
+  // Create or update band
+  app.post('/api/band', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const validatedData = insertBandSchema.parse(req.body);
+      
+      // Check if user already has a band
+      const existingBand = await pool.query(
+        'SELECT id FROM bands WHERE user_id = $1',
+        [userId]
+      );
+      
+      let band;
+      if (existingBand.rows.length > 0) {
+        // Update existing band
+        const result = await pool.query(
+          'UPDATE bands SET name = $1, description = $2, updated_at = NOW() WHERE user_id = $3 RETURNING *',
+          [validatedData.name, validatedData.description, userId]
+        );
+        band = result.rows[0];
+      } else {
+        // Create new band
+        const result = await pool.query(
+          'INSERT INTO bands (user_id, name, description) VALUES ($1, $2, $3) RETURNING *',
+          [userId, validatedData.name, validatedData.description]
+        );
+        band = result.rows[0];
+      }
+      
+      res.json({ band });
+    } catch (error) {
+      console.error('Error creating/updating band:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to create/update band' });
+    }
+  });
+
+  // Add band member
+  app.post('/api/band/members', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const validatedData = insertBandMemberSchema.parse(req.body);
+      
+      // Check if user has a band
+      const bandResult = await pool.query(
+        'SELECT id FROM bands WHERE user_id = $1',
+        [userId]
+      );
+      
+      if (bandResult.rows.length === 0) {
+        return res.status(400).json({ message: 'User does not have a band' });
+      }
+      
+      const bandId = bandResult.rows[0].id;
+      
+      // Check if position is already taken
+      const existingMember = await pool.query(
+        'SELECT id FROM band_members WHERE band_id = $1 AND position = $2',
+        [bandId, validatedData.position]
+      );
+      
+      if (existingMember.rows.length > 0) {
+        return res.status(400).json({ message: 'Position already taken' });
+      }
+      
+      const result = await pool.query(
+        'INSERT INTO band_members (band_id, name, role, description, position) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [bandId, validatedData.name, validatedData.role, validatedData.description, validatedData.position]
+      );
+      
+      res.json({ member: result.rows[0] });
+    } catch (error) {
+      console.error('Error adding band member:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to add band member' });
+    }
+  });
+
+  // Update band member
+  app.put('/api/band/members/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const memberId = req.params.id;
+      const validatedData = updateBandMemberSchema.parse(req.body);
+      
+      // Verify the member belongs to the user's band
+      const memberResult = await pool.query(
+        `SELECT bm.* FROM band_members bm 
+         JOIN bands b ON bm.band_id = b.id 
+         WHERE bm.id = $1 AND b.user_id = $2`,
+        [memberId, userId]
+      );
+      
+      if (memberResult.rows.length === 0) {
+        return res.status(404).json({ message: 'Band member not found' });
+      }
+      
+      // Build update query dynamically
+      const updateFields = [];
+      const values = [];
+      let paramCount = 1;
+      
+      if (validatedData.name !== undefined) {
+        updateFields.push(`name = $${paramCount++}`);
+        values.push(validatedData.name);
+      }
+      if (validatedData.role !== undefined) {
+        updateFields.push(`role = $${paramCount++}`);
+        values.push(validatedData.role);
+      }
+      if (validatedData.description !== undefined) {
+        updateFields.push(`description = $${paramCount++}`);
+        values.push(validatedData.description);
+      }
+      if (validatedData.position !== undefined) {
+        updateFields.push(`position = $${paramCount++}`);
+        values.push(validatedData.position);
+      }
+      
+      if (updateFields.length === 0) {
+        return res.status(400).json({ message: 'No fields to update' });
+      }
+      
+      updateFields.push(`updated_at = NOW()`);
+      values.push(memberId);
+      
+      const result = await pool.query(
+        `UPDATE band_members SET ${updateFields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+        values
+      );
+      
+      res.json({ member: result.rows[0] });
+    } catch (error) {
+      console.error('Error updating band member:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to update band member' });
+    }
+  });
+
+  // Delete band member
+  app.delete('/api/band/members/:id', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const memberId = req.params.id;
+      
+      // Verify the member belongs to the user's band
+      const memberResult = await pool.query(
+        `SELECT bm.* FROM band_members bm 
+         JOIN bands b ON bm.band_id = b.id 
+         WHERE bm.id = $1 AND b.user_id = $2`,
+        [memberId, userId]
+      );
+      
+      if (memberResult.rows.length === 0) {
+        return res.status(404).json({ message: 'Band member not found' });
+      }
+      
+      await pool.query('DELETE FROM band_members WHERE id = $1', [memberId]);
+      
+      res.json({ message: 'Band member deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting band member:', error);
+      res.status(500).json({ message: 'Failed to delete band member' });
+    }
+  });
+
+  // Generate band member image
+  app.post('/api/band/members/generate-image', requireAuth, async (req: any, res) => {
+    try {
+      const { description } = req.body;
+      
+      if (!description || typeof description !== 'string') {
+        return res.status(400).json({ message: 'Description is required' });
+      }
+      
+      const requestId = await wavespeedService.generateImage(description);
+      
+      res.json({ requestId });
+    } catch (error) {
+      console.error('Error generating band member image:', error);
+      res.status(500).json({ message: 'Failed to generate image' });
+    }
+  });
+
+  // Check image generation status
+  app.get('/api/band/members/image-status/:requestId', requireAuth, async (req: any, res) => {
+    try {
+      const { requestId } = req.params;
+      
+      const result = await wavespeedService.checkImageStatus(requestId);
+      
+      res.json({ 
+        status: result.status,
+        imageUrl: result.status === 'completed' ? result.outputs[0] : null,
+        error: result.error
+      });
+    } catch (error) {
+      console.error('Error checking image status:', error);
+      res.status(500).json({ message: 'Failed to check image status' });
+    }
+  });
+
+  // Save band member image
+  app.post('/api/band/members/:id/save-image', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const memberId = req.params.id;
+      const { imageUrl } = req.body;
+      
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        return res.status(400).json({ message: 'Image URL is required' });
+      }
+      
+      // Verify the member belongs to the user's band
+      const memberResult = await pool.query(
+        `SELECT bm.* FROM band_members bm 
+         JOIN bands b ON bm.band_id = b.id 
+         WHERE bm.id = $1 AND b.user_id = $2`,
+        [memberId, userId]
+      );
+      
+      if (memberResult.rows.length === 0) {
+        return res.status(404).json({ message: 'Band member not found' });
+      }
+      
+      // Download and save the image to our storage
+      const storageService = getStorageService();
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error('Failed to download image');
+      }
+      
+      const imageBuffer = await imageResponse.buffer();
+      const fileName = `band-members/${memberId}-${Date.now()}.png`;
+      
+      let savedUrl: string;
+      if (storageService instanceof GCSStorageService) {
+        savedUrl = await storageService.uploadImageBuffer(new Uint8Array(imageBuffer), fileName);
+      } else {
+        // For other storage services, we'll need to implement a generic upload method
+        // For now, let's throw an error
+        throw new Error('Image upload not supported for this storage service');
+      }
+      
+      // Update the band member with the saved image URL
+      const result = await pool.query(
+        'UPDATE band_members SET image_url = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+        [savedUrl, memberId]
+      );
+      
+      res.json({ member: result.rows[0] });
+    } catch (error) {
+      console.error('Error saving band member image:', error);
+      res.status(500).json({ message: 'Failed to save image' });
     }
   });
 
