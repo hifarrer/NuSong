@@ -2829,7 +2829,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const band = bandResult.rows[0];
       
       const membersResult = await pool.query(
-        'SELECT * FROM band_members WHERE band_id = $1 ORDER BY position ASC',
+        `SELECT 
+           id,
+           band_id       AS "bandId",
+           name,
+           role,
+           image_url     AS "imageUrl",
+           description,
+           position,
+           created_at    AS "createdAt",
+           updated_at    AS "updatedAt"
+         FROM band_members 
+         WHERE band_id = $1 
+         ORDER BY position ASC`,
         [band.id]
       );
       
@@ -2911,7 +2923,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const result = await pool.query(
-        'INSERT INTO band_members (band_id, name, role, description, position) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        `INSERT INTO band_members (band_id, name, role, description, position)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING 
+           id,
+           band_id       AS "bandId",
+           name,
+           role,
+           image_url     AS "imageUrl",
+           description,
+           position,
+           created_at    AS "createdAt",
+           updated_at    AS "updatedAt"`,
         [bandId, validatedData.name, validatedData.role, validatedData.description, validatedData.position]
       );
       
@@ -2974,7 +2997,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       values.push(memberId);
       
       const result = await pool.query(
-        `UPDATE band_members SET ${updateFields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+        `UPDATE band_members 
+           SET ${updateFields.join(', ')} 
+         WHERE id = $${paramCount} 
+         RETURNING 
+           id,
+           band_id       AS "bandId",
+           name,
+           role,
+           image_url     AS "imageUrl",
+           description,
+           position,
+           created_at    AS "createdAt",
+           updated_at    AS "updatedAt"`,
         values
       );
       
@@ -3095,7 +3130,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update the band member with the saved image URL
       const result = await pool.query(
-        'UPDATE band_members SET image_url = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+        `UPDATE band_members 
+           SET image_url = $1, updated_at = NOW() 
+         WHERE id = $2 
+         RETURNING 
+           id,
+           band_id       AS "bandId",
+           name,
+           role,
+           image_url     AS "imageUrl",
+           description,
+           position,
+           created_at    AS "createdAt",
+           updated_at    AS "updatedAt"`,
         [savedUrl, memberId]
       );
       
