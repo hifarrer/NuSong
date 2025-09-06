@@ -117,21 +117,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.getOrCreateDefaultAlbum(userId);
       const albums = await storage.getUserAlbums(userId);
       
-      // Refresh expired cover URLs
+      // Convert object paths to direct public URLs
       const storageService = getStorageService();
       const updatedAlbums = await Promise.all(albums.map(async (album) => {
         if (album.coverUrl && album.coverUrl.startsWith('/objects/')) {
           try {
-            // Try to refresh the URL with 10-year expiration
-            const refreshedUrl = await storageService.getObjectEntityPublicUrl(album.coverUrl, 10 * 365 * 24 * 3600);
-            if (refreshedUrl !== album.coverUrl) {
-              // Update the album with the new URL
-              await storage.updateAlbum(album.id, { coverUrl: refreshedUrl } as any);
-              return { ...album, coverUrl: refreshedUrl };
+            // Convert to direct public URL
+            const directUrl = storageService.getObjectEntityDirectPublicUrl(album.coverUrl);
+            if (directUrl !== album.coverUrl) {
+              // Update the album with the direct URL
+              await storage.updateAlbum(album.id, { coverUrl: directUrl } as any);
+              return { ...album, coverUrl: directUrl };
             }
           } catch (e) {
-            console.error('Failed to refresh cover URL for album:', album.id, e);
-            // Keep the original URL if refresh fails
+            console.error('Failed to convert cover URL for album:', album.id, e);
+            // Keep the original URL if conversion fails
           }
         }
         return album;
@@ -175,12 +175,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         const storageService = getStorageService();
-        const refreshedUrl = await storageService.getObjectEntityPublicUrl(album.coverUrl, 10 * 365 * 24 * 3600);
+        const refreshedUrl = storageService.getObjectEntityDirectPublicUrl(album.coverUrl);
         const updated = await storage.updateAlbum(id, { coverUrl: refreshedUrl } as any);
         res.json({ album: updated, coverUrl: refreshedUrl });
       } catch (e) {
-        console.error('Failed to refresh cover url:', e);
-        res.status(500).json({ message: "Failed to refresh cover URL" });
+        console.error('Failed to get direct public url:', e);
+        res.status(500).json({ message: "Failed to get direct public URL" });
       }
     } catch (error) {
       console.error("Error refreshing album cover:", error);
@@ -202,9 +202,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (typeof coverUrl === 'string' && coverUrl.startsWith('/objects/')) {
         try {
           const storageService = getStorageService();
-          finalCoverUrl = await storageService.getObjectEntityPublicUrl(coverUrl, 10 * 365 * 24 * 3600);
+          finalCoverUrl = storageService.getObjectEntityDirectPublicUrl(coverUrl);
         } catch (e) {
-          console.error('Failed to sign cover url:', e);
+          console.error('Failed to get direct public url:', e);
         }
       }
       const updated = await storage.updateAlbum(id, {
@@ -363,8 +363,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       // 3) Normalize path
       const objectPath = storageService.normalizeObjectEntityPath(uploadURL);
-      // 4) Get a public, signed URL (10 years expiration)
-      const publicUrl = await storageService.getObjectEntityPublicUrl(objectPath, 10 * 365 * 24 * 3600);
+      // 4) Get a direct public URL (no expiration)
+      const publicUrl = storageService.getObjectEntityDirectPublicUrl(objectPath);
       const updated = await storage.updateAlbum(id, { coverUrl: publicUrl } as any);
       res.json({ album: updated, coverUrl: publicUrl });
     } catch (error) {
@@ -551,20 +551,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'User not found' });
       }
       
-      // Refresh expired cover URLs for albums
+      // Convert object paths to direct public URLs for albums
       const storageService = getStorageService();
       const updatedAlbums = await Promise.all(profileData.albums.map(async (album) => {
         if (album.coverUrl && album.coverUrl.startsWith('/objects/')) {
           try {
-            const refreshedUrl = await storageService.getObjectEntityPublicUrl(album.coverUrl, 10 * 365 * 24 * 3600);
-            if (refreshedUrl !== album.coverUrl) {
-              // Update the album with the new URL
-              await storage.updateAlbum(album.id, { coverUrl: refreshedUrl } as any);
-              return { ...album, coverUrl: refreshedUrl };
+            const directUrl = storageService.getObjectEntityDirectPublicUrl(album.coverUrl);
+            if (directUrl !== album.coverUrl) {
+              // Update the album with the direct URL
+              await storage.updateAlbum(album.id, { coverUrl: directUrl } as any);
+              return { ...album, coverUrl: directUrl };
             }
           } catch (e) {
-            console.error('Failed to refresh cover URL for album:', album.id, e);
-            // Keep the original URL if refresh fails
+            console.error('Failed to convert cover URL for album:', album.id, e);
+            // Keep the original URL if conversion fails
           }
         }
         return album;
@@ -631,20 +631,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Increment album view count
       await storage.incrementAlbumViewCount(album.id);
       
-      // Refresh expired cover URL if needed
+      // Convert object path to direct public URL if needed
       let finalCoverUrl = album.coverUrl;
       if (album.coverUrl && album.coverUrl.startsWith('/objects/')) {
         try {
           const storageService = getStorageService();
-          const refreshedUrl = await storageService.getObjectEntityPublicUrl(album.coverUrl, 10 * 365 * 24 * 3600);
-          if (refreshedUrl !== album.coverUrl) {
-            // Update the album with the new URL
-            await storage.updateAlbum(album.id, { coverUrl: refreshedUrl } as any);
-            finalCoverUrl = refreshedUrl;
+          const directUrl = storageService.getObjectEntityDirectPublicUrl(album.coverUrl);
+          if (directUrl !== album.coverUrl) {
+            // Update the album with the direct URL
+            await storage.updateAlbum(album.id, { coverUrl: directUrl } as any);
+            finalCoverUrl = directUrl;
           }
         } catch (e) {
-          console.error('Failed to refresh cover URL for album:', album.id, e);
-          // Keep the original URL if refresh fails
+          console.error('Failed to convert cover URL for album:', album.id, e);
+          // Keep the original URL if conversion fails
         }
       }
       
@@ -716,20 +716,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Increment track view count
       await storage.incrementTrackViewCount(track.id);
       
-      // Refresh expired cover URL if needed
+      // Convert object path to direct public URL if needed
       let finalCoverUrl = album.coverUrl;
       if (album.coverUrl && album.coverUrl.startsWith('/objects/')) {
         try {
           const storageService = getStorageService();
-          const refreshedUrl = await storageService.getObjectEntityPublicUrl(album.coverUrl, 10 * 365 * 24 * 3600);
-          if (refreshedUrl !== album.coverUrl) {
-            // Update the album with the new URL
-            await storage.updateAlbum(album.id, { coverUrl: refreshedUrl } as any);
-            finalCoverUrl = refreshedUrl;
+          const directUrl = storageService.getObjectEntityDirectPublicUrl(album.coverUrl);
+          if (directUrl !== album.coverUrl) {
+            // Update the album with the direct URL
+            await storage.updateAlbum(album.id, { coverUrl: directUrl } as any);
+            finalCoverUrl = directUrl;
           }
         } catch (e) {
-          console.error('Failed to refresh cover URL for album:', album.id, e);
-          // Keep the original URL if refresh fails
+          console.error('Failed to convert cover URL for album:', album.id, e);
+          // Keep the original URL if conversion fails
         }
       }
       

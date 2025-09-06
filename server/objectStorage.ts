@@ -121,6 +121,28 @@ export class ObjectStorageService {
     return `/objects/${entityId}`;
   }
 
+  // Gets a direct public URL for the object entity (no expiration)
+  getObjectEntityDirectPublicUrl(objectPath: string): string {
+    if (!objectPath.startsWith("/objects/")) {
+      throw new ObjectNotFoundError();
+    }
+
+    const parts = objectPath.slice(1).split("/");
+    if (parts.length < 2) {
+      throw new ObjectNotFoundError();
+    }
+
+    const entityId = parts.slice(1).join("/");
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) {
+      entityDir = `${entityDir}/`;
+    }
+    const objectEntityPath = `${entityDir}${entityId}`;
+    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+
+    return `https://storage.googleapis.com/${bucketName}/${objectName}`;
+  }
+
   // Gets a publicly accessible signed URL for the object entity
   async getObjectEntityPublicUrl(objectPath: string, ttlSec: number = 3600): Promise<string> {
     if (!objectPath.startsWith("/objects/")) {
