@@ -84,24 +84,36 @@ export function BandMemberGenerationModal({
     },
   });
 
-  // Save image mutation
-  const saveImageMutation = useMutation({
-    mutationFn: async ({ memberId, imageUrl }: { memberId: string; imageUrl: string }) => {
-      const response = await apiRequest(`/api/band/members/${memberId}/save-image`, "POST", { imageUrl });
+  // Create member mutation
+  const createMemberMutation = useMutation({
+    mutationFn: async (data: { name: string; role: string; description?: string; position: number }) => {
+      const response = await apiRequest("/api/band/members", "POST", data);
       return await response.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Band member created successfully!",
-      });
-      onImageGenerated(generatedImageUrl!);
-      handleClose();
+    onSuccess: async (data: { member: any }) => {
+      // Now save the image to the created member
+      try {
+        const saveResponse = await apiRequest(`/api/band/members/${data.member.id}/save-image`, "POST", { imageUrl: generatedImageUrl });
+        await saveResponse.json();
+        
+        toast({
+          title: "Success",
+          description: "Band member created successfully!",
+        });
+        onImageGenerated(generatedImageUrl!);
+        handleClose();
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: "Failed to save image to band member",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to save band member",
+        description: error.message || "Failed to create band member",
         variant: "destructive",
       });
     },
@@ -148,13 +160,12 @@ export function BandMemberGenerationModal({
       return;
     }
 
-    // First create the band member, then save the image
-    // We'll need to create the member first, then update with the image
-    // For now, let's assume we have a member ID - in a real implementation,
-    // we'd create the member first and get the ID
-    saveImageMutation.mutate({
-      memberId: "temp-id", // This would be the actual member ID
-      imageUrl: generatedImageUrl,
+    // Create the band member first, then save the image
+    createMemberMutation.mutate({
+      name: memberName.trim(),
+      role: memberRole.trim(),
+      description: description.trim() || undefined,
+      position: position,
     });
   };
 
@@ -197,7 +208,7 @@ export function BandMemberGenerationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
+      <DialogContent className="bg-music-secondary border-gray-700 max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-white">
             Generate Band Member {position}
@@ -231,7 +242,7 @@ export function BandMemberGenerationModal({
             <Button
               onClick={handleGenerate}
               disabled={!description.trim() || generateImageMutation.isPending}
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              className="w-full bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
             >
               {generateImageMutation.isPending ? (
                 <LoadingSpinner className="h-4 w-4 mr-2" />
@@ -299,10 +310,10 @@ export function BandMemberGenerationModal({
                 </Button>
                 <Button
                   onClick={handleSave}
-                  disabled={!memberName.trim() || !memberRole.trim() || saveImageMutation.isPending}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  disabled={!memberName.trim() || !memberRole.trim() || createMemberMutation.isPending}
+                  className="flex-1 bg-gradient-to-r from-music-green to-music-blue hover:from-green-600 hover:to-blue-600"
                 >
-                  {saveImageMutation.isPending ? (
+                  {createMemberMutation.isPending ? (
                     <LoadingSpinner className="h-4 w-4 mr-2" />
                   ) : (
                     <Check className="h-4 w-4 mr-2" />

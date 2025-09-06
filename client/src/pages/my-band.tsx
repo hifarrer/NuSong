@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Header } from "@/components/Header";
 import { BandMemberGenerationModal } from "@/components/BandMemberGenerationModal";
+import { ObjectUploader } from "@/components/ObjectUploader";
 import { 
   Users, 
   Plus, 
@@ -69,6 +70,7 @@ export default function MyBand() {
   const [selectedPosition, setSelectedPosition] = useState<number>(1);
   const [bandForm, setBandForm] = useState({ name: "", description: "" });
   const [memberForm, setMemberForm] = useState({ name: "", role: "", description: "" });
+  const [uploadingPosition, setUploadingPosition] = useState<number | null>(null);
 
   // Fetch user's band data
   const { data: bandData, isLoading } = useQuery({
@@ -173,6 +175,46 @@ export default function MyBand() {
     },
   });
 
+  // Create member with uploaded image mutation
+  const createMemberWithImageMutation = useMutation({
+    mutationFn: async ({ name, role, description, position, imageUrl }: { 
+      name: string; 
+      role: string; 
+      description?: string; 
+      position: number; 
+      imageUrl: string;
+    }) => {
+      // First create the member
+      const memberResponse = await apiRequest("/api/band/members", "POST", {
+        name,
+        role,
+        description,
+        position,
+      });
+      const memberData = await memberResponse.json();
+      
+      // Then save the image
+      const imageResponse = await apiRequest(`/api/band/members/${memberData.member.id}/save-image`, "POST", { imageUrl });
+      return await imageResponse.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/band"] });
+      setUploadingPosition(null);
+      toast({
+        title: "Success",
+        description: "Band member created successfully!",
+      });
+    },
+    onError: (error: any) => {
+      setUploadingPosition(null);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create band member",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleBandSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bandForm.name.trim()) return;
@@ -227,6 +269,66 @@ export default function MyBand() {
     setShowGenerationModal(true);
   };
 
+  const handleUploadImage = (position: number) => {
+    setUploadingPosition(position);
+  };
+
+  const handleUploadComplete = async (result: any) => {
+    if (!result.successful || result.successful.length === 0) {
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+      setUploadingPosition(null);
+      return;
+    }
+
+    const uploadedFile = result.successful[0];
+    // The upload result should contain the uploadURL that was used
+    const imageUrl = uploadedFile.uploadURL;
+    
+    if (!imageUrl) {
+      toast({
+        title: "Error",
+        description: "No image URL received from upload",
+        variant: "destructive",
+      });
+      setUploadingPosition(null);
+      return;
+    }
+
+    // Normalize the path to get the proper object path
+    try {
+      const normalizeResponse = await apiRequest('/api/objects/normalize-path', 'POST', { uploadURL: imageUrl });
+      const normalizeData = await normalizeResponse.json();
+      const objectPath = normalizeData.objectPath;
+      
+      // Show a form to get member details
+      const memberName = prompt("Enter member name:");
+      const memberRole = prompt("Enter member role (e.g., Lead Singer, Guitarist):");
+      
+      if (!memberName || !memberRole) {
+        setUploadingPosition(null);
+        return;
+      }
+
+      createMemberWithImageMutation.mutate({
+        name: memberName.trim(),
+        role: memberRole.trim(),
+        position: uploadingPosition!,
+        imageUrl: objectPath,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to process uploaded image",
+        variant: "destructive",
+      });
+      setUploadingPosition(null);
+    }
+  };
+
   const getAvailablePositions = () => {
     const usedPositions = bandData?.members.map(m => m.position) || [];
     return [1, 2, 3, 4].filter(pos => !usedPositions.includes(pos) || (editingMember && editingMember.position === pos));
@@ -238,7 +340,7 @@ export default function MyBand() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div className="min-h-screen">
         <Header currentPage="my-band" />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
@@ -252,7 +354,7 @@ export default function MyBand() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div className="min-h-screen">
         <Header currentPage="my-band" />
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-center items-center h-64">
@@ -264,7 +366,7 @@ export default function MyBand() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen">
       <Header currentPage="my-band" />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
@@ -285,7 +387,7 @@ export default function MyBand() {
           </div>
 
           {!bandData?.band ? (
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <Card className="bg-music-secondary border-gray-700">
               <CardContent className="p-8 text-center">
                 <Music className="h-16 w-16 text-white/50 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">No Band Yet</h3>
@@ -294,7 +396,7 @@ export default function MyBand() {
                 </p>
                 <Button
                   onClick={() => setShowBandForm(true)}
-                  className="bg-purple-600 hover:bg-purple-700"
+                  className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your Band
@@ -304,7 +406,7 @@ export default function MyBand() {
           ) : (
             <div className="space-y-8">
               {/* Band Info */}
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-music-secondary border-gray-700">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
@@ -323,7 +425,7 @@ export default function MyBand() {
                         });
                         setShowBandForm(true);
                       }}
-                      className="border-white/20 text-white hover:bg-white/10"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-800"
                     >
                       <Edit3 className="h-4 w-4 mr-2" />
                       Edit
@@ -339,7 +441,7 @@ export default function MyBand() {
                   const isAvailable = !member && getAvailablePositions().includes(position);
                   
                   return (
-                    <Card key={position} className="bg-white/10 backdrop-blur-sm border-white/20">
+                    <Card key={position} className="bg-music-secondary border-gray-700">
                       <CardContent className="p-6">
                         <div className="text-center">
                           <h3 className="text-lg font-semibold text-white mb-4">
@@ -373,7 +475,7 @@ export default function MyBand() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleEditMember(member)}
-                                  className="border-white/20 text-white hover:bg-white/10"
+                                  className="border-gray-600 text-gray-300 hover:bg-gray-800"
                                 >
                                   <Edit3 className="h-4 w-4 mr-2" />
                                   Edit
@@ -401,20 +503,40 @@ export default function MyBand() {
                                     setSelectedPosition(position);
                                     setShowMemberForm(true);
                                   }}
-                                  className="w-full bg-purple-600 hover:bg-purple-700"
+                                  className="w-full bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
                                 >
                                   <Plus className="h-4 w-4 mr-2" />
                                   Add Member
                                 </Button>
                                 
-                                <Button
-                                  variant="outline"
-                                  onClick={() => handleGenerateImage(position)}
-                                  className="w-full border-white/20 text-white hover:bg-white/10"
-                                >
-                                  <Wand2 className="h-4 w-4 mr-2" />
-                                  Generate with AI
-                                </Button>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => handleGenerateImage(position)}
+                                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                                  >
+                                    <Wand2 className="h-4 w-4 mr-1" />
+                                    Generate with AI
+                                  </Button>
+                                  
+                                  <ObjectUploader
+                                    maxFileSize={10485760} // 10MB for images
+                                    acceptedFileTypes={['.jpg', '.jpeg', '.png', '.gif', '.webp']}
+                                    onGetUploadParameters={async () => {
+                                      const response = await apiRequest("/api/objects/upload", "POST");
+                                      const data = await response.json();
+                                      return {
+                                        method: "PUT" as const,
+                                        url: data.uploadURL,
+                                      };
+                                    }}
+                                    onComplete={handleUploadComplete}
+                                    buttonClassName="border-gray-600 text-gray-300 hover:bg-gray-800 w-full"
+                                  >
+                                    <Upload className="h-4 w-4 mr-1" />
+                                    Upload Picture
+                                  </ObjectUploader>
+                                </div>
                               </div>
                             </div>
                           ) : (
@@ -435,7 +557,7 @@ export default function MyBand() {
 
       {/* Band Form Modal */}
       <Dialog open={showBandForm} onOpenChange={setShowBandForm}>
-        <DialogContent className="bg-gray-900 border-gray-700">
+        <DialogContent className="bg-music-secondary border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">
               {bandData?.band ? "Edit Band" : "Create Band"}
@@ -484,7 +606,7 @@ export default function MyBand() {
               <Button
                 type="submit"
                 disabled={createBandMutation.isPending}
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
               >
                 {createBandMutation.isPending ? (
                   <LoadingSpinner className="h-4 w-4 mr-2" />
@@ -498,7 +620,7 @@ export default function MyBand() {
 
       {/* Member Form Modal */}
       <Dialog open={showMemberForm} onOpenChange={setShowMemberForm}>
-        <DialogContent className="bg-gray-900 border-gray-700">
+        <DialogContent className="bg-music-secondary border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">
               {editingMember ? "Edit Band Member" : "Add Band Member"}
@@ -570,7 +692,7 @@ export default function MyBand() {
               <Button
                 type="submit"
                 disabled={addMemberMutation.isPending || updateMemberMutation.isPending}
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
               >
                 {(addMemberMutation.isPending || updateMemberMutation.isPending) ? (
                   <LoadingSpinner className="h-4 w-4 mr-2" />
