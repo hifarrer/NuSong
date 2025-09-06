@@ -483,56 +483,80 @@ function TrackCard({
 
   return (
     <div className="bg-music-dark border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors">
-      <div className="flex items-center gap-4">
-        {/* Track Info */}
-        <div className="flex-1 min-w-0">
-          {isEditingTitle ? (
-            <Input
-              value={editedTitle}
-              onChange={(e) => setEditedTitle(e.target.value)}
-              onBlur={handleTitleSubmit}
-              onKeyDown={handleKeyPress}
-              className="bg-music-secondary border-gray-600 text-white text-sm h-8"
-              autoFocus
-            />
-          ) : (
-            <div className="flex items-center gap-2">
-              <h3 
-                className="text-white font-medium truncate cursor-pointer hover:text-music-blue transition-colors"
-                onClick={() => setIsEditingTitle(true)}
-                title="Click to edit title"
-              >
-                {track.title || "Untitled Track"}
-              </h3>
-              <Edit3 className="w-3 h-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          )}
+      {/* Track Info */}
+      <div className="flex-1 min-w-0 mb-4">
+        {isEditingTitle ? (
+          <Input
+            value={editedTitle}
+            onChange={(e) => setEditedTitle(e.target.value)}
+            onBlur={handleTitleSubmit}
+            onKeyDown={handleKeyPress}
+            className="bg-music-secondary border-gray-600 text-white text-sm h-8"
+            autoFocus
+          />
+        ) : (
+          <div className="flex items-center gap-2">
+            <h3 
+              className="text-white font-medium truncate cursor-pointer hover:text-music-blue transition-colors"
+              onClick={() => setIsEditingTitle(true)}
+              title="Click to edit title"
+            >
+              {track.title || "Untitled Track"}
+            </h3>
+            <Edit3 className="w-3 h-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
+        
+        <div className="flex items-center gap-2 mt-1">
+          <span className={`text-xs px-2 py-1 rounded ${
+            track.status === "completed" 
+              ? "bg-green-600/20 text-green-400" 
+              : track.status === "processing" 
+              ? "bg-yellow-600/20 text-yellow-400"
+              : "bg-gray-600/20 text-gray-400"
+          }`}>
+            {track.status}
+          </span>
           
-          <div className="flex items-center gap-2 mt-1">
-            <span className={`text-xs px-2 py-1 rounded ${
-              track.status === "completed" 
-                ? "bg-green-600/20 text-green-400" 
-                : track.status === "processing" 
-                ? "bg-yellow-600/20 text-yellow-400"
-                : "bg-gray-600/20 text-gray-400"
-            }`}>
-              {track.status}
-            </span>
-            
-            <span className={`text-xs px-2 py-1 rounded ${
-              track.visibility === "public" 
-                ? "bg-blue-600/20 text-blue-400" 
-                : "bg-gray-600/20 text-gray-400"
-            }`}>
-              {track.visibility}
-            </span>
-            
-            <span className="text-xs text-gray-500">
-              {track.type === "text_to_music" ? "Text to Music" : "Audio to Music"}
-            </span>
+          <span className={`text-xs px-2 py-1 rounded ${
+            track.visibility === "public" 
+              ? "bg-blue-600/20 text-blue-400" 
+              : "bg-gray-600/20 text-gray-400"
+          }`}>
+            {track.visibility}
+          </span>
+          
+          <span className="text-xs text-gray-500">
+            {track.type === "text_to_music" ? "Text to Music" : "Audio to Music"}
+          </span>
+        </div>
+      </div>
+
+      {/* Audio Player */}
+      {track.status === "completed" && track.audioUrl && (
+        <div className="mb-4">
+          <AudioPlayer 
+            src={track.audioUrl}
+            className="w-full"
+          />
+        </div>
+      )}
+
+      {/* Lyrics */}
+      {track.lyrics && (
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-gray-400 mb-2">
+            <Mic className="inline w-3 h-3 mr-1" />
+            Lyrics
+          </label>
+          <div className="max-h-24 overflow-y-auto p-3 bg-music-secondary/50 rounded-lg border border-gray-600">
+            <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{track.lyrics}</p>
           </div>
         </div>
+      )}
 
+      {/* Controls Row */}
+      <div className="flex items-center gap-4">
         {/* Album Selector */}
         <div className="w-full sm:w-40">
           <Select
@@ -559,7 +583,7 @@ function TrackCard({
           </Select>
         </div>
 
-        {/* Controls */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-2">
           {track.status === "completed" && track.audioUrl && (
             !isUserOnFreePlan() ? (
@@ -659,29 +683,6 @@ function TrackCard({
             <span className="text-xs">Delete</span>
           </Button>
         </div>
-
-        {/* Audio Player */}
-        {track.status === "completed" && track.audioUrl && (
-          <div className="mt-4">
-            <AudioPlayer 
-              src={track.audioUrl}
-              className="w-full"
-            />
-          </div>
-        )}
-
-        {/* Lyrics */}
-        {track.lyrics && (
-          <div className="mt-4">
-            <label className="block text-xs font-medium text-gray-400 mb-2">
-              <Mic className="inline w-3 h-3 mr-1" />
-              Lyrics
-            </label>
-            <div className="max-h-24 overflow-y-auto p-3 bg-music-secondary/50 rounded-lg border border-gray-600">
-              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{track.lyrics}</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
