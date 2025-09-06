@@ -257,7 +257,11 @@ export default function PublicAlbum() {
                   className="w-full h-full object-cover" 
                 />
               ) : (
-                <Music className="w-12 h-12 text-gray-600" />
+                <img 
+                  src="/nusong_cover.png" 
+                  alt="Default album cover" 
+                  className="w-full h-full object-cover" 
+                />
               )}
             </div>
             <div className="text-center md:text-left">

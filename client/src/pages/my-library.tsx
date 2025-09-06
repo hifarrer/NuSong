@@ -276,7 +276,7 @@ export default function MyLibrary() {
                         if (alb && alb.coverUrl) {
                           return <img src={alb.coverUrl} alt={alb.name} className="w-full h-full object-cover" />
                         }
-                        return <div className="text-gray-500 text-xs">No cover</div>;
+                        return <img src="/nusong_cover.png" alt="Default album cover" className="w-full h-full object-cover" />;
                       })()}
                     </div>
                   </div>

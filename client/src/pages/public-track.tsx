@@ -188,7 +188,11 @@ export default function PublicTrack() {
                     className="w-full h-full object-cover" 
                   />
                 ) : (
-                  <Music className="w-24 h-24 text-gray-600" />
+                  <img 
+                    src="/nusong_cover.png" 
+                    alt="Default album cover" 
+                    className="w-full h-full object-cover" 
+                  />
                 )}
               </div>
 

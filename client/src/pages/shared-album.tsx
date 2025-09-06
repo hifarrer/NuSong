@@ -137,15 +137,21 @@ export default function SharedAlbum() {
         {/* Album Header */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            {data.album.coverUrl && (
-              <div className="w-32 h-32 md:w-48 md:h-48 rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center">
+            <div className="w-32 h-32 md:w-48 md:h-48 rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center">
+              {data.album.coverUrl ? (
                 <img 
                   src={data.album.coverUrl} 
                   alt={data.album.name} 
                   className="w-full h-full object-cover" 
                 />
-              </div>
-            )}
+              ) : (
+                <img 
+                  src="/nusong_cover.png" 
+                  alt="Default album cover" 
+                  className="w-full h-full object-cover" 
+                />
+              )}
+            </div>
             <div className="text-center md:text-left">
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
                 {data.album.name}

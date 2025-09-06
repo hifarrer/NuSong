@@ -168,7 +168,11 @@ export default function PublicProfile() {
                           className="w-full h-full object-cover" 
                         />
                       ) : (
-                        <Disc className="w-12 h-12 text-gray-600" />
+                        <img 
+                          src="/nusong_cover.png" 
+                          alt="Default album cover" 
+                          className="w-full h-full object-cover" 
+                        />
                       )}
                     </div>
                     <h3 className="text-lg font-semibold text-white truncate mb-1">
