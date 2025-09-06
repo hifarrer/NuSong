@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Music, Play, Pause, ExternalLink, User, Calendar, ArrowLeft, Disc, Plus } from "lucide-react";
+import { Music, Play, Pause, ExternalLink, User, Calendar, ArrowLeft, Disc, Plus, Eye } from "lucide-react";
 import { createSlug } from "@/lib/urlUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,7 @@ interface Album {
   id: string;
   name: string;
   coverUrl?: string;
+  viewCount: number;
   createdAt: string;
 }
 
@@ -36,6 +37,7 @@ interface Track {
   imageUrl?: string;
   duration?: number;
   type: string;
+  viewCount: number;
   createdAt: string;
 }
 
@@ -216,11 +218,17 @@ export default function PublicTrack() {
                 <p className="text-gray-400 text-sm mb-2">
                   {data.track.tags}
                 </p>
-                {data.track.duration && (
-                  <p className="text-gray-500 text-sm">
-                    Duration: {Math.floor(data.track.duration / 60)}:{(data.track.duration % 60).toString().padStart(2, '0')}
-                  </p>
-                )}
+                <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
+                  {data.track.duration && (
+                    <span>
+                      Duration: {Math.floor(data.track.duration / 60)}:{(data.track.duration % 60).toString().padStart(2, '0')}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <Eye className="w-4 h-4" />
+                    <span>{data.track.viewCount} view{data.track.viewCount !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Controls */}

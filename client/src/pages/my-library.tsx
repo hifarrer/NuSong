@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Header } from "@/components/Header";
+import { AudioPlayer } from "@/components/ui/audio-player";
 import { 
   Music, 
   Download, 
@@ -23,7 +24,8 @@ import {
   Eye, 
   EyeOff,
   Plus,
-  Settings
+  Settings,
+  Mic
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
@@ -657,6 +659,29 @@ function TrackCard({
             <span className="text-xs">Delete</span>
           </Button>
         </div>
+
+        {/* Audio Player */}
+        {track.status === "completed" && track.audioUrl && (
+          <div className="mt-4">
+            <AudioPlayer 
+              src={track.audioUrl}
+              className="w-full"
+            />
+          </div>
+        )}
+
+        {/* Lyrics */}
+        {track.lyrics && (
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-gray-400 mb-2">
+              <Mic className="inline w-3 h-3 mr-1" />
+              Lyrics
+            </label>
+            <div className="max-h-24 overflow-y-auto p-3 bg-music-secondary/50 rounded-lg border border-gray-600">
+              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{track.lyrics}</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -559,6 +559,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         track.visibility === 'public' && track.status === 'completed'
       );
       
+      // Increment album view count
+      await storage.incrementAlbumViewCount(album.id);
+      
       res.json({
         user: {
           id: user.id,
@@ -572,6 +575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: album.id,
           name: album.name,
           coverUrl: album.coverUrl,
+          viewCount: album.viewCount + 1, // Show incremented count
           createdAt: album.createdAt
         },
         tracks: publicTracks.map(track => ({
@@ -583,6 +587,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           imageUrl: track.imageUrl,
           duration: track.duration,
           type: track.type,
+          viewCount: track.viewCount,
           createdAt: track.createdAt
         }))
       });
@@ -622,6 +627,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Track not found' });
       }
       
+      // Increment track view count
+      await storage.incrementTrackViewCount(track.id);
+      
       res.json({
         user: {
           id: user.id,
@@ -635,6 +643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: album.id,
           name: album.name,
           coverUrl: album.coverUrl,
+          viewCount: album.viewCount,
           createdAt: album.createdAt
         },
         track: {
@@ -646,6 +655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           imageUrl: track.imageUrl,
           duration: track.duration,
           type: track.type,
+          viewCount: track.viewCount + 1, // Show incremented count
           createdAt: track.createdAt
         }
       });

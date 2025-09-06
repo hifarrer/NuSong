@@ -24,6 +24,7 @@ interface Album {
   id: string;
   name: string;
   coverUrl?: string;
+  viewCount: number;
   createdAt: string;
 }
 
@@ -36,6 +37,7 @@ interface Track {
   imageUrl?: string;
   duration?: number;
   type: string;
+  viewCount: number;
   createdAt: string;
 }
 
@@ -280,9 +282,17 @@ export default function PublicAlbum() {
                   Created {formatDate(data.album.createdAt)}
                 </p>
               </div>
-              <p className="text-gray-400 mb-4">
-                {data.tracks.length} track{data.tracks.length !== 1 ? 's' : ''}
-              </p>
+              <div className="flex items-center justify-center md:justify-start gap-4 mb-4">
+                <p className="text-gray-400">
+                  {data.tracks.length} track{data.tracks.length !== 1 ? 's' : ''}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Eye className="w-4 h-4 text-gray-400" />
+                  <p className="text-gray-400">
+                    {data.album.viewCount} view{data.album.viewCount !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
               <div className="flex gap-2 justify-center md:justify-start">
                 <Button
                   variant="default"
@@ -347,11 +357,17 @@ export default function PublicAlbum() {
                       <p className="text-gray-400 text-sm truncate">
                         {track.tags}
                       </p>
-                      {track.duration && (
-                        <p className="text-gray-500 text-xs">
-                          {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        {track.duration && (
+                          <span>
+                            {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          <span>{track.viewCount} view{track.viewCount !== 1 ? 's' : ''}</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Controls */}

@@ -31,27 +31,45 @@ export function Header({ currentPage }: HeaderProps) {
             >
               {user ? 'Create' : 'Home'}
             </a>
-            <a 
-              href="/pricing" 
-              className={`transition-colors ${
-                currentPage === 'pricing' 
-                  ? 'text-music-blue font-medium' 
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Pricing
-            </a>
+            {user && (
+              <>
+                <a 
+                  href="/library" 
+                  className={`transition-colors ${
+                    currentPage === 'library' 
+                      ? 'text-music-blue font-medium' 
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  Library
+                </a>
+                <a 
+                  href="/playlists" 
+                  className={`transition-colors ${
+                    currentPage === 'playlists' 
+                      ? 'text-music-blue font-medium' 
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  Playlists
+                </a>
+              </>
+            )}
           </nav>
           
           {/* User Menu */}
           <div className="flex items-center space-x-4">
             {!isLoading && user ? (
               <>
-                <a href="/library" className="text-gray-300 hover:text-white transition-colors px-3 py-2">
-                  Library
-                </a>
-                <a href="/playlists" className="text-gray-300 hover:text-white transition-colors px-3 py-2">
-                  Playlists
+                <a 
+                  href="/pricing" 
+                  className={`transition-colors ${
+                    currentPage === 'pricing' 
+                      ? 'text-music-blue font-medium' 
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  Pricing
                 </a>
                 <a href="/profile" className="flex items-center space-x-3 hover:bg-gray-800/50 rounded-lg px-3 py-2 transition-colors">
                   <Avatar className="w-8 h-8">
@@ -81,6 +99,16 @@ export function Header({ currentPage }: HeaderProps) {
               <span className="text-gray-400 text-sm">Sign In / Sign Up</span>
             ) : (
               <>
+                <a 
+                  href="/pricing" 
+                  className={`transition-colors ${
+                    currentPage === 'pricing' 
+                      ? 'text-music-blue font-medium' 
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  Pricing
+                </a>
                 <Button
                   variant="ghost"
                   className="text-gray-300 hover:text-white"

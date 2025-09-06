@@ -128,6 +128,10 @@ export interface IStorage {
   getPlaylistTracks(playlistId: string, userId: string): Promise<any[]>;
   addTrackToPlaylist(playlistId: string, trackId: string, userId: string): Promise<boolean>;
   removeTrackFromPlaylist(playlistId: string, trackId: string, userId: string): Promise<boolean>;
+  
+  // View tracking operations
+  incrementAlbumViewCount(albumId: string): Promise<void>;
+  incrementTrackViewCount(trackId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1199,6 +1203,21 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(playlistTracks.playlistId, playlistId), eq(playlistTracks.trackId, trackId)));
 
     return result.rowCount > 0;
+  }
+
+  // View tracking operations
+  async incrementAlbumViewCount(albumId: string): Promise<void> {
+    await db
+      .update(albums)
+      .set({ viewCount: sql`${albums.viewCount} + 1` })
+      .where(eq(albums.id, albumId));
+  }
+
+  async incrementTrackViewCount(trackId: string): Promise<void> {
+    await db
+      .update(musicGenerations)
+      .set({ viewCount: sql`${musicGenerations.viewCount} + 1` })
+      .where(eq(musicGenerations.id, trackId));
   }
 }
 
