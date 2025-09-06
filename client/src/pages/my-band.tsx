@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Header } from "@/components/Header";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Users, 
   Plus, 
@@ -18,7 +19,8 @@ import {
   Trash2, 
   Upload,
   Wand2,
-  Music
+  Music,
+  X
 } from "lucide-react";
 
 interface Band {
@@ -695,7 +697,7 @@ export default function MyBand() {
               <label className="block text-sm font-medium text-white mb-2">
                 Member Image
               </label>
-              
+
               {/* Current Image Preview */}
               {memberImageUrl && (
                 <div className="text-center">
@@ -717,12 +719,14 @@ export default function MyBand() {
                 </div>
               )}
 
-              {/* Image Generation */}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Generate with AI
-                  </label>
+              {/* Tabs for Generate vs Upload */}
+              <Tabs defaultValue="generate" className="w-full">
+                <TabsList className="grid grid-cols-2 bg-gray-800 border border-gray-700">
+                  <TabsTrigger value="generate" className="text-gray-200 data-[state=active]:bg-gray-700">Generate with AI</TabsTrigger>
+                  <TabsTrigger value="upload" className="text-gray-200 data-[state=active]:bg-gray-700">Upload Picture</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="generate" className="mt-4">
                   <div className="flex gap-2">
                     <Input
                       value={memberImageDescription}
@@ -745,15 +749,11 @@ export default function MyBand() {
                       Generate
                     </Button>
                   </div>
-                </div>
+                </TabsContent>
 
-                {/* Image Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Upload Picture
-                  </label>
+                <TabsContent value="upload" className="mt-4">
                   <ObjectUploader
-                    maxFileSize={10485760} // 10MB for images
+                    maxFileSize={10485760}
                     acceptedFileTypes={['.jpg', '.jpeg', '.png', '.gif', '.webp']}
                     onGetUploadParameters={async () => {
                       const response = await apiRequest("/api/objects/upload", "POST");
@@ -769,8 +769,8 @@ export default function MyBand() {
                     <Upload className="h-4 w-4 mr-2" />
                     Upload Image
                   </ObjectUploader>
-                </div>
-              </div>
+                </TabsContent>
+              </Tabs>
             </div>
             
             <DialogFooter>
