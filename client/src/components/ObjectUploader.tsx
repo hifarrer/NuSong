@@ -59,7 +59,18 @@ export function ObjectUploader({
     })
       .use(AwsS3, {
         shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
+        // Ensure headers match what the signed URL expects
+        // Our server signs with contentType 'application/octet-stream'
+        getUploadParameters: async (_file) => {
+          const params = await onGetUploadParameters();
+          return {
+            method: "PUT" as const,
+            url: params.url,
+            headers: {
+              "Content-Type": "application/octet-stream",
+            },
+          };
+        },
       })
       .on("complete", (result) => {
         onComplete?.(result);
