@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Header } from "@/components/Header";
-import { BandMemberGenerationModal } from "@/components/BandMemberGenerationModal";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { 
   Users, 
@@ -65,12 +64,13 @@ export default function MyBand() {
   
   const [showBandForm, setShowBandForm] = useState(false);
   const [showMemberForm, setShowMemberForm] = useState(false);
-  const [showGenerationModal, setShowGenerationModal] = useState(false);
   const [editingMember, setEditingMember] = useState<BandMember | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<number>(1);
   const [bandForm, setBandForm] = useState({ name: "", description: "" });
   const [memberForm, setMemberForm] = useState({ name: "", role: "", description: "" });
-  const [uploadingPosition, setUploadingPosition] = useState<number | null>(null);
+  const [memberImageUrl, setMemberImageUrl] = useState<string | null>(null);
+  const [memberImageDescription, setMemberImageDescription] = useState<string>("");
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   // Fetch user's band data
   const { data: bandData, isLoading } = useQuery({
@@ -105,14 +105,30 @@ export default function MyBand() {
 
   // Add/update band member mutation
   const addMemberMutation = useMutation({
-    mutationFn: async (data: { name: string; role: string; description?: string; position: number }) => {
-      const response = await apiRequest("/api/band/members", "POST", data);
-      return await response.json();
+    mutationFn: async (data: { name: string; role: string; description?: string; position: number; imageUrl?: string }) => {
+      // First create the member
+      const memberResponse = await apiRequest("/api/band/members", "POST", {
+        name: data.name,
+        role: data.role,
+        description: data.description,
+        position: data.position,
+      });
+      const memberData = await memberResponse.json();
+      
+      // If there's an image, save it
+      if (data.imageUrl) {
+        const imageResponse = await apiRequest(`/api/band/members/${memberData.member.id}/save-image`, "POST", { imageUrl: data.imageUrl });
+        await imageResponse.json();
+      }
+      
+      return memberData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/band"] });
       setShowMemberForm(false);
       setMemberForm({ name: "", role: "", description: "" });
+      setMemberImageUrl(null);
+      setMemberImageDescription("");
       setEditingMember(null);
       toast({
         title: "Success",
@@ -175,45 +191,74 @@ export default function MyBand() {
     },
   });
 
-  // Create member with uploaded image mutation
-  const createMemberWithImageMutation = useMutation({
-    mutationFn: async ({ name, role, description, position, imageUrl }: { 
-      name: string; 
-      role: string; 
-      description?: string; 
-      position: number; 
-      imageUrl: string;
-    }) => {
-      // First create the member
-      const memberResponse = await apiRequest("/api/band/members", "POST", {
-        name,
-        role,
-        description,
-        position,
-      });
-      const memberData = await memberResponse.json();
-      
-      // Then save the image
-      const imageResponse = await apiRequest(`/api/band/members/${memberData.member.id}/save-image`, "POST", { imageUrl });
-      return await imageResponse.json();
+
+  // Generate image mutation for member form
+  const generateMemberImageMutation = useMutation({
+    mutationFn: async (description: string) => {
+      const response = await apiRequest("/api/band/members/generate-image", "POST", { description });
+      return await response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/band"] });
-      setUploadingPosition(null);
-      toast({
-        title: "Success",
-        description: "Band member created successfully!",
-      });
+    onSuccess: (data: { requestId: string }) => {
+      // Start polling for the result
+      pollForImageResult(data.requestId);
     },
     onError: (error: any) => {
-      setUploadingPosition(null);
+      setIsGeneratingImage(false);
       toast({
         title: "Error",
-        description: error.message || "Failed to create band member",
+        description: "Failed to generate image",
         variant: "destructive",
       });
     },
   });
+
+  // Poll for image generation result
+  const pollForImageResult = async (requestId: string) => {
+    const maxAttempts = 30;
+    let attempts = 0;
+    
+    const poll = async () => {
+      try {
+        const response = await apiRequest(`/api/band/members/image-status/${requestId}`, "GET");
+        const data = await response.json();
+        
+        if (data.status === 'completed' && data.imageUrl) {
+          setMemberImageUrl(data.imageUrl);
+          setIsGeneratingImage(false);
+          toast({
+            title: "Success",
+            description: "Image generated successfully!",
+          });
+        } else if (data.status === 'failed') {
+          setIsGeneratingImage(false);
+          toast({
+            title: "Error",
+            description: data.error || "Image generation failed",
+            variant: "destructive",
+          });
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(poll, 2000); // Poll every 2 seconds
+        } else {
+          setIsGeneratingImage(false);
+          toast({
+            title: "Error",
+            description: "Image generation timed out",
+            variant: "destructive",
+          });
+        }
+      } catch (error: any) {
+        setIsGeneratingImage(false);
+        toast({
+          title: "Error",
+          description: "Failed to check image status",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    poll();
+  };
 
   const handleBandSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,6 +289,7 @@ export default function MyBand() {
         role: memberForm.role.trim(),
         description: memberForm.description.trim() || undefined,
         position: selectedPosition,
+        imageUrl: memberImageUrl || undefined,
       });
     }
   };
@@ -255,37 +301,35 @@ export default function MyBand() {
       role: member.role,
       description: member.description || "",
     });
+    setMemberImageUrl(member.imageUrl || null);
+    setMemberImageDescription("");
     setShowMemberForm(true);
   };
 
-  const handleDeleteMember = (member: BandMember) => {
-    if (confirm(`Are you sure you want to delete ${member.name}?`)) {
-      deleteMemberMutation.mutate(member.id);
+  const handleGenerateImageInForm = () => {
+    if (!memberImageDescription.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a description for the image",
+        variant: "destructive",
+      });
+      return;
     }
+    setIsGeneratingImage(true);
+    generateMemberImageMutation.mutate(memberImageDescription.trim());
   };
 
-  const handleGenerateImage = (position: number) => {
-    setSelectedPosition(position);
-    setShowGenerationModal(true);
-  };
-
-  const handleUploadImage = (position: number) => {
-    setUploadingPosition(position);
-  };
-
-  const handleUploadComplete = async (result: any) => {
+  const handleUploadCompleteInForm = async (result: any) => {
     if (!result.successful || result.successful.length === 0) {
       toast({
         title: "Error",
         description: "Failed to upload image",
         variant: "destructive",
       });
-      setUploadingPosition(null);
       return;
     }
 
     const uploadedFile = result.successful[0];
-    // The upload result should contain the uploadURL that was used
     const imageUrl = uploadedFile.uploadURL;
     
     if (!imageUrl) {
@@ -294,30 +338,16 @@ export default function MyBand() {
         description: "No image URL received from upload",
         variant: "destructive",
       });
-      setUploadingPosition(null);
       return;
     }
 
-    // Normalize the path to get the proper object path
     try {
       const normalizeResponse = await apiRequest('/api/objects/normalize-path', 'POST', { uploadURL: imageUrl });
       const normalizeData = await normalizeResponse.json();
-      const objectPath = normalizeData.objectPath;
-      
-      // Show a form to get member details
-      const memberName = prompt("Enter member name:");
-      const memberRole = prompt("Enter member role (e.g., Lead Singer, Guitarist):");
-      
-      if (!memberName || !memberRole) {
-        setUploadingPosition(null);
-        return;
-      }
-
-      createMemberWithImageMutation.mutate({
-        name: memberName.trim(),
-        role: memberRole.trim(),
-        position: uploadingPosition!,
-        imageUrl: objectPath,
+      setMemberImageUrl(normalizeData.objectPath);
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully!",
       });
     } catch (error: any) {
       toast({
@@ -325,9 +355,20 @@ export default function MyBand() {
         description: "Failed to process uploaded image",
         variant: "destructive",
       });
-      setUploadingPosition(null);
     }
   };
+
+  const handleClearImage = () => {
+    setMemberImageUrl(null);
+    setMemberImageDescription("");
+  };
+
+  const handleDeleteMember = (member: BandMember) => {
+    if (confirm(`Are you sure you want to delete ${member.name}?`)) {
+      deleteMemberMutation.mutate(member.id);
+    }
+  };
+
 
   const getAvailablePositions = () => {
     const usedPositions = bandData?.members.map(m => m.position) || [];
@@ -501,6 +542,8 @@ export default function MyBand() {
                                 <Button
                                   onClick={() => {
                                     setSelectedPosition(position);
+                                    setMemberImageUrl(null);
+                                    setMemberImageDescription("");
                                     setShowMemberForm(true);
                                   }}
                                   className="w-full bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
@@ -508,35 +551,6 @@ export default function MyBand() {
                                   <Plus className="h-4 w-4 mr-2" />
                                   Add Member
                                 </Button>
-                                
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => handleGenerateImage(position)}
-                                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
-                                  >
-                                    <Wand2 className="h-4 w-4 mr-1" />
-                                    Generate with AI
-                                  </Button>
-                                  
-                                  <ObjectUploader
-                                    maxFileSize={10485760} // 10MB for images
-                                    acceptedFileTypes={['.jpg', '.jpeg', '.png', '.gif', '.webp']}
-                                    onGetUploadParameters={async () => {
-                                      const response = await apiRequest("/api/objects/upload", "POST");
-                                      const data = await response.json();
-                                      return {
-                                        method: "PUT" as const,
-                                        url: data.uploadURL,
-                                      };
-                                    }}
-                                    onComplete={handleUploadComplete}
-                                    buttonClassName="border-gray-600 text-gray-300 hover:bg-gray-800 w-full"
-                                  >
-                                    <Upload className="h-4 w-4 mr-1" />
-                                    Upload Picture
-                                  </ObjectUploader>
-                                </div>
                               </div>
                             </div>
                           ) : (
@@ -675,6 +689,89 @@ export default function MyBand() {
                 rows={3}
               />
             </div>
+
+            {/* Image Section */}
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-white mb-2">
+                Member Image
+              </label>
+              
+              {/* Current Image Preview */}
+              {memberImageUrl && (
+                <div className="text-center">
+                  <img
+                    src={memberImageUrl}
+                    alt="Member preview"
+                    className="w-32 h-32 mx-auto rounded-lg object-cover border-2 border-gray-600"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearImage}
+                    className="mt-2 border-red-500/20 text-red-400 hover:bg-red-500/10"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Remove Image
+                  </Button>
+                </div>
+              )}
+
+              {/* Image Generation */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Generate with AI
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={memberImageDescription}
+                      onChange={(e) => setMemberImageDescription(e.target.value)}
+                      placeholder="Describe the character (e.g., young woman with blonde hair, leather jacket)"
+                      className="bg-gray-800 border-gray-600 text-white flex-1"
+                      disabled={isGeneratingImage}
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleGenerateImageInForm}
+                      disabled={!memberImageDescription.trim() || isGeneratingImage}
+                      className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
+                    >
+                      {isGeneratingImage ? (
+                        <LoadingSpinner className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Wand2 className="h-4 w-4 mr-2" />
+                      )}
+                      Generate
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Image Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Upload Picture
+                  </label>
+                  <ObjectUploader
+                    maxFileSize={10485760} // 10MB for images
+                    acceptedFileTypes={['.jpg', '.jpeg', '.png', '.gif', '.webp']}
+                    onGetUploadParameters={async () => {
+                      const response = await apiRequest("/api/objects/upload", "POST");
+                      const data = await response.json();
+                      return {
+                        method: "PUT" as const,
+                        url: data.uploadURL,
+                      };
+                    }}
+                    onComplete={handleUploadCompleteInForm}
+                    buttonClassName="border-gray-600 text-gray-300 hover:bg-gray-800 w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Image
+                  </ObjectUploader>
+                </div>
+              </div>
+            </div>
             
             <DialogFooter>
               <Button
@@ -684,6 +781,8 @@ export default function MyBand() {
                   setShowMemberForm(false);
                   setEditingMember(null);
                   setMemberForm({ name: "", role: "", description: "" });
+                  setMemberImageUrl(null);
+                  setMemberImageDescription("");
                 }}
                 className="border-gray-600 text-gray-300 hover:bg-gray-800"
               >
@@ -704,20 +803,6 @@ export default function MyBand() {
         </DialogContent>
       </Dialog>
 
-      {/* Band Member Generation Modal */}
-      <BandMemberGenerationModal
-        isOpen={showGenerationModal}
-        onClose={() => setShowGenerationModal(false)}
-        position={selectedPosition}
-        onImageGenerated={(imageUrl) => {
-          // Handle image generation completion
-          setShowGenerationModal(false);
-          toast({
-            title: "Success",
-            description: "Band member image generated successfully!",
-          });
-        }}
-      />
     </div>
   );
 }
