@@ -42,11 +42,10 @@ export function BandMemberGenerationModal({
 
   // Generate image mutation
   const generateImageMutation = useMutation({
-    mutationFn: (description: string) =>
-      apiRequest("/api/band/members/generate-image", {
-        method: "POST",
-        body: JSON.stringify({ description }),
-      }),
+    mutationFn: async (description: string) => {
+      const response = await apiRequest("/api/band/members/generate-image", "POST", { description });
+      return await response.json();
+    },
     onSuccess: (data: { requestId: string }) => {
       setRequestId(data.requestId);
       setStatus('generating');
@@ -65,8 +64,10 @@ export function BandMemberGenerationModal({
 
   // Check status mutation
   const checkStatusMutation = useMutation({
-    mutationFn: (requestId: string) =>
-      apiRequest(`/api/band/members/image-status/${requestId}`),
+    mutationFn: async (requestId: string) => {
+      const response = await apiRequest(`/api/band/members/image-status/${requestId}`, "GET");
+      return await response.json();
+    },
     onSuccess: (data: { status: string; imageUrl?: string; error?: string }) => {
       if (data.status === 'completed' && data.imageUrl) {
         setGeneratedImageUrl(data.imageUrl);
@@ -85,11 +86,10 @@ export function BandMemberGenerationModal({
 
   // Save image mutation
   const saveImageMutation = useMutation({
-    mutationFn: ({ memberId, imageUrl }: { memberId: string; imageUrl: string }) =>
-      apiRequest(`/api/band/members/${memberId}/save-image`, {
-        method: "POST",
-        body: JSON.stringify({ imageUrl }),
-      }),
+    mutationFn: async ({ memberId, imageUrl }: { memberId: string; imageUrl: string }) => {
+      const response = await apiRequest(`/api/band/members/${memberId}/save-image`, "POST", { imageUrl });
+      return await response.json();
+    },
     onSuccess: () => {
       toast({
         title: "Success",

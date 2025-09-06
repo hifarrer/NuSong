@@ -79,11 +79,10 @@ export default function MyBand() {
 
   // Create/update band mutation
   const createBandMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string }) =>
-      apiRequest("/api/band", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+    mutationFn: async (data: { name: string; description?: string }) => {
+      const response = await apiRequest("/api/band", "POST", data);
+      return await response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/band"] });
       setShowBandForm(false);
@@ -104,11 +103,10 @@ export default function MyBand() {
 
   // Add/update band member mutation
   const addMemberMutation = useMutation({
-    mutationFn: (data: { name: string; role: string; description?: string; position: number }) =>
-      apiRequest("/api/band/members", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+    mutationFn: async (data: { name: string; role: string; description?: string; position: number }) => {
+      const response = await apiRequest("/api/band/members", "POST", data);
+      return await response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/band"] });
       setShowMemberForm(false);
@@ -130,11 +128,10 @@ export default function MyBand() {
 
   // Update band member mutation
   const updateMemberMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      apiRequest(`/api/band/members/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiRequest(`/api/band/members/${id}`, "PUT", data);
+      return await response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/band"] });
       setShowMemberForm(false);
@@ -156,10 +153,10 @@ export default function MyBand() {
 
   // Delete band member mutation
   const deleteMemberMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiRequest(`/api/band/members/${id}`, {
-        method: "DELETE",
-      }),
+    mutationFn: async (id: string) => {
+      const response = await apiRequest(`/api/band/members/${id}`, "DELETE");
+      return await response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/band"] });
       toast({
