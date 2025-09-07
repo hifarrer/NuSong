@@ -165,7 +165,7 @@ export class WavespeedService {
 
   // Band picture edit (multi-image)
   async generateBandPicture(prompt: string, imageUrls: string[]): Promise<string> {
-    const enhanced = `An album cover where the characters are in a music band. ${prompt}`;
+    const enhanced = `An album cover where the characters are in a music band. ${prompt} only add characters that are in the images`;
     const body = {
       enable_base64_output: false,
       enable_sync_mode: false,

@@ -539,10 +539,15 @@ export default function MyBand() {
               <Card className="bg-music-secondary border-gray-700">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex-1">
                       <CardTitle className="text-2xl text-white">{bandData.band.name}</CardTitle>
                       {bandData.band.description && (
                         <p className="text-gray-300 mt-2">{bandData.band.description}</p>
+                      )}
+                      {bandData.band.bandImageUrl && (
+                        <div className="mt-4">
+                          <img src={bandData.band.bandImageUrl} alt="Band" className="w-full max-h-64 object-cover rounded-lg border border-gray-700" />
+                        </div>
                       )}
                     </div>
                     <Button
@@ -786,12 +791,14 @@ export default function MyBand() {
           <DialogFooter>
             <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800" onClick={() => setShowBandPictureModal(false)}>Close</Button>
             <Button
-              disabled={!bandPicturePrompt.trim() || selectedMemberIds.length === 0 || !!bandPictureUrl || generateBandPictureMutation.isPending}
+              disabled={!bandPicturePrompt.trim() || selectedMemberIds.length === 0 || !!bandPictureUrl || generateBandPictureMutation.isPending || (!!bandPictureRequestId && !bandPictureUrl)}
               className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
               onClick={() => generateBandPictureMutation.mutate({ prompt: bandPicturePrompt.trim(), memberIds: selectedMemberIds })}
             >
-              {generateBandPictureMutation.isPending ? <LoadingSpinner className="h-4 w-4 mr-2" /> : null}
-              Generate
+              {(generateBandPictureMutation.isPending || (!!bandPictureRequestId && !bandPictureUrl)) ? (
+                <LoadingSpinner className="h-4 w-4 mr-2" />
+              ) : null}
+              { (generateBandPictureMutation.isPending || (!!bandPictureRequestId && !bandPictureUrl)) ? 'Generating…' : 'Generate' }
             </Button>
           </DialogFooter>
         </DialogContent>

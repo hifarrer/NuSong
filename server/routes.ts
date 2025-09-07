@@ -2818,7 +2818,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       
       const bandResult = await pool.query(
-        'SELECT * FROM bands WHERE user_id = $1',
+        `SELECT 
+           id,
+           user_id          AS "userId",
+           name,
+           description,
+           band_image_url   AS "bandImageUrl",
+           created_at       AS "createdAt",
+           updated_at       AS "updatedAt"
+         FROM bands WHERE user_id = $1`,
         [userId]
       );
       
