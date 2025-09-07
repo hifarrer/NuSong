@@ -160,11 +160,10 @@ export default function MyBand() {
 
   // Add/update band member mutation
   const addMemberMutation = useMutation({
-    mutationFn: async (data: { name: string; role: string; description?: string; position: number; imageUrl?: string }) => {
+    mutationFn: async (data: { name: string; description?: string; position: number; imageUrl?: string }) => {
       // First create the member
       const memberResponse = await apiRequest("/api/band/members", "POST", {
         name: data.name,
-        role: data.role,
         description: data.description,
         position: data.position,
       });
@@ -335,7 +334,7 @@ export default function MyBand() {
 
   const handleMemberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!memberForm.name.trim() || !memberForm.role.trim()) return;
+    if (!memberForm.name.trim()) return;
 
     try {
       if (editingMember) {
@@ -343,7 +342,6 @@ export default function MyBand() {
         const currentDescription = editingMember.description || "";
         const textChanged = (
           memberForm.name.trim() !== editingMember.name ||
-          memberForm.role.trim() !== editingMember.role ||
           trimmedDescription !== currentDescription
         );
 
@@ -352,7 +350,6 @@ export default function MyBand() {
             id: editingMember.id,
             data: {
               name: memberForm.name.trim(),
-              role: memberForm.role.trim(),
               description: trimmedDescription || undefined,
             },
           });
@@ -372,7 +369,6 @@ export default function MyBand() {
       } else {
         await addMemberMutation.mutateAsync({
           name: memberForm.name.trim(),
-          role: memberForm.role.trim(),
           description: memberForm.description.trim() || undefined,
           position: selectedPosition,
           imageUrl: memberImageUrl || undefined,
@@ -546,7 +542,9 @@ export default function MyBand() {
                       )}
                       {bandData.band.bandImageUrl && (
                         <div className="mt-4">
-                          <img src={bandData.band.bandImageUrl} alt="Band" className="w-full max-h-64 object-cover rounded-lg border border-gray-700" />
+                          <div className="w-full max-w-xl aspect-square rounded-lg border border-gray-700 overflow-hidden">
+                            <img src={bandData.band.bandImageUrl} alt="Band" className="w-full h-full object-cover" />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -580,7 +578,7 @@ export default function MyBand() {
                       <CardContent className="p-6">
                         <div className="text-center">
                           <h3 className="text-lg font-semibold text-white mb-4">
-                            Member {position}: {member?.role || (position === 1 ? "Lead Singer" : "Optional")}
+                            Member {position}: {position === 1 ? "Lead Singer" : "Optional"}
                           </h3>
                           
                           {member ? (
@@ -599,7 +597,7 @@ export default function MyBand() {
                               
                               <div>
                                 <h4 className="text-xl font-semibold text-white">{member.name}</h4>
-                                <p className="text-gray-300">{member.role}</p>
+                                {position === 1 ? <p className="text-gray-300">Lead Singer</p> : null}
                                 {member.description && (
                                   <p className="text-sm text-gray-400 mt-2">{member.description}</p>
                                 )}
@@ -830,24 +828,7 @@ export default function MyBand() {
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Role *
-              </label>
-              <Input
-                value={memberForm.role}
-                onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
-                placeholder="e.g., Lead Singer, Guitarist, Drummer"
-                className="bg-gray-800 border-gray-600 text-white"
-                list="roles"
-                required
-              />
-              <datalist id="roles">
-                {DEFAULT_ROLES.map(role => (
-                  <option key={role} value={role} />
-                ))}
-              </datalist>
-            </div>
+            {/* Role hidden/optional: default applied automatically (Lead Singer for member 1) */}
             
             <div>
               <label className="block text-sm font-medium text-white mb-2">
