@@ -171,6 +171,14 @@ export default function MyBand() {
     },
   });
 
+  // Save member image mutation
+  const saveMemberImageMutation = useMutation({
+    mutationFn: async ({ id, imageUrl }: { id: string; imageUrl: string }) => {
+      const response = await apiRequest(`/api/band/members/${id}/save-image`, "POST", { imageUrl });
+      return await response.json();
+    },
+  });
+
   // Delete band member mutation
   const deleteMemberMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -272,27 +280,53 @@ export default function MyBand() {
     });
   };
 
-  const handleMemberSubmit = (e: React.FormEvent) => {
+  const handleMemberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberForm.name.trim() || !memberForm.role.trim()) return;
-    
-    if (editingMember) {
-      updateMemberMutation.mutate({
-        id: editingMember.id,
-        data: {
+
+    try {
+      if (editingMember) {
+        const trimmedDescription = memberForm.description.trim();
+        const currentDescription = editingMember.description || "";
+        const textChanged = (
+          memberForm.name.trim() !== editingMember.name ||
+          memberForm.role.trim() !== editingMember.role ||
+          trimmedDescription !== currentDescription
+        );
+
+        if (textChanged) {
+          await updateMemberMutation.mutateAsync({
+            id: editingMember.id,
+            data: {
+              name: memberForm.name.trim(),
+              role: memberForm.role.trim(),
+              description: trimmedDescription || undefined,
+            },
+          });
+        }
+
+        if (memberImageUrl && memberImageUrl !== editingMember.imageUrl) {
+          await saveMemberImageMutation.mutateAsync({ id: editingMember.id, imageUrl: memberImageUrl });
+        }
+
+        await queryClient.invalidateQueries({ queryKey: ["/api/band"] });
+        setShowMemberForm(false);
+        setMemberForm({ name: "", role: "", description: "" });
+        setMemberImageUrl(null);
+        setMemberImageDescription("");
+        setEditingMember(null);
+        toast({ title: "Success", description: "Band member updated successfully!" });
+      } else {
+        await addMemberMutation.mutateAsync({
           name: memberForm.name.trim(),
           role: memberForm.role.trim(),
           description: memberForm.description.trim() || undefined,
-        },
-      });
-    } else {
-      addMemberMutation.mutate({
-        name: memberForm.name.trim(),
-        role: memberForm.role.trim(),
-        description: memberForm.description.trim() || undefined,
-        position: selectedPosition,
-        imageUrl: memberImageUrl || undefined,
-      });
+          position: selectedPosition,
+          imageUrl: memberImageUrl || undefined,
+        });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || "Failed to save band member", variant: "destructive" });
     }
   };
 
