@@ -465,6 +465,22 @@ export default function MyLibrary() {
                   <div className="w-32 h-32 rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center">
                     <img src={generatedCoverUrl} alt="Generated cover" className="w-full h-full object-cover" />
                   </div>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        if (!libraryAlbumId) return;
+                        await apiRequest(`/api/albums/${libraryAlbumId}`, 'PATCH', { coverUrl: generatedCoverUrl });
+                        toast({ title: 'Cover saved', description: 'Album cover was saved successfully.' });
+                        queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
+                        setGeneratedCoverUrl('');
+                      } catch (e) {
+                        toast({ title: 'Save failed', description: 'Could not save cover.', variant: 'destructive' });
+                      }
+                    }}
+                    className="mt-2 bg-music-accent hover:bg-music-accent/80"
+                  >
+                    Save as Cover
+                  </Button>
                 </div>
               )}
             </div>
