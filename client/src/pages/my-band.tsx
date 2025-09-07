@@ -73,6 +73,11 @@ export default function MyBand() {
   const [memberImageUrl, setMemberImageUrl] = useState<string | null>(null);
   const [memberImageDescription, setMemberImageDescription] = useState<string>("");
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [showBandPictureModal, setShowBandPictureModal] = useState(false);
+  const [bandPicturePrompt, setBandPicturePrompt] = useState("");
+  const [bandPictureRequestId, setBandPictureRequestId] = useState<string | null>(null);
+  const [bandPictureUrl, setBandPictureUrl] = useState<string | null>(null);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
   // Fetch user's band data
   const { data: bandData, isLoading } = useQuery({
@@ -103,6 +108,54 @@ export default function MyBand() {
         variant: "destructive",
       });
     },
+  });
+
+  // Generate band picture
+  const generateBandPictureMutation = useMutation({
+    mutationFn: async (payload: { prompt: string; memberIds: string[] }) => {
+      const response = await apiRequest('/api/band/generate-picture', 'POST', payload);
+      return await response.json();
+    },
+    onSuccess: (data: { requestId: string }) => {
+      setBandPictureRequestId(data.requestId);
+    },
+  });
+
+  // Poll band picture status
+  useEffect(() => {
+    if (!bandPictureRequestId) return;
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      try {
+        const res = await apiRequest(`/api/band/picture-status/${bandPictureRequestId}`, 'GET');
+        const data = await res.json();
+        if (data.status === 'completed' && data.imageUrl) {
+          if (!cancelled) setBandPictureUrl(data.imageUrl);
+          clearInterval(interval);
+        } else if (data.status === 'failed') {
+          clearInterval(interval);
+          toast({ title: 'Error', description: data.error || 'Generation failed', variant: 'destructive' });
+        }
+      } catch {}
+    }, 2000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [bandPictureRequestId]);
+
+  // Save band picture
+  const saveBandPictureMutation = useMutation({
+    mutationFn: async (imageUrl: string) => {
+      const res = await apiRequest('/api/band/save-picture', 'POST', { imageUrl });
+      return await res.json();
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/band'] });
+      setShowBandPictureModal(false);
+      setBandPicturePrompt("");
+      setBandPictureRequestId(null);
+      setBandPictureUrl(null);
+      setSelectedMemberIds([]);
+      toast({ title: 'Saved', description: 'Band picture saved successfully!' });
+    }
   });
 
   // Add/update band member mutation
@@ -665,6 +718,82 @@ export default function MyBand() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate Band Picture button under members */}
+      {bandData?.band && (
+        <div className="max-w-6xl mx-auto mt-8">
+          <Button
+            onClick={() => setShowBandPictureModal(true)}
+            className="w-full bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
+          >
+            Generate Band Picture
+          </Button>
+        </div>
+      )}
+
+      {/* Generate Band Picture Modal */}
+      <Dialog open={showBandPictureModal} onOpenChange={setShowBandPictureModal}>
+        <DialogContent className="bg-music-secondary border-gray-700 max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Generate Band Picture</DialogTitle>
+            <DialogDescription className="text-gray-300">Describe the scene and choose which members to include.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Prompt</label>
+              <Textarea
+                value={bandPicturePrompt}
+                onChange={(e) => setBandPicturePrompt(e.target.value)}
+                placeholder="e.g., the characters are singing at a concert with neon lights"
+                className="bg-gray-800 border-gray-600 text-white"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-3">Members</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {(bandData?.members || []).map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setSelectedMemberIds(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id])}
+                    className={`rounded-lg border ${selectedMemberIds.includes(m.id) ? 'border-music-blue' : 'border-gray-700'} p-2 bg-gray-800 hover:bg-gray-700`}
+                  >
+                    <div className="w-24 h-24 mx-auto rounded bg-gray-700 overflow-hidden flex items-center justify-center">
+                      {m.imageUrl ? <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" /> : <Users className="text-gray-400" />}
+                    </div>
+                    <div className="mt-2 text-center text-white text-sm">{m.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {bandPictureUrl && (
+              <div className="text-center space-y-3">
+                <img src={bandPictureUrl} alt="Band picture" className="mx-auto max-h-80 rounded-lg border border-gray-700" />
+                <div className="flex gap-2 justify-center">
+                  <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800" onClick={() => setBandPictureUrl(null)}>Generate Another</Button>
+                  <Button className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600" onClick={() => saveBandPictureMutation.mutate(bandPictureUrl!)}>Save</Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800" onClick={() => setShowBandPictureModal(false)}>Close</Button>
+            <Button
+              disabled={!bandPicturePrompt.trim() || selectedMemberIds.length === 0 || !!bandPictureUrl || generateBandPictureMutation.isPending}
+              className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600"
+              onClick={() => generateBandPictureMutation.mutate({ prompt: bandPicturePrompt.trim(), memberIds: selectedMemberIds })}
+            >
+              {generateBandPictureMutation.isPending ? <LoadingSpinner className="h-4 w-4 mr-2" /> : null}
+              Generate
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

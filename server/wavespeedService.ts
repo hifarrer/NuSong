@@ -162,6 +162,31 @@ export class WavespeedService {
     
     throw new Error('Image generation timed out');
   }
+
+  // Band picture edit (multi-image)
+  async generateBandPicture(prompt: string, imageUrls: string[]): Promise<string> {
+    const enhanced = `An album cover where the characters are in a music band. ${prompt}`;
+    const body = {
+      enable_base64_output: false,
+      enable_sync_mode: false,
+      images: imageUrls,
+      output_format: 'jpeg',
+      prompt: enhanced,
+    } as any;
+
+    const response = await fetch(`${this.baseUrl}/google/nano-banana/edit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) throw new Error(`Wavespeed error ${response.status}`);
+    const json = await response.json() as any;
+    if (json.code !== 200) throw new Error(json.message || 'Generation failed');
+    return json.data.id as string;
+  }
 }
 
 export const wavespeedService = new WavespeedService();

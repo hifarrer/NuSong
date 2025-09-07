@@ -3162,6 +3162,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate band picture (edit API)
+  app.post('/api/band/generate-picture', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { prompt, memberIds } = req.body as { prompt: string; memberIds: string[] };
+      if (!prompt || !Array.isArray(memberIds) || memberIds.length === 0) {
+        return res.status(400).json({ message: 'Prompt and memberIds are required' });
+      }
+      // Load user band and validate members
+      const bandResult = await pool.query('SELECT id FROM bands WHERE user_id = $1', [userId]);
+      if (bandResult.rows.length === 0) return res.status(400).json({ message: 'User does not have a band' });
+      const bandId = bandResult.rows[0].id;
+      const members = await pool.query(
+        `SELECT id, image_url FROM band_members WHERE band_id = $1 AND id = ANY($2::varchar[])`,
+        [bandId, memberIds]
+      );
+      const imageUrls: string[] = [];
+      for (const m of members.rows) {
+        const url = m.image_url as string | null;
+        if (url) {
+          // convert internal /objects/* to absolute public URL
+          const absolute = url.startsWith('/objects/') ? `${req.protocol}://${req.get('host')}${url}` : url;
+          imageUrls.push(absolute);
+        }
+      }
+      if (imageUrls.length === 0) return res.status(400).json({ message: 'Selected members have no images' });
+      const requestId = await wavespeedService.generateBandPicture(prompt, imageUrls);
+      res.json({ requestId });
+    } catch (e) {
+      console.error('Error starting band picture generation:', e);
+      res.status(500).json({ message: 'Failed to start generation' });
+    }
+  });
+
+  // Poll band picture status
+  app.get('/api/band/picture-status/:requestId', requireAuth, async (req: any, res) => {
+    try {
+      const { requestId } = req.params;
+      const status = await wavespeedService.checkImageStatus(requestId);
+      res.json({
+        status: status.status,
+        imageUrl: status.status === 'completed' ? status.outputs[0] : null,
+        error: status.error,
+      });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to check status' });
+    }
+  });
+
+  // Save band picture to band
+  app.post('/api/band/save-picture', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { imageUrl } = req.body as { imageUrl: string };
+      if (!imageUrl) return res.status(400).json({ message: 'imageUrl is required' });
+      const bandResult = await pool.query('SELECT id FROM bands WHERE user_id = $1', [userId]);
+      if (bandResult.rows.length === 0) return res.status(400).json({ message: 'User does not have a band' });
+      const bandId = bandResult.rows[0].id;
+
+      // Download external and store into generated/
+      const storageService = getStorageService();
+      const resp = await fetch(imageUrl);
+      if (!resp.ok) throw new Error('download failed');
+      const arr = await resp.arrayBuffer();
+      const buf = Buffer.from(arr);
+
+      let savedUrl: string;
+      if (storageService instanceof GCSStorageService) {
+        const fileName = `band-images/${bandId}-${Date.now()}.jpeg`;
+        savedUrl = await storageService.uploadImageBuffer(new Uint8Array(buf), fileName);
+      } else {
+        throw new Error('Image upload not supported for this storage service');
+      }
+
+      await pool.query('UPDATE bands SET band_image_url = $1, updated_at = NOW() WHERE id = $2', [savedUrl, bandId]);
+      res.json({ bandImageUrl: savedUrl });
+    } catch (e) {
+      console.error('Error saving band picture:', e);
+      res.status(500).json({ message: 'Failed to save band picture' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
