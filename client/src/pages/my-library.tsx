@@ -26,7 +26,8 @@ import {
   EyeOff,
   Plus,
   Settings,
-  Mic
+  Mic,
+  Users
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
@@ -50,6 +51,7 @@ export default function MyLibrary() {
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [generatedCoverUrl, setGeneratedCoverUrl] = useState("");
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [selectedMemberIdsForCover, setSelectedMemberIdsForCover] = useState<string[]>([]);
   const imageFileInputRef = (undefined as any) as React.MutableRefObject<HTMLInputElement | null>;
 
   // Fetch user's albums
@@ -62,6 +64,13 @@ export default function MyLibrary() {
   // Fetch user's generations
   const { data: generations, isLoading } = useQuery({
     queryKey: ["/api/my-generations"],
+    enabled: isAuthenticated,
+    retry: false,
+  });
+
+  // Fetch user's band data for album cover generation
+  const { data: bandData } = useQuery({
+    queryKey: ["/api/band"],
     enabled: isAuthenticated,
     retry: false,
   });
