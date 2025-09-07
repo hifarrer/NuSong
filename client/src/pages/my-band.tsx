@@ -542,7 +542,7 @@ export default function MyBand() {
                       )}
                       {bandData.band.bandImageUrl && (
                         <div className="mt-4">
-                          <div className="w-full max-w-xl aspect-square rounded-lg border border-gray-700 overflow-hidden">
+                          <div className="w-full max-w-xl aspect-square rounded-lg border border-gray-700 overflow-hidden mx-auto">
                             <img src={bandData.band.bandImageUrl} alt="Band" className="w-full h-full object-cover" />
                           </div>
                         </div>

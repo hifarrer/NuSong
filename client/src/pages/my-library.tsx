@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -33,12 +34,23 @@ export default function MyLibrary() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [libraryAlbumId, setLibraryAlbumId] = useState<string>("");
   const [shareUrl, setShareUrl] = useState<string>("");
   const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [trackToDelete, setTrackToDelete] = useState<MusicGeneration | null>(null);
+
+  // Album modals state (ported from create page)
+  const [showCreateAlbum, setShowCreateAlbum] = useState(false);
+  const [newAlbumName, setNewAlbumName] = useState("");
+  const [showEditAlbum, setShowEditAlbum] = useState(false);
+  const [editAlbumName, setEditAlbumName] = useState("");
+  const [editAlbumPrompt, setEditAlbumPrompt] = useState("");
+  const [isGeneratingCover, setIsGeneratingCover] = useState(false);
+  const [generatedCoverUrl, setGeneratedCoverUrl] = useState("");
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const imageFileInputRef = (undefined as any) as React.MutableRefObject<HTMLInputElement | null>;
 
   // Fetch user's albums
   const { data: albums } = useQuery({
@@ -214,6 +226,13 @@ export default function MyLibrary() {
                   ))}
                 </SelectContent>
               </Select>
+
+              <Button type="button" variant="outline" className="border-gray-600" onClick={() => setShowCreateAlbum(true)}>Create New</Button>
+              <Button type="button" variant="outline" className="border-gray-600" onClick={() => {
+                const current = (albums || []).find((a: any) => a.id === libraryAlbumId);
+                setEditAlbumName((current as any)?.name || "");
+                setShowEditAlbum(true);
+              }}>Edit Album</Button>
               
               <div className="flex gap-2">
                 <Button 
@@ -302,6 +321,159 @@ export default function MyLibrary() {
         </Card>
       </div>
 
+      {/* Create Album Modal */}
+      <Dialog open={showCreateAlbum} onOpenChange={setShowCreateAlbum}>
+        <DialogContent className="bg-music-secondary border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Create New Album</DialogTitle>
+            <DialogDescription className="text-gray-400">Give your album a name. You can add a cover later.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Album Name</label>
+              <Input value={newAlbumName} onChange={(e) => setNewAlbumName(e.target.value)} placeholder="e.g., My First Album" className="bg-music-dark border-gray-600 text-white placeholder-gray-400" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" className="border-gray-600" onClick={() => setShowCreateAlbum(false)}>Cancel</Button>
+            <Button
+              onClick={async () => {
+                if (!newAlbumName.trim()) return;
+                try {
+                  const res = await apiRequest('/api/albums', 'POST', { name: newAlbumName.trim() });
+                  await res.json();
+                  setNewAlbumName('');
+                  setShowCreateAlbum(false);
+                  queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
+                } catch (e) {
+                  toast({ title: 'Error', description: 'Failed to create album', variant: 'destructive' });
+                }
+              }}
+              className="bg-music-accent hover:bg-music-accent/80"
+            >
+              Create
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Album Modal */}
+      <Dialog open={showEditAlbum} onOpenChange={(open) => {
+        setShowEditAlbum(open);
+        if (!open) {
+          setGeneratedCoverUrl('');
+        }
+      }}>
+        <DialogContent className="bg-music-secondary border-gray-700 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white">Edit Album</DialogTitle>
+            <DialogDescription className="text-gray-400">Rename album or set a cover image.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Album Name</label>
+              <Input value={editAlbumName} onChange={(e) => setEditAlbumName(e.target.value)} placeholder="Album name" className="bg-music-dark border-gray-600 text-white placeholder-gray-400" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Describe your ideal cover image</label>
+              <Textarea
+                value={editAlbumPrompt}
+                onChange={(e) => setEditAlbumPrompt(e.target.value)}
+                placeholder="Prompt to generate album cover..."
+                rows={3}
+                className="bg-music-dark border-gray-600 text-white placeholder-gray-400"
+              />
+              <div className="mt-2">
+                <Button
+                  disabled={isGeneratingCover || !libraryAlbumId || !editAlbumPrompt.trim()}
+                  onClick={async () => {
+                    try {
+                      setIsGeneratingCover(true);
+                      setGeneratedCoverUrl('');
+                      const resp = await apiRequest(`/api/albums/${libraryAlbumId}/generate-cover`, 'POST', { prompt: editAlbumPrompt.trim() });
+                      const data = await resp.json();
+                      setGeneratedCoverUrl(data.coverUrl);
+                      toast({ title: 'Cover updated', description: 'Album cover was generated successfully.' });
+                      queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
+                      setEditAlbumPrompt('');
+                    } catch (e) {
+                      toast({ title: 'Generation failed', description: 'Could not generate cover.', variant: 'destructive' });
+                    } finally {
+                      setIsGeneratingCover(false);
+                    }
+                  }}
+                  className="bg-music-accent hover:bg-music-accent/80"
+                >
+                  {isGeneratingCover ? 'Generating…' : 'Generate Cover'}
+                </Button>
+              </div>
+              {generatedCoverUrl && (
+                <div className="mt-4">
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Generated Cover Preview</label>
+                  <div className="w-32 h-32 rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center">
+                    <img src={generatedCoverUrl} alt="Generated cover" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Upload Cover Image</label>
+              <input ref={imageFileInputRef as any} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !libraryAlbumId) return;
+                try {
+                  setIsUploadingCover(true);
+                  const uploadInit = await apiRequest('/api/objects/upload', 'POST');
+                  const upData = await uploadInit.json();
+                  await fetch(upData.uploadURL, { method: 'PUT', body: file, headers: { 'Content-Type': 'application/octet-stream' } });
+                  const norm = await apiRequest('/api/objects/normalize-path', 'POST', { uploadURL: upData.uploadURL });
+                  const normData = await norm.json();
+                  await apiRequest(`/api/albums/${libraryAlbumId}`, 'PATCH', { coverUrl: normData.objectPath });
+                  toast({ title: 'Cover updated', description: 'Album cover was uploaded successfully.' });
+                  queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
+                } catch (err) {
+                  toast({ title: 'Upload failed', description: 'Could not upload cover.', variant: 'destructive' });
+                } finally {
+                  setIsUploadingCover(false);
+                }
+              }} />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="border-gray-600"
+                  disabled={isUploadingCover}
+                  onClick={() => (imageFileInputRef as any)?.current?.click?.()}
+                >
+                  {isUploadingCover ? 'Uploading…' : 'Upload Image'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-gray-600"
+                  onClick={async () => {
+                    try {
+                      if (!libraryAlbumId) return;
+                      await apiRequest(`/api/albums/${libraryAlbumId}`, 'PATCH', { name: editAlbumName.trim() });
+                      toast({ title: 'Album renamed', description: 'Name updated successfully.' });
+                      queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
+                    } catch (e) {
+                      toast({ title: 'Rename failed', description: 'Could not rename album.', variant: 'destructive' });
+                    }
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" className="border-gray-600" onClick={() => setShowEditAlbum(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent className="sm:max-w-md">
