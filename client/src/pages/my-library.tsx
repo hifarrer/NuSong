@@ -364,7 +364,7 @@ export default function MyLibrary() {
           setGeneratedCoverUrl('');
         }
       }}>
-        <DialogContent className="bg-music-secondary border-gray-700 max-w-lg">
+        <DialogContent className="bg-music-secondary border-gray-700 max-w-3xl">
           <DialogHeader>
             <DialogTitle className="text-white">Edit Album</DialogTitle>
             <DialogDescription className="text-gray-400">Rename album or set a cover image.</DialogDescription>
@@ -385,6 +385,33 @@ export default function MyLibrary() {
                 rows={3}
                 className="bg-music-dark border-gray-600 text-white placeholder-gray-400"
               />
+              {/* Band members selection */}
+              <div className="mt-3">
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Select Band Members</label>
+                {bandData?.members && bandData.members.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {bandData.members.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setSelectedMemberIdsForCover((prev) => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id])}
+                        className={`rounded-lg border ${selectedMemberIdsForCover.includes(m.id) ? 'border-music-blue' : 'border-gray-700'} p-2 bg-gray-800 hover:bg-gray-700`}
+                      >
+                        <div className="w-20 h-20 mx-auto rounded bg-gray-700 overflow-hidden flex items-center justify-center">
+                          {m.imageUrl ? (
+                            <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Users className="text-gray-400" />
+                          )}
+                        </div>
+                        <div className="mt-2 text-center text-white text-xs">{m.name}</div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">No band members found. Create your band in the My Band page to use this feature.</p>
+                )}
+              </div>
               <div className="mt-2">
                 <Button
                   disabled={isGeneratingCover || !libraryAlbumId || !editAlbumPrompt.trim() || (bandData?.members?.length ? selectedMemberIdsForCover.length === 0 : false)}
