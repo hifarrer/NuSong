@@ -3111,12 +3111,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Download and save the image to our storage
       const storageService = getStorageService();
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error('Failed to download image');
+      let imageBuffer: Buffer;
+      if (typeof imageUrl === 'string' && imageUrl.startsWith('/objects/')) {
+        // Download directly from our storage if it's an internal object path
+        const objectFile: any = await storageService.getObjectEntityFile(imageUrl);
+        const [buf] = await objectFile.download();
+        imageBuffer = buf as Buffer;
+      } else {
+        // Absolute URL
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          throw new Error('Failed to download image');
+        }
+        const arr = await imageResponse.arrayBuffer();
+        imageBuffer = Buffer.from(arr);
       }
-      
-      const imageBuffer = await imageResponse.buffer();
       const fileName = `band-members/${memberId}-${Date.now()}.png`;
       
       let savedUrl: string;
