@@ -387,21 +387,35 @@ export default function MyLibrary() {
               />
               <div className="mt-2">
                 <Button
-                  disabled={isGeneratingCover || !libraryAlbumId || !editAlbumPrompt.trim()}
+                  disabled={isGeneratingCover || !libraryAlbumId || !editAlbumPrompt.trim() || (bandData?.members?.length ? selectedMemberIdsForCover.length === 0 : false)}
                   onClick={async () => {
                     try {
                       setIsGeneratingCover(true);
                       setGeneratedCoverUrl('');
-                      const resp = await apiRequest(`/api/albums/${libraryAlbumId}/generate-cover`, 'POST', { prompt: editAlbumPrompt.trim() });
-                      const data = await resp.json();
-                      setGeneratedCoverUrl(data.coverUrl);
-                      toast({ title: 'Cover updated', description: 'Album cover was generated successfully.' });
-                      queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
-                      setEditAlbumPrompt('');
+                      const res = await apiRequest('/api/band/generate-picture', 'POST', {
+                        prompt: editAlbumPrompt.trim(),
+                        memberIds: selectedMemberIdsForCover,
+                      });
+                      const data = await res.json();
+                      const reqId = data.requestId;
+                      const interval = setInterval(async () => {
+                        try {
+                          const st = await apiRequest(`/api/band/picture-status/${reqId}`, 'GET');
+                          const sj = await st.json();
+                          if (sj.status === 'completed' && sj.imageUrl) {
+                            setGeneratedCoverUrl(sj.imageUrl);
+                            clearInterval(interval);
+                            setIsGeneratingCover(false);
+                          } else if (sj.status === 'failed') {
+                            clearInterval(interval);
+                            setIsGeneratingCover(false);
+                            toast({ title: 'Generation failed', description: sj.error || 'Could not generate cover.', variant: 'destructive' });
+                          }
+                        } catch {}
+                      }, 2000);
                     } catch (e) {
-                      toast({ title: 'Generation failed', description: 'Could not generate cover.', variant: 'destructive' });
-                    } finally {
                       setIsGeneratingCover(false);
+                      toast({ title: 'Generation failed', description: 'Could not start generation.', variant: 'destructive' });
                     }
                   }}
                   className="bg-music-accent hover:bg-music-accent/80"
