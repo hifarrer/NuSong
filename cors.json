@@ -1,8 +1,21 @@
 [
   {
-    "origin": ["https://nusong.ai", "http://localhost:5173", "http://localhost:3000"],
+    "origin": [
+      "https://nusong.ai",
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://localhost:5000"
+    ],
     "method": ["PUT", "GET", "HEAD", "OPTIONS"],
-    "responseHeader": ["Content-Type", "x-goog-resumable", "x-goog-meta-*"],
+    "responseHeader": [
+      "Content-Type",
+      "ETag",
+      "Content-Length",
+      "x-goog-resumable",
+      "x-goog-hash",
+      "x-goog-request-id",
+      "x-goog-meta-*"
+    ],
     "maxAgeSeconds": 3600
   }
 ]

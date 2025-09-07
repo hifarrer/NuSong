@@ -67,6 +67,54 @@ html, body {
   --music-accent: hsl(258.3784 90.5405% 66.2745%);
 }
 
+/* Uppy Dashboard dark theme overrides */
+.uppy-Dashboard--modal .uppy-Dashboard-inner {
+  background-color: #0b0b0e; /* near-black */
+  color: #e5e7eb; /* gray-200 */
+}
+
+.uppy-Dashboard--modal .uppy-DashboardContent-bar,
+.uppy-Dashboard--modal .uppy-StatusBar {
+  background-color: #111827; /* gray-900 */
+  color: #e5e7eb;
+  border-color: #374151; /* gray-700 */
+}
+
+.uppy-Dashboard--modal .uppy-DashboardContent-title,
+.uppy-Dashboard--modal .uppy-DashboardContent-back,
+.uppy-Dashboard--modal .uppy-Dashboard-close,
+.uppy-Dashboard--modal .uppy-Dashboard-note,
+.uppy-Dashboard--modal .uppy-Dashboard-browse {
+  color: #e5e7eb;
+}
+
+.uppy-Dashboard--modal .uppy-Dashboard-browse {
+  color: #93c5fd; /* light blue link */
+}
+
+.uppy-Dashboard--modal .uppy-Dashboard-AddFiles,
+.uppy-Dashboard--modal .uppy-DashboardItem,
+.uppy-Dashboard--modal .uppy-Dashboard-dropFilesHereHint {
+  background-color: #0f172a; /* slate-900 */
+  color: #e5e7eb;
+  border-color: #374151;
+}
+
+.uppy-Dashboard--modal .uppy-StatusBar-actionBtn {
+  background-color: #4f46e5; /* indigo-600 */
+  color: #ffffff;
+}
+
+.uppy-Dashboard--modal .uppy-StatusBar-actionBtn:hover {
+  background-color: #4338ca; /* indigo-700 */
+}
+
+.uppy-Dashboard--modal .uppy-ProviderBrowser-header,
+.uppy-Dashboard--modal .uppy-ProviderBrowser-breadcrumbs {
+  background-color: #0b0b0e;
+  color: #e5e7eb;
+}
+
 .dark {
   --background: hsl(0 0% 0%);
   --foreground: hsl(200 6.6667% 91.1765%);
