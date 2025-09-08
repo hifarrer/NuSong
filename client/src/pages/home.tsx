@@ -74,7 +74,7 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab === 'textToMusic' || tab === 'audioToMusic' || tab === 'myLibrary') {
+    if (tab === 'textToMusic' || tab === 'audioToMusic') {
       setActiveTab(tab);
     }
   }, []);
@@ -100,38 +100,14 @@ export default function Home() {
 
   const [albumIdText, setAlbumIdText] = useState<string>("");
   const [albumIdAudio, setAlbumIdAudio] = useState<string>("");
-  const [libraryAlbumId, setLibraryAlbumId] = useState<string>("");
-  
-  // Clear share URL when album selection changes
-  const handleLibraryAlbumChange = (albumId: string) => {
-    setLibraryAlbumId(albumId);
-    setShareUrl(""); // Clear cached share URL to force regeneration
-  };
-  const [showCreateAlbum, setShowCreateAlbum] = useState(false);
-  const [newAlbumName, setNewAlbumName] = useState("");
-  const [newAlbumCoverUrl, setNewAlbumCoverUrl] = useState("");
-  const [showEditAlbum, setShowEditAlbum] = useState(false);
-  const [editAlbumName, setEditAlbumName] = useState("");
-  const [editAlbumPrompt, setEditAlbumPrompt] = useState("");
-  const [isGeneratingCover, setIsGeneratingCover] = useState(false);
-  const [isUploadingCover, setIsUploadingCover] = useState(false);
-  const [generatedCoverUrl, setGeneratedCoverUrl] = useState<string>("");
-  const [shareUrl, setShareUrl] = useState<string>("");
-  const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
-  const imageFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (albums && albums.length > 0) {
       const def = albums.find(a => (a as any).isDefault === true) || albums[0];
       if (!albumIdText) setAlbumIdText(def.id);
       if (!albumIdAudio) setAlbumIdAudio(def.id);
-      if (!libraryAlbumId) setLibraryAlbumId(def.id);
-      const current = albums.find((a: any) => a.id === (libraryAlbumId || def.id));
-      if (current && !showEditAlbum) {
-        setEditAlbumName(current.name || "");
-      }
     }
-  }, [albums]);
+  }, [albums, albumIdText, albumIdAudio]);
 
   // Fetch user's generation status
   const { data: generationStatus } = useQuery({
@@ -400,68 +376,6 @@ export default function Home() {
     }
   };
 
-  // Share album functionality
-  const generateShareLink = async (albumId: string) => {
-    try {
-      setIsGeneratingShareLink(true);
-      
-      // First try to get existing share link
-      try {
-        const response = await apiRequest(`/api/albums/${albumId}/share`, 'GET');
-        const data = await response.json();
-        setShareUrl(data.shareUrl);
-        return data.shareUrl;
-      } catch (error) {
-        // If no existing link, create a new one
-        const response = await apiRequest(`/api/albums/${albumId}/share`, 'POST');
-        const data = await response.json();
-        setShareUrl(data.shareUrl);
-        return data.shareUrl;
-      }
-    } catch (error) {
-      console.error('Error generating share link:', error);
-      toast({ 
-        title: 'Share failed', 
-        description: 'Could not generate share link.', 
-        variant: 'destructive' 
-      });
-      return null;
-    } finally {
-      setIsGeneratingShareLink(false);
-    }
-  };
-
-  const copyShareLink = async (albumId: string) => {
-    try {
-      const url = await generateShareLink(albumId);
-      await navigator.clipboard.writeText(url);
-      toast({ 
-        title: 'Link copied!', 
-        description: 'Share link copied to clipboard.' 
-      });
-    } catch (error) {
-      console.error('Error copying to clipboard:', error);
-      toast({ 
-        title: 'Copy failed', 
-        description: 'Could not copy link to clipboard.', 
-        variant: 'destructive' 
-      });
-    }
-  };
-
-  const openShareLink = async (albumId: string) => {
-    try {
-      const url = await generateShareLink(albumId);
-      window.open(url, '_blank');
-    } catch (error) {
-      console.error('Error opening share link:', error);
-      toast({ 
-        title: 'Open failed', 
-        description: 'Could not open share link.', 
-        variant: 'destructive' 
-      });
-    }
-  };
 
   if (isLoading) {
     return (
@@ -496,14 +410,6 @@ export default function Home() {
             >
               <AudioWaveform className="mr-2 h-4 w-4" />
               Audio to Music
-            </TabsTrigger>
-            <TabsTrigger 
-              value="myLibrary"
-              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white flex items-center justify-center h-8 rounded-md transition-all"
-              data-testid="tab-my-library"
-            >
-              <Music className="mr-2 h-4 w-4" />
-              My Library
             </TabsTrigger>
           </TabsList>
 
@@ -1179,137 +1085,6 @@ export default function Home() {
             </div>
           </TabsContent>
 
-          <TabsContent value="myLibrary" className="space-y-6 sm:space-y-8">
-            {/* Generation Status Indicator */}
-            {generationStatus && (
-              <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${generationStatus.canGenerate ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="text-sm text-gray-300">
-                      Generations: {generationStatus.currentUsage} / {generationStatus.maxGenerations} used this month
-                    </span>
-                  </div>
-                  {!generationStatus.canGenerate && (
-                    <div className="text-sm text-orange-400">
-                      ⚠️ Limit reached. Upgrade your plan to continue generating.
-                    </div>
-                  )}
-                </div>
-                <div className="mt-2 w-full bg-gray-700 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      generationStatus.canGenerate 
-                        ? 'bg-gradient-to-r from-green-500 to-blue-500' 
-                        : 'bg-red-500'
-                    }`}
-                    style={{ width: `${Math.min((generationStatus.currentUsage / generationStatus.maxGenerations) * 100, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
-            
-            <div>
-              <Card className="bg-music-secondary border-gray-700">
-                <CardHeader className="pb-4 sm:pb-6">
-                  <CardTitle className="flex items-center">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                      <Music className="text-xs sm:text-sm text-white" />
-                    </div>
-                    <span className="text-music-blue text-sm sm:text-base truncate">My Music Library ({Array.isArray(generations) ? generations.length : 0} tracks)</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-                  {/* Album Filter */}
-                  <div className="mb-4 flex items-center gap-2">
-                    <label className="text-sm text-gray-300">Album</label>
-                    <Select value={libraryAlbumId} onValueChange={handleLibraryAlbumChange}>
-                      <SelectTrigger className="w-64 bg-music-dark border-gray-600 text-white focus:border-music-blue">
-                        <SelectValue placeholder="All albums" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-music-dark border-gray-600">
-                        {(albums || []).map((a: any) => (
-                          <SelectItem key={a.id} value={a.id} className="text-white hover:bg-gray-700">
-                            {a.name}{a.isDefault ? " (Default)" : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button type="button" variant="outline" className="border-gray-600" onClick={() => setShowCreateAlbum(true)}>Create New</Button>
-                    <Button type="button" variant="outline" className="border-gray-600" onClick={() => {
-                      const current = (albums || []).find((a: any) => a.id === libraryAlbumId);
-                      setEditAlbumName((current as any)?.name || "");
-                      setShowEditAlbum(true);
-                    }}>Edit Album</Button>
-                    <div className="flex gap-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        className="border-gray-600"
-                        disabled={isGeneratingShareLink || !libraryAlbumId}
-                        onClick={() => copyShareLink(libraryAlbumId)}
-                      >
-                        {isGeneratingShareLink ? (
-                          <>
-                            <LoadingSpinner className="w-4 h-4 mr-2" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-4 h-4 mr-2" />
-                            Copy Link
-                          </>
-                        )}
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        className="border-gray-600"
-                        disabled={isGeneratingShareLink || !libraryAlbumId}
-                        onClick={() => openShareLink(libraryAlbumId)}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Open
-                      </Button>
-                    </div>
-                  </div>
-                  {!generations || !Array.isArray(generations) || generations.length === 0 ? (
-                    <div className="text-center py-8 sm:py-12">
-                      <Music className="h-12 w-12 sm:h-16 sm:w-16 text-gray-600 mx-auto mb-4" />
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-400 mb-2">No tracks yet</h3>
-                      <p className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6 px-4">Create your first AI-generated track to start your music library.</p>
-                      
-                    </div>
-                  ) : (
-                    <>
-                      {/* Album cover thumbnail */}
-                      {libraryAlbumId && (
-                        <div className="flex justify-center mb-4">
-                          <div className="w-40 h-40 rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center">
-                            {(() => {
-                              const alb = (albums || []).find((a: any) => a.id === libraryAlbumId);
-                              if (alb && alb.coverUrl) {
-                                return <img src={alb.coverUrl} alt={alb.name} className="w-full h-full object-cover" />
-                              }
-                              return <img src="/nusong_cover.png" alt="Default album cover" className="w-full h-full object-cover" />;
-                            })()}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="grid gap-3 sm:gap-4">
-                      {(generations as MusicGeneration[])
-                        .filter((t: any) => !libraryAlbumId || t.albumId === libraryAlbumId)
-                        .map((track: MusicGeneration) => (
-                          <TrackCard key={track.id} track={track} user={user} albums={albums || []} />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
         </Tabs>
       </main>
 
@@ -1328,163 +1103,6 @@ export default function Home() {
         onUploadComplete={handleAudioUploadComplete}
       />
 
-      {/* Create Album Modal */}
-      <Dialog open={showCreateAlbum} onOpenChange={setShowCreateAlbum}>
-        <DialogContent className="bg-music-secondary border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Create New Album</DialogTitle>
-            <DialogDescription className="text-gray-400">Give your album a name. You can add a cover later.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Album Name</label>
-              <Input value={newAlbumName} onChange={(e) => setNewAlbumName(e.target.value)} placeholder="e.g., My First Album" className="bg-music-dark border-gray-600 text-white placeholder-gray-400" />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" className="border-gray-600" onClick={() => setShowCreateAlbum(false)}>Cancel</Button>
-            <Button
-              onClick={async () => {
-                if (!newAlbumName.trim()) return;
-                try {
-                  const res = await apiRequest('/api/albums', 'POST', { name: newAlbumName.trim() });
-                  await res.json();
-                  setNewAlbumName('');
-                  setShowCreateAlbum(false);
-                  queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
-                } catch (e) {
-                  toast({ title: 'Error', description: 'Failed to create album', variant: 'destructive' });
-                }
-              }}
-              className="bg-music-accent hover:bg-music-accent/80"
-            >
-              Create
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Album Modal */}
-      <Dialog open={showEditAlbum} onOpenChange={(open) => {
-        setShowEditAlbum(open);
-        if (!open) {
-          setGeneratedCoverUrl('');
-        }
-      }}>
-        <DialogContent className="bg-music-secondary border-gray-700 max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-white">Edit Album</DialogTitle>
-            <DialogDescription className="text-gray-400">Rename album or set a cover image.</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Album Name</label>
-              <Input value={editAlbumName} onChange={(e) => setEditAlbumName(e.target.value)} placeholder="Album name" className="bg-music-dark border-gray-600 text-white placeholder-gray-400" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Describe your ideal cover image</label>
-              <Textarea
-                value={editAlbumPrompt}
-                onChange={(e) => setEditAlbumPrompt(e.target.value)}
-                placeholder="Prompt to generate album cover..."
-                rows={3}
-                className="bg-music-dark border-gray-600 text-white placeholder-gray-400"
-              />
-              <div className="mt-2">
-                <Button
-                  disabled={isGeneratingCover || !libraryAlbumId || !editAlbumPrompt.trim()}
-                  onClick={async () => {
-                    try {
-                      setIsGeneratingCover(true);
-                      setGeneratedCoverUrl('');
-                      const resp = await apiRequest(`/api/albums/${libraryAlbumId}/generate-cover`, 'POST', { prompt: editAlbumPrompt.trim() });
-                      const data = await resp.json();
-                      setGeneratedCoverUrl(data.coverUrl);
-                      toast({ title: 'Cover updated', description: 'Album cover was generated successfully.' });
-                      queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
-                      setEditAlbumPrompt('');
-                    } catch (e) {
-                      toast({ title: 'Generation failed', description: 'Could not generate cover.', variant: 'destructive' });
-                    } finally {
-                      setIsGeneratingCover(false);
-                    }
-                  }}
-                  className="bg-music-accent hover:bg-music-accent/80"
-                >
-                  {isGeneratingCover ? 'Generating…' : 'Generate Cover'}
-                </Button>
-              </div>
-              
-              {/* Show generated image preview */}
-              {generatedCoverUrl && (
-                <div className="mt-4">
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Generated Cover Preview</label>
-                  <div className="w-32 h-32 rounded-lg overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center">
-                    <img src={generatedCoverUrl} alt="Generated cover" className="w-full h-full object-cover" />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Upload Cover Image</label>
-              <input ref={imageFileInputRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file || !libraryAlbumId) return;
-                try {
-                  setIsUploadingCover(true);
-                  // Upload using existing objects/upload -> normalize path, then PATCH album coverUrl
-                  const uploadInit = await apiRequest('/api/objects/upload', 'POST');
-                  const upData = await uploadInit.json();
-                  await fetch(upData.uploadURL, { method: 'PUT', body: file, headers: { 'Content-Type': 'application/octet-stream' } });
-                  const norm = await apiRequest('/api/objects/normalize-path', 'POST', { uploadURL: upData.uploadURL });
-                  const normData = await norm.json();
-                  await apiRequest(`/api/albums/${libraryAlbumId}`, 'PATCH', { coverUrl: normData.objectPath });
-                  toast({ title: 'Cover updated', description: 'Album cover was uploaded successfully.' });
-                  queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
-                } catch (err) {
-                  toast({ title: 'Upload failed', description: 'Could not upload image.', variant: 'destructive' });
-                } finally {
-                  setIsUploadingCover(false);
-                  if (imageFileInputRef.current) imageFileInputRef.current.value = '';
-                }
-              }} />
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="border-gray-600"
-                  disabled={isUploadingCover}
-                  onClick={() => imageFileInputRef.current?.click()}
-                >
-                  {isUploadingCover ? 'Uploading…' : 'Choose Image'}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" className="border-gray-600" onClick={() => setShowEditAlbum(false)}>Close</Button>
-            <Button
-              onClick={async () => {
-                if (!libraryAlbumId) return;
-                try {
-                  await apiRequest(`/api/albums/${libraryAlbumId}`, 'PATCH', { name: editAlbumName.trim() });
-                  toast({ title: 'Album updated', description: 'Name saved.' });
-                  queryClient.invalidateQueries({ queryKey: ['/api/albums'] });
-                  setShowEditAlbum(false);
-                } catch (e) {
-                  toast({ title: 'Update failed', description: 'Could not save name.', variant: 'destructive' });
-                }
-              }}
-              className="bg-music-accent hover:bg-music-accent/80"
-            >
-              Save
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

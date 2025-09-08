@@ -50,6 +50,26 @@ export class WavespeedService {
   }
 
   /**
+   * Helper method to retry a function once if it fails
+   * @param fn The function to retry
+   * @param context Context for logging
+   * @returns Promise with the result
+   */
+  private async retryOnce<T>(fn: () => Promise<T>, context: string): Promise<T> {
+    try {
+      return await fn();
+    } catch (error) {
+      console.log(`First attempt failed for ${context}, retrying once...`, error);
+      try {
+        return await fn();
+      } catch (retryError) {
+        console.error(`Retry also failed for ${context}:`, retryError);
+        throw retryError;
+      }
+    }
+  }
+
+  /**
    * Generate an image using Wavespeed AI
    * @param prompt The user's description
    * @returns Promise with the request ID
@@ -66,7 +86,7 @@ export class WavespeedService {
       size: '720*720'
     };
 
-    try {
+    return this.retryOnce(async () => {
       const response = await fetch(`${this.baseUrl}/wavespeed-ai/wan-2.2/text-to-image-realism`, {
         method: 'POST',
         headers: {
@@ -87,10 +107,7 @@ export class WavespeedService {
       }
 
       return result.data.id;
-    } catch (error) {
-      console.error('Error generating image with Wavespeed:', error);
-      throw new Error('Failed to generate image');
-    }
+    }, 'generateImage');
   }
 
   /**
@@ -99,7 +116,7 @@ export class WavespeedService {
    * @returns Promise with the result data
    */
   async checkImageStatus(requestId: string): Promise<WavespeedResultResponse['data']> {
-    try {
+    return this.retryOnce(async () => {
       const response = await fetch(`${this.baseUrl}/predictions/${requestId}/result`, {
         method: 'GET',
         headers: {
@@ -118,10 +135,7 @@ export class WavespeedService {
       }
 
       return result.data;
-    } catch (error) {
-      console.error('Error checking image status with Wavespeed:', error);
-      throw new Error('Failed to check image status');
-    }
+    }, 'checkImageStatus');
   }
 
   /**
@@ -174,18 +188,20 @@ export class WavespeedService {
       prompt: enhanced,
     } as any;
 
-    const response = await fetch(`${this.baseUrl}/google/nano-banana/edit`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) throw new Error(`Wavespeed error ${response.status}`);
-    const json = await response.json() as any;
-    if (json.code !== 200) throw new Error(json.message || 'Generation failed');
-    return json.data.id as string;
+    return this.retryOnce(async () => {
+      const response = await fetch(`${this.baseUrl}/google/nano-banana/edit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) throw new Error(`Wavespeed error ${response.status}`);
+      const json = await response.json() as any;
+      if (json.code !== 200) throw new Error(json.message || 'Generation failed');
+      return json.data.id as string;
+    }, 'generateBandPicture');
   }
 }
 
