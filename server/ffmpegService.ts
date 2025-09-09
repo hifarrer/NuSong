@@ -79,7 +79,9 @@ export async function trimAudio(params: FFMPEGTrimAudioParams): Promise<FFMPEGTr
     let publicAudioUrl: string;
     
     if (storageService.constructor.name === 'GCSStorageService') {
-      publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
+      const relativePath = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
+      // Convert relative path to public URL for FFMPEG
+      publicAudioUrl = await (storageService as any).getObjectEntityPublicUrl(relativePath, 3600);
     } else if (storageService.constructor.name === 'LocalStorageService') {
       publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
     } else if (storageService.constructor.name === 'RenderStorageService') {
@@ -161,7 +163,9 @@ export async function splitAudio(params: FFMPEGSplitAudioParams): Promise<FFMPEG
     let publicAudioUrl: string;
     
     if (storageService.constructor.name === 'GCSStorageService') {
-      publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
+      const relativePath = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
+      // Convert relative path to public URL for FFMPEG
+      publicAudioUrl = await (storageService as any).getObjectEntityPublicUrl(relativePath, 3600);
     } else if (storageService.constructor.name === 'LocalStorageService') {
       publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
     } else if (storageService.constructor.name === 'RenderStorageService') {
@@ -302,7 +306,9 @@ export async function mergeVideos(params: FFMPEGMergeVideosParams): Promise<FFMP
     let publicAudioUrl: string;
     
     if (storageService.constructor.name === 'GCSStorageService') {
-      publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
+      const relativePath = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
+      // Convert relative path to public URL for FFMPEG
+      publicAudioUrl = await (storageService as any).getObjectEntityPublicUrl(relativePath, 3600);
     } else if (storageService.constructor.name === 'LocalStorageService') {
       publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
     } else if (storageService.constructor.name === 'RenderStorageService') {
