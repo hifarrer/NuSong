@@ -1995,13 +1995,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Convert band character image URLs to public URLs for KIE.AI
           const publicBandImages = [];
           const storageService = getStorageService();
-          for (const imageUrl of bandCharacterImages) {
-            if (imageUrl.startsWith('/objects/')) {
+          
+          // For scenes 2, 4, 6 (close-up shots), only use the lead singer (first band member)
+          // For scenes 1, 3, 5 (medium/far shots), use all band members
+          const sceneNumber = i + 1;
+          const isCloseUpScene = sceneNumber === 2 || sceneNumber === 4 || sceneNumber === 6;
+          const imagesToUse = isCloseUpScene ? [bandCharacterImages[0]] : bandCharacterImages;
+          
+          console.log(`🎬 Scene ${sceneNumber}: ${isCloseUpScene ? 'Close-up (lead singer only)' : 'Medium/Far shot (all members)'}`);
+          
+          for (const imageUrl of imagesToUse) {
+            if (imageUrl && imageUrl.startsWith('/objects/')) {
               // Convert relative path to public URL
               const publicUrl = await (storageService as any).getObjectEntityPublicUrl(imageUrl, 3600);
               publicBandImages.push(publicUrl);
               console.log(`✅ Converted band image to public URL: ${publicUrl}`);
-            } else {
+            } else if (imageUrl) {
               publicBandImages.push(imageUrl);
             }
           }
@@ -2040,7 +2049,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         videoPrompt: videoPrompt.trim(),
         bandCharacterImages,
         audioParts: savedAudioParts,
-        audioSplitSuccess: true
+        audioSplitSuccess: true,
+        trimmedAudioUrl: audioTrimResult.download_url // Include the 30-second trimmed audio URL
       });
     } catch (error) {
       console.error('Error generating video scenes:', error);
@@ -2184,7 +2194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Merge videos endpoint (called when all videos are completed)
   app.post('/api/merge-videos', requireAuth, async (req, res) => {
     try {
-      const { trackId, videoTasks } = req.body;
+      const { trackId, videoTasks, trimmedAudioUrl } = req.body;
       
       if (!trackId || !videoTasks || !Array.isArray(videoTasks)) {
         return res.status(400).json({ message: 'Track ID and video tasks are required' });
@@ -2222,7 +2232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Merge videos using FFMPEG
       const mergeResult = await mergeVideos({
         video_urls: videoUrls,
-        audio_url: track.audioUrl || "", // Use original full audio
+        audio_url: trimmedAudioUrl || track.audioUrl || "", // Use 30-second trimmed audio if available, fallback to original
         subtitle_url: "",
         watermark_url: "",
         dimensions: "768x1024",

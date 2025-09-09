@@ -97,6 +97,7 @@ export default function Home() {
   const [sceneTasks, setSceneTasks] = useState<any[]>([]);
   const [showSceneResults, setShowSceneResults] = useState(false);
   const [audioParts, setAudioParts] = useState<string[]>([]);
+  const [trimmedAudioUrl, setTrimmedAudioUrl] = useState<string | null>(null);
   const [videoTasks, setVideoTasks] = useState<any[]>([]);
   const [isGeneratingVideos, setIsGeneratingVideos] = useState(false);
   const [isMergingVideos, setIsMergingVideos] = useState(false);
@@ -203,6 +204,7 @@ export default function Home() {
       setGeneratedScenes(result.scenes || []);
       setSceneTasks(result.sceneTasks || []);
       setAudioParts(result.audioParts || []);
+      setTrimmedAudioUrl(result.trimmedAudioUrl || null);
       setShowSceneResults(true);
       
       toast({
@@ -396,7 +398,8 @@ export default function Home() {
     try {
       const response = await apiRequest("/api/merge-videos", "POST", {
         trackId: selectedTrackForVideo.id,
-        videoTasks: completedVideoTasks
+        videoTasks: completedVideoTasks,
+        trimmedAudioUrl: trimmedAudioUrl
       });
       
       const result = await response.json();
@@ -1555,6 +1558,7 @@ export default function Home() {
                   setGeneratedScenes([]);
                   setSceneTasks([]);
                   setAudioParts([]);
+                  setTrimmedAudioUrl(null);
                   setVideoTasks([]);
                   setFinalVideoUrl(null);
                 }}
@@ -1756,13 +1760,15 @@ export default function Home() {
                       🎉 Final Music Video
                     </h5>
                     <div className="bg-music-dark rounded-lg p-4">
-                      <video
-                        src={finalVideoUrl}
-                        controls
-                        className="w-full h-64 md:h-80 object-cover rounded border border-gray-600"
-                        preload="metadata"
-                        poster={selectedTrackForVideo?.coverUrl}
-                      />
+                      <div className="w-full max-w-md mx-auto">
+                        <video
+                          src={finalVideoUrl}
+                          controls
+                          className="w-full aspect-[3/4] object-cover rounded border border-gray-600"
+                          preload="metadata"
+                          poster={selectedTrackForVideo?.coverUrl}
+                        />
+                      </div>
                       <div className="mt-3 flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-300">
