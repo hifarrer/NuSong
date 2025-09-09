@@ -1992,9 +1992,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (let i = 0; i < scenes.length; i++) {
         const scenePrompt = scenes[i];
         try {
+          // Convert band character image URLs to public URLs for KIE.AI
+          const publicBandImages = [];
+          const storageService = getStorageService();
+          for (const imageUrl of bandCharacterImages) {
+            if (imageUrl.startsWith('/objects/')) {
+              // Convert relative path to public URL
+              const publicUrl = await (storageService as any).getObjectEntityPublicUrl(imageUrl, 3600);
+              publicBandImages.push(publicUrl);
+              console.log(`✅ Converted band image to public URL: ${publicUrl}`);
+            } else {
+              publicBandImages.push(imageUrl);
+            }
+          }
+          
           const sceneTask = await generateSceneImage({
             prompt: scenePrompt,
-            image_urls: bandCharacterImages,
+            image_urls: publicBandImages,
             output_format: "png",
             image_size: "3:4"
           });
