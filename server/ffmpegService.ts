@@ -63,7 +63,16 @@ export async function trimAudio(params: FFMPEGTrimAudioParams): Promise<FFMPEGTr
     console.log(`\n=== DOWNLOADING AND UPLOADING AUDIO FOR TRIMMING ===`);
     console.log(`Original audio URL: ${audio_url}`);
     
-    const audioResponse = await fetch(audio_url);
+    // Convert relative path to public URL if needed
+    let downloadUrl = audio_url;
+    if (audio_url.startsWith('/objects/')) {
+      const { getStorageService } = await import('./routes');
+      const storageService = getStorageService();
+      downloadUrl = await (storageService as any).getObjectEntityPublicUrl(audio_url, 3600);
+      console.log(`✅ Converted audio to public URL: ${downloadUrl}`);
+    }
+    
+    const audioResponse = await fetch(downloadUrl);
     if (!audioResponse.ok) {
       throw new Error(`Failed to download audio: ${audioResponse.status} ${audioResponse.statusText}`);
     }
