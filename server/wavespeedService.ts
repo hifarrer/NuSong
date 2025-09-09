@@ -279,15 +279,15 @@ export class WavespeedService {
         throw new Error(`Wavespeed Seedance API error: ${result.error}`);
       }
 
-      if (!result.id) {
-        console.error(`❌ No ID in response:`, result);
-        throw new Error(`Wavespeed Seedance API response missing ID field`);
+      if (!result.data || !result.data.id) {
+        console.error(`❌ No ID in response data:`, result);
+        throw new Error(`Wavespeed Seedance API response missing ID field in data`);
       }
 
       console.log(`✅ Seedance video generation started successfully`);
-      console.log(`Request ID: ${result.id}`);
+      console.log(`Request ID: ${result.data.id}`);
       
-      return result.id;
+      return result.data.id;
     }, 'generateSeedanceVideo');
   }
 
@@ -333,15 +333,15 @@ export class WavespeedService {
         throw new Error(`Wavespeed InfiniteTalk API error: ${result.error}`);
       }
 
-      if (!result.id) {
-        console.error(`❌ No ID in response:`, result);
-        throw new Error(`Wavespeed InfiniteTalk API response missing ID field`);
+      if (!result.data || !result.data.id) {
+        console.error(`❌ No ID in response data:`, result);
+        throw new Error(`Wavespeed InfiniteTalk API response missing ID field in data`);
       }
 
       console.log(`✅ InfiniteTalk video generation started successfully`);
-      console.log(`Request ID: ${result.id}`);
+      console.log(`Request ID: ${result.data.id}`);
       
-      return result.id;
+      return result.data.id;
     }, 'generateInfiniteTalkVideo');
   }
 
@@ -367,9 +367,11 @@ export class WavespeedService {
         throw new Error(`Wavespeed video status API error: ${response.status} ${response.statusText}`);
       }
 
-      const result: WavespeedVideoResponse = await response.json() as WavespeedVideoResponse;
+      const responseData = await response.json();
+      console.log(`📊 Video Status Response:`, JSON.stringify(responseData, null, 2));
       
-      console.log(`📊 Video Status Response:`, JSON.stringify(result, null, 2));
+      // Handle nested response structure
+      const result = responseData.data || responseData;
       
       return result;
     }, 'checkVideoStatus');
