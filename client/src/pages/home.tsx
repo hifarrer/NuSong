@@ -43,7 +43,9 @@ import {
   MessageSquare,
   ExternalLink,
   Share2,
-  Copy
+  Copy,
+  Video,
+  Film
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
@@ -74,7 +76,7 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab === 'textToMusic' || tab === 'audioToMusic') {
+    if (tab === 'textToMusic' || tab === 'audioToMusic' || tab === 'createVideo') {
       setActiveTab(tab);
     }
   }, []);
@@ -85,6 +87,20 @@ export default function Home() {
   
   // Audio upload modal state
   const [showAudioUploadModal, setShowAudioUploadModal] = useState(false);
+  
+  // Video creation modal state
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [selectedTrackForVideo, setSelectedTrackForVideo] = useState<MusicGeneration | null>(null);
+  const [videoPrompt, setVideoPrompt] = useState("");
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [generatedScenes, setGeneratedScenes] = useState<any[]>([]);
+  const [sceneTasks, setSceneTasks] = useState<any[]>([]);
+  const [showSceneResults, setShowSceneResults] = useState(false);
+  const [audioParts, setAudioParts] = useState<string[]>([]);
+  const [videoTasks, setVideoTasks] = useState<any[]>([]);
+  const [isGeneratingVideos, setIsGeneratingVideos] = useState(false);
+  const [isMergingVideos, setIsMergingVideos] = useState(false);
+  const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
 
   // Fetch user's music generations
   const { data: generations } = useQuery({
@@ -154,6 +170,258 @@ export default function Home() {
       title: "Upload successful",
       description: "Your audio file has been uploaded successfully!",
     });
+  };
+
+  // Video creation handlers
+  const handleCreateVideo = (track: MusicGeneration) => {
+    setSelectedTrackForVideo(track);
+    setVideoPrompt("");
+    setShowVideoModal(true);
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!selectedTrackForVideo || !videoPrompt.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter a video description.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingVideo(true);
+    try {
+      // Call the API to generate video scenes
+      const response = await apiRequest("/api/generate-video-scenes", "POST", {
+        trackId: selectedTrackForVideo.id,
+        videoPrompt: videoPrompt.trim(),
+      });
+      
+      const result = await response.json();
+      
+      // Store the generated scenes, tasks, and audio parts
+      setGeneratedScenes(result.scenes || []);
+      setSceneTasks(result.sceneTasks || []);
+      setAudioParts(result.audioParts || []);
+      setShowSceneResults(true);
+      
+      toast({
+        title: "Video Scenes Generated!",
+        description: `Audio split into 6 parts and ${result.sceneTasks?.length || 0} scene images are being generated.`,
+      });
+      
+      // Start polling for scene completion
+      pollSceneTasks(result.sceneTasks || []);
+      
+    } catch (error) {
+      console.error("Error generating video scenes:", error);
+      toast({
+        title: "Generation Failed",
+        description: "There was an error generating video scenes. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingVideo(false);
+    }
+  };
+
+  // Poll scene tasks for completion
+  const pollSceneTasks = async (tasks: any[]) => {
+    const pollInterval = setInterval(async () => {
+      let allCompleted = true;
+      const updatedTasks = [...tasks];
+      
+      for (let i = 0; i < updatedTasks.length; i++) {
+        const task = updatedTasks[i];
+        if (task.status === 'processing' && task.taskId) {
+          try {
+            const response = await apiRequest(`/api/scene-task-status/${task.taskId}`, "GET");
+            const status = await response.json();
+            
+            if (status.status === 'success') {
+              updatedTasks[i] = {
+                ...task,
+                status: 'completed',
+                resultUrls: status.resultUrls || []
+              };
+            } else if (status.status === 'failed') {
+              updatedTasks[i] = {
+                ...task,
+                status: 'failed',
+                error: status.error
+              };
+            } else {
+              allCompleted = false;
+            }
+          } catch (error) {
+            console.error(`Error checking task ${task.taskId}:`, error);
+            updatedTasks[i] = {
+              ...task,
+              status: 'failed',
+              error: 'Failed to check status'
+            };
+          }
+        } else if (task.status === 'processing') {
+          allCompleted = false;
+        }
+      }
+      
+      setSceneTasks(updatedTasks);
+      
+      if (allCompleted) {
+        clearInterval(pollInterval);
+        const completedCount = updatedTasks.filter(t => t.status === 'completed').length;
+        toast({
+          title: "Scene Generation Complete!",
+          description: `${completedCount} out of ${updatedTasks.length} scenes have been generated successfully.`,
+        });
+        
+        // Automatically start video generation if all scenes are completed
+        if (completedCount === updatedTasks.length && selectedTrackForVideo) {
+          startVideoGeneration(updatedTasks);
+        }
+      }
+    }, 5000); // Poll every 5 seconds
+    
+    // Clear interval after 5 minutes to prevent infinite polling
+    setTimeout(() => {
+      clearInterval(pollInterval);
+    }, 300000);
+  };
+
+  // Start video generation
+  const startVideoGeneration = async (completedSceneTasks: any[]) => {
+    if (!selectedTrackForVideo) return;
+    
+    setIsGeneratingVideos(true);
+    try {
+      const response = await apiRequest("/api/start-video-generation", "POST", {
+        trackId: selectedTrackForVideo.id,
+        sceneTasks: completedSceneTasks
+      });
+      
+      const result = await response.json();
+      
+      setVideoTasks(result.videoTasks || []);
+      
+      toast({
+        title: "Video Generation Started!",
+        description: `${result.totalVideos} videos are being generated. This may take several minutes.`,
+      });
+      
+      // Start polling for video completion
+      pollVideoTasks(result.videoTasks || []);
+      
+    } catch (error) {
+      console.error("Error starting video generation:", error);
+      toast({
+        title: "Video Generation Failed",
+        description: "There was an error starting video generation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingVideos(false);
+    }
+  };
+
+  // Poll video tasks for completion
+  const pollVideoTasks = async (tasks: any[]) => {
+    const pollInterval = setInterval(async () => {
+      let allCompleted = true;
+      const updatedTasks = [...tasks];
+      
+      for (let i = 0; i < updatedTasks.length; i++) {
+        const task = updatedTasks[i];
+        if (task.status === 'processing' && task.videoRequestId) {
+          try {
+            const response = await apiRequest(`/api/video-task-status/${task.videoRequestId}`, "GET");
+            const status = await response.json();
+            
+            if (status.status === 'completed') {
+              updatedTasks[i] = {
+                ...task,
+                status: 'completed',
+                videoUrl: status.outputs && status.outputs.length > 0 ? status.outputs[0] : null
+              };
+            } else if (status.status === 'failed') {
+              updatedTasks[i] = {
+                ...task,
+                status: 'failed',
+                error: status.error
+              };
+            } else {
+              allCompleted = false;
+            }
+          } catch (error) {
+            console.error(`Error checking video task ${task.videoRequestId}:`, error);
+            updatedTasks[i] = {
+              ...task,
+              status: 'failed',
+              error: 'Failed to check status'
+            };
+          }
+        } else if (task.status === 'processing') {
+          allCompleted = false;
+        }
+      }
+      
+      setVideoTasks(updatedTasks);
+      
+      if (allCompleted) {
+        clearInterval(pollInterval);
+        const completedCount = updatedTasks.filter(t => t.status === 'completed').length;
+        toast({
+          title: "Video Generation Complete!",
+          description: `${completedCount} out of ${updatedTasks.length} videos have been generated successfully.`,
+        });
+        
+        // Automatically start video merging if all videos are completed
+        if (completedCount === updatedTasks.length && selectedTrackForVideo) {
+          mergeVideos(updatedTasks);
+        }
+      }
+    }, 10000); // Poll every 10 seconds for videos (they take longer)
+    
+    // Clear interval after 30 minutes to prevent infinite polling
+    setTimeout(() => {
+      clearInterval(pollInterval);
+    }, 1800000);
+  };
+
+  // Merge videos function
+  const mergeVideos = async (completedVideoTasks: any[]) => {
+    if (!selectedTrackForVideo) return;
+    
+    setIsMergingVideos(true);
+    try {
+      const response = await apiRequest("/api/merge-videos", "POST", {
+        trackId: selectedTrackForVideo.id,
+        videoTasks: completedVideoTasks
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setFinalVideoUrl(result.finalVideoUrl);
+        
+        toast({
+          title: "Video Merging Complete!",
+          description: "Your music video has been successfully created and is ready to view!",
+        });
+      } else {
+        throw new Error(result.message || 'Video merging failed');
+      }
+      
+    } catch (error) {
+      console.error("Error merging videos:", error);
+      toast({
+        title: "Video Merging Failed",
+        description: "There was an error merging the videos. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMergingVideos(false);
+    }
   };
 
   // Shared generation success handler
@@ -410,6 +678,14 @@ export default function Home() {
             >
               <AudioWaveform className="mr-2 h-4 w-4" />
               Audio to Music
+            </TabsTrigger>
+            <TabsTrigger 
+              value="createVideo"
+              className="text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-music-purple data-[state=active]:to-music-blue data-[state=active]:text-white flex items-center justify-center h-8 rounded-md transition-all"
+              data-testid="tab-create-video"
+            >
+              <Video className="mr-2 h-4 w-4" />
+              Create Video
             </TabsTrigger>
           </TabsList>
 
@@ -1085,6 +1361,104 @@ export default function Home() {
             </div>
           </TabsContent>
 
+          <TabsContent value="createVideo" className="space-y-6 sm:space-y-8">
+            <div className="space-y-6">
+              {/* Header */}
+              <Card className="bg-music-secondary border-gray-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <div className="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center mr-3">
+                      <Video className="text-sm text-white" />
+                    </div>
+                    <span className="text-music-blue">Create Music Video</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-300">
+                    Select one of your tracks below and create a music video with AI-generated scenes. 
+                    Describe your vision and we'll generate 6 scene prompts for your video.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Songs List */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white flex items-center">
+                  <Music className="mr-2 h-5 w-5 text-music-accent" />
+                  Your Tracks
+                </h3>
+                
+                {generations && generations.length > 0 ? (
+                  <div className="grid gap-4">
+                    {generations
+                      .filter((track: MusicGeneration) => track.status === "completed" && track.audioUrl)
+                      .map((track: MusicGeneration) => (
+                        <Card key={track.id} className="bg-music-dark border-gray-600 hover:border-gray-500 transition-colors">
+                          <CardContent className="p-4">
+                            <div className="flex items-center space-x-4">
+                              {/* Track Info */}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-lg font-semibold text-white truncate">
+                                  {track.title || "Untitled Track"}
+                                </h4>
+                                <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
+                                  <span className="flex items-center">
+                                    <Tags className="w-4 h-4 mr-1" />
+                                    {track.tags}
+                                  </span>
+                                  <span className="flex items-center">
+                                    <Clock className="w-4 h-4 mr-1" />
+                                    {track.duration ? `${track.duration}s` : "N/A"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Mini Audio Player */}
+                              <div className="flex-shrink-0">
+                                <AudioPlayer 
+                                  src={track.audioUrl!}
+                                  className="w-64"
+                                />
+                              </div>
+
+                              {/* Create Video Button */}
+                              <div className="flex-shrink-0">
+                                <Button
+                                  onClick={() => handleCreateVideo(track)}
+                                  className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
+                                  data-testid={`button-create-video-${track.id}`}
+                                >
+                                  <Film className="mr-2 h-4 w-4" />
+                                  Create Video
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                ) : (
+                  <Card className="bg-music-dark border-gray-600">
+                    <CardContent className="p-8 text-center">
+                      <Video className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-white mb-2">No Tracks Available</h3>
+                      <p className="text-gray-400 mb-4">
+                        You need to create some music tracks first before you can create videos.
+                      </p>
+                      <Button
+                        onClick={() => setActiveTab("textToMusic")}
+                        className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
+                      >
+                        <WandSparkles className="mr-2 h-4 w-4" />
+                        Create Your First Track
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
         </Tabs>
       </main>
 
@@ -1102,6 +1476,366 @@ export default function Home() {
         onClose={() => setShowAudioUploadModal(false)}
         onUploadComplete={handleAudioUploadComplete}
       />
+
+      {/* Video Creation Modal */}
+      <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
+        <DialogContent className="bg-music-dark border-gray-600 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-xl">
+              <Video className="mr-3 h-6 w-6 text-music-blue" />
+              Create Music Video
+            </DialogTitle>
+            <DialogDescription className="text-gray-300">
+              {selectedTrackForVideo && (
+                <span>
+                  Creating video for: <span className="text-white font-semibold">{selectedTrackForVideo.title || "Untitled Track"}</span>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Track Preview */}
+            {selectedTrackForVideo && (
+              <div className="bg-music-secondary rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-300 mb-2">Track Preview</h4>
+                <AudioPlayer 
+                  src={selectedTrackForVideo.audioUrl!}
+                  className="w-full"
+                />
+                <div className="flex items-center space-x-4 text-xs text-gray-400 mt-2">
+                  <span className="flex items-center">
+                    <Tags className="w-3 h-3 mr-1" />
+                    {selectedTrackForVideo.tags}
+                  </span>
+                  <span className="flex items-center">
+                    <Clock className="w-3 h-3 mr-1" />
+                    {selectedTrackForVideo.duration ? `${selectedTrackForVideo.duration}s` : "N/A"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Video Description */}
+            <div>
+              <Label className="text-sm font-semibold text-gray-300 mb-3 block">
+                <Film className="inline mr-2 h-4 w-4 text-music-accent" />
+                Describe Your Video Vision
+              </Label>
+              <Textarea
+                value={videoPrompt}
+                onChange={(e) => setVideoPrompt(e.target.value)}
+                placeholder="Describe the style, mood, and scenes you want for your music video. For example: 'A cinematic music video with a character driving through a neon-lit city at night, with close-up shots of the singer performing in a futuristic studio.'"
+                rows={4}
+                className="bg-music-secondary border-gray-600 text-white placeholder-gray-400 focus:border-music-blue resize-none"
+                data-testid="textarea-video-prompt"
+              />
+              <p className="text-xs text-gray-400 mt-2">
+                Be specific about the visual style, setting, and mood. We'll generate 6 scene prompts based on your description.
+              </p>
+            </div>
+
+            {/* Scene Requirements Info */}
+            <div className="bg-music-secondary/50 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-gray-300 mb-2">Scene Structure</h4>
+              <div className="text-xs text-gray-400 space-y-1">
+                <p>• Scenes 1, 3, 5: Medium/far distance shots showing characters</p>
+                <p>• Scenes 2, 4, 6: Close-up shots of the main character (lead singer)</p>
+                <p>• Each scene will be a concise description for image generation</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowVideoModal(false);
+                  setShowSceneResults(false);
+                  setGeneratedScenes([]);
+                  setSceneTasks([]);
+                  setAudioParts([]);
+                  setVideoTasks([]);
+                  setFinalVideoUrl(null);
+                }}
+                className="border-gray-600 text-gray-300 hover:text-white"
+                disabled={isGeneratingVideo}
+              >
+                {showSceneResults ? "Close" : "Cancel"}
+              </Button>
+              {!showSceneResults && (
+                <Button
+                  onClick={handleGenerateVideo}
+                  disabled={!videoPrompt.trim() || isGeneratingVideo}
+                  className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
+                  data-testid="button-generate-video"
+                >
+                  {isGeneratingVideo ? (
+                    <>
+                      <LoadingSpinner className="mr-2 h-4 w-4" />
+                      Generating Scenes...
+                    </>
+                  ) : (
+                    <>
+                      <WandSparkles className="mr-2 h-4 w-4" />
+                      Generate Video Scenes
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {/* Debug UI - Scene Results */}
+            {showSceneResults && (
+              <div className="mt-6 pt-6 border-t border-gray-600">
+                <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <Film className="mr-2 h-5 w-5 text-music-accent" />
+                  Generated Scene Images (Debug)
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {sceneTasks.map((task, index) => (
+                    <Card key={index} className="bg-music-secondary border-gray-600">
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          {/* Scene Number and Status */}
+                          <div className="flex items-center justify-between">
+                            <h5 className="font-semibold text-white">
+                              Scene {task.sceneNumber}
+                            </h5>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              task.status === 'completed' ? 'bg-green-600/20 text-green-400' :
+                              task.status === 'processing' ? 'bg-blue-600/20 text-blue-400' :
+                              task.status === 'failed' ? 'bg-red-600/20 text-red-400' :
+                              'bg-gray-600/20 text-gray-400'
+                            }`}>
+                              {task.status}
+                            </span>
+                          </div>
+
+                          {/* Scene Prompt */}
+                          <div>
+                            <p className="text-sm font-medium text-gray-300 mb-1">Prompt:</p>
+                            <p className="text-sm text-gray-400 bg-music-dark p-2 rounded">
+                              {task.prompt}
+                            </p>
+                          </div>
+
+                          {/* Generated Image */}
+                          {task.status === 'completed' && task.resultUrls && task.resultUrls.length > 0 && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-300 mb-2">Generated Image:</p>
+                              <div className="space-y-2">
+                                {task.resultUrls.map((url: string, urlIndex: number) => (
+                                  <div key={urlIndex} className="relative">
+                                    <img
+                                      src={url}
+                                      alt={`Scene ${task.sceneNumber} - Image ${urlIndex + 1}`}
+                                      className="w-full h-48 object-cover rounded border border-gray-600"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                      }}
+                                    />
+                                    <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                      {urlIndex + 1}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Processing State */}
+                          {task.status === 'processing' && (
+                            <div className="flex items-center space-x-2 text-blue-400">
+                              <LoadingSpinner className="h-4 w-4" />
+                              <span className="text-sm">Generating image...</span>
+                            </div>
+                          )}
+
+                          {/* Error State */}
+                          {task.status === 'failed' && (
+                            <div className="text-red-400 text-sm">
+                              <p className="font-medium">Error:</p>
+                              <p>{task.error || 'Unknown error occurred'}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Audio Parts Debug Info */}
+                {audioParts.length > 0 && (
+                  <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
+                    <h5 className="text-sm font-semibold text-gray-300 mb-2">Audio Parts (Debug)</h5>
+                    <p className="text-sm text-gray-400 mb-2">
+                      Original audio has been split into {audioParts.length} parts:
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {audioParts.map((url, index) => (
+                        <div key={index} className="bg-music-dark p-2 rounded">
+                          <span className="text-music-accent">Part {index + 1}:</span>
+                          <div className="text-gray-400 truncate mt-1" title={url}>
+                            {url.split('/').pop()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Video Generation Debug Info */}
+                {videoTasks.length > 0 && (
+                  <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
+                    <h5 className="text-sm font-semibold text-gray-300 mb-2">Video Generation (Debug)</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {videoTasks.map((task, index) => (
+                        <div key={index} className="bg-music-dark p-3 rounded">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-white">
+                              Scene {task.sceneNumber}
+                            </span>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              task.status === 'completed' ? 'bg-green-600/20 text-green-400' :
+                              task.status === 'processing' ? 'bg-blue-600/20 text-blue-400' :
+                              task.status === 'failed' ? 'bg-red-600/20 text-red-400' :
+                              task.status === 'skipped' ? 'bg-yellow-600/20 text-yellow-400' :
+                              'bg-gray-600/20 text-gray-400'
+                            }`}>
+                              {task.status}
+                            </span>
+                          </div>
+                          
+                          {task.model && (
+                            <p className="text-xs text-gray-400 mb-1">
+                              Model: {task.model}
+                            </p>
+                          )}
+                          
+                          {task.status === 'processing' && (
+                            <div className="flex items-center space-x-2 text-blue-400">
+                              <LoadingSpinner className="h-3 w-3" />
+                              <span className="text-xs">Generating video...</span>
+                            </div>
+                          )}
+                          
+                          {task.status === 'completed' && task.videoUrl && (
+                            <div className="mt-2">
+                              <video
+                                src={task.videoUrl}
+                                controls
+                                className="w-full h-32 object-cover rounded border border-gray-600"
+                                preload="metadata"
+                              />
+                            </div>
+                          )}
+                          
+                          {task.status === 'failed' && (
+                            <p className="text-xs text-red-400 mt-1">
+                              Error: {task.error}
+                            </p>
+                          )}
+                          
+                          {task.status === 'skipped' && (
+                            <p className="text-xs text-yellow-400 mt-1">
+                              {task.reason}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Final Video Display */}
+                {finalVideoUrl && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-music-purple/20 to-music-blue/20 rounded-lg border border-music-purple/30">
+                    <h5 className="text-lg font-semibold text-white mb-3 flex items-center">
+                      🎉 Final Music Video
+                    </h5>
+                    <div className="bg-music-dark rounded-lg p-4">
+                      <video
+                        src={finalVideoUrl}
+                        controls
+                        className="w-full h-64 md:h-80 object-cover rounded border border-gray-600"
+                        preload="metadata"
+                        poster={selectedTrackForVideo?.coverUrl}
+                      />
+                      <div className="mt-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-300">
+                            <strong>Track:</strong> {selectedTrackForVideo?.title || 'Untitled'}
+                          </p>
+                          <p className="text-sm text-gray-400">
+                            <strong>Description:</strong> {videoPrompt}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-green-400">
+                            ✅ Video creation complete!
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            All 6 scenes merged with original audio
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Video Merging Status */}
+                {isMergingVideos && (
+                  <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <LoadingSpinner className="h-5 w-5 text-music-accent" />
+                      <div>
+                        <p className="text-sm font-medium text-white">Merging Videos...</p>
+                        <p className="text-xs text-gray-400">
+                          Combining all 6 video scenes with the original audio track
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Summary */}
+                <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
+                  <p className="text-sm text-gray-300">
+                    <strong>Summary:</strong> {sceneTasks.filter(t => t.status === 'completed').length} of {sceneTasks.length} scenes completed
+                  </p>
+                  {audioParts.length > 0 && (
+                    <p className="text-sm text-green-400 mt-1">
+                      ✅ Audio successfully split into {audioParts.length} parts
+                    </p>
+                  )}
+                  {videoTasks.length > 0 && (
+                    <p className="text-sm text-blue-400 mt-1">
+                      🎬 Videos: {videoTasks.filter(t => t.status === 'completed').length} of {videoTasks.length} completed
+                    </p>
+                  )}
+                  {finalVideoUrl && (
+                    <p className="text-sm text-green-400 mt-1">
+                      🎉 Final video successfully created and saved!
+                    </p>
+                  )}
+                  {sceneTasks.some(t => t.status === 'processing') && (
+                    <p className="text-sm text-blue-400 mt-1">
+                      Some scenes are still being generated. This page will update automatically.
+                    </p>
+                  )}
+                  {videoTasks.some(t => t.status === 'processing') && (
+                    <p className="text-sm text-blue-400 mt-1">
+                      Some videos are still being generated. This may take several minutes.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

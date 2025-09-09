@@ -38,8 +38,10 @@ import {
   verifyPassword, 
   initializeDefaultAdmin 
 } from "./adminAuth";
-import { generateLyrics } from "./openaiService";
-import { generateMusic, buildPromptFromTags, checkTaskStatus } from "./kieService";
+import { generateLyrics, generateVideoScenes } from "./openaiService";
+import { generateMusic, buildPromptFromTags, checkTaskStatus, generateSceneImage, checkSceneTaskStatus } from "./kieService";
+import { trimAudio, splitAudio, downloadAndSaveAudioParts, mergeVideos, downloadAndSaveFinalVideo } from "./ffmpegService";
+import { wavespeedService } from "./wavespeedService";
 import { ObjectNotFoundError } from "./objectStorage";
 import { createSlug } from "./urlUtils";
 import { 
@@ -51,7 +53,6 @@ import {
   reactivateSubscription
 } from "./stripeService";
 import { EmailService } from "./emailService";
-import { wavespeedService } from "./wavespeedService";
 import Stripe from 'stripe';
 import { spawn } from 'child_process';
 import type { Request } from 'express';
@@ -59,7 +60,7 @@ import type { Request } from 'express';
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
 
 // Helper function to get the appropriate storage service
-function getStorageService() {
+export function getStorageService() {
   console.log('🔍 Storage Service Selection:');
   console.log(`  - STORAGE_PROVIDER: ${process.env.STORAGE_PROVIDER}`);
   console.log(`  - NODE_ENV: ${process.env.NODE_ENV}`);
@@ -1915,6 +1916,350 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error generating lyrics:', error);
       res.status(500).json({ 
         message: error instanceof Error ? error.message : 'Failed to generate lyrics' 
+      });
+    }
+  });
+
+  // Generate video scenes endpoint
+  app.post('/api/generate-video-scenes', requireAuth, async (req, res) => {
+    try {
+      const { trackId, videoPrompt } = req.body;
+      
+      if (!trackId || !videoPrompt || typeof videoPrompt !== 'string' || !videoPrompt.trim()) {
+        return res.status(400).json({ message: 'Track ID and video prompt are required' });
+      }
+
+      // Get the track information
+      const userId = (req as any).user.id;
+      const track = await storage.getMusicGeneration(trackId);
+      
+      if (!track) {
+        return res.status(404).json({ message: 'Track not found' });
+      }
+
+      if (track.status !== 'completed' || !track.audioUrl) {
+        return res.status(400).json({ message: 'Track must be completed to create video scenes' });
+      }
+
+      // Get user's band and band member images
+      const bandResult = await pool.query('SELECT id FROM bands WHERE user_id = $1', [userId]);
+      if (bandResult.rows.length === 0) {
+        return res.status(400).json({ message: 'User must have a band to create video scenes' });
+      }
+      
+      const bandId = bandResult.rows[0].id;
+      const membersResult = await pool.query(
+        'SELECT image_url FROM band_members WHERE band_id = $1 AND image_url IS NOT NULL ORDER BY position LIMIT 3',
+        [bandId]
+      );
+      
+      if (membersResult.rows.length === 0) {
+        return res.status(400).json({ message: 'Band must have at least one member with an image to create video scenes' });
+      }
+      
+      const bandCharacterImages = membersResult.rows.map(row => row.image_url).filter(Boolean);
+
+      // Generate the video scene prompts with OpenAI
+      const scenes = await generateVideoScenes(videoPrompt.trim(), {
+        title: track.title || undefined,
+        tags: track.tags || undefined,
+        lyrics: track.lyrics || undefined
+      });
+
+      // First trim audio to 30 seconds, then split into 6 parts using FFMPEG
+      console.log(`🎵 Starting audio trimming to 30 seconds for track: ${trackId}`);
+      const audioTrimResult = await trimAudio({
+        audio_url: track.audioUrl || "",
+        desired_length: 30,
+        fade_duration: 5
+      });
+
+      console.log(`✅ Audio trimmed to 30 seconds: ${audioTrimResult.download_url}`);
+
+      // Now split the trimmed 30-second audio into 6 parts (5 seconds each)
+      console.log(`🎵 Starting audio splitting into 6 parts for track: ${trackId}`);
+      const audioSplitResult = await splitAudio({
+        audio_url: audioTrimResult.download_url,
+        parts: 6
+      });
+
+      // Download and save audio parts to storage
+      const savedAudioParts = await downloadAndSaveAudioParts(audioSplitResult.audio_parts, trackId);
+      console.log(`✅ Audio split and saved: ${savedAudioParts.length} parts (5 seconds each)`);
+
+      // Generate scene images with KIE.AI
+      const sceneTasks = [];
+      for (let i = 0; i < scenes.length; i++) {
+        const scenePrompt = scenes[i];
+        try {
+          const sceneTask = await generateSceneImage({
+            prompt: scenePrompt,
+            image_urls: bandCharacterImages,
+            output_format: "png",
+            image_size: "3:4"
+          });
+          
+          sceneTasks.push({
+            sceneNumber: i + 1,
+            prompt: scenePrompt,
+            taskId: sceneTask.data.taskId,
+            status: 'processing',
+            audioPartUrl: savedAudioParts[i] // Link each scene to its corresponding audio part
+          });
+        } catch (error) {
+          console.error(`Error generating scene ${i + 1}:`, error);
+          sceneTasks.push({
+            sceneNumber: i + 1,
+            prompt: scenePrompt,
+            taskId: null,
+            status: 'failed',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            audioPartUrl: savedAudioParts[i] // Still link audio part even if image generation fails
+          });
+        }
+      }
+
+      res.json({ 
+        scenes,
+        sceneTasks,
+        trackId,
+        videoPrompt: videoPrompt.trim(),
+        bandCharacterImages,
+        audioParts: savedAudioParts,
+        audioSplitSuccess: true
+      });
+    } catch (error) {
+      console.error('Error generating video scenes:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : 'Failed to generate video scenes' 
+      });
+    }
+  });
+
+  // Start video generation endpoint (called after scene images are ready)
+  app.post('/api/start-video-generation', requireAuth, async (req, res) => {
+    try {
+      const { trackId, sceneTasks } = req.body;
+      
+      if (!trackId || !sceneTasks || !Array.isArray(sceneTasks)) {
+        return res.status(400).json({ message: 'Track ID and scene tasks are required' });
+      }
+
+      // Get the track information to access audio parts
+      const userId = (req as any).user.id;
+      const track = await storage.getMusicGeneration(trackId);
+      
+      if (!track) {
+        return res.status(404).json({ message: 'Track not found' });
+      }
+
+      console.log(`🎬 Starting video generation for track: ${trackId}`);
+      console.log(`Scene tasks:`, sceneTasks);
+
+      // Generate videos for each scene
+      const videoTasks = [];
+      for (let i = 0; i < sceneTasks.length; i++) {
+        const sceneTask = sceneTasks[i];
+        
+        if (sceneTask.status !== 'completed' || !sceneTask.resultUrls || sceneTask.resultUrls.length === 0) {
+          console.log(`⚠️ Skipping scene ${i + 1} - not completed or no image available`);
+          videoTasks.push({
+            sceneNumber: i + 1,
+            status: 'skipped',
+            reason: 'Scene image not ready'
+          });
+          continue;
+        }
+
+        const sceneImageUrl = sceneTask.resultUrls[0]; // Use first image
+        const sceneNumber = i + 1;
+        
+        try {
+          let videoRequestId: string;
+          
+          if (sceneNumber % 2 === 1) {
+            // Scenes 1, 3, 5: Use Seedance (image-to-video)
+            console.log(`🎥 Generating Seedance video for scene ${sceneNumber}`);
+            videoRequestId = await wavespeedService.generateSeedanceVideo(
+              sceneImageUrl, 
+              sceneTask.prompt
+            );
+          } else {
+            // Scenes 2, 4, 6: Use InfiniteTalk (lipsync with audio)
+            console.log(`🎥 Generating InfiniteTalk video for scene ${sceneNumber}`);
+            if (!sceneTask.audioPartUrl) {
+              throw new Error(`No audio part available for scene ${sceneNumber}`);
+            }
+            videoRequestId = await wavespeedService.generateInfiniteTalkVideo(
+              sceneImageUrl,
+              sceneTask.audioPartUrl
+            );
+          }
+          
+          videoTasks.push({
+            sceneNumber: sceneNumber,
+            videoRequestId: videoRequestId,
+            status: 'processing',
+            model: sceneNumber % 2 === 1 ? 'seedance' : 'infinitetalk',
+            imageUrl: sceneImageUrl,
+            audioPartUrl: sceneTask.audioPartUrl
+          });
+          
+        } catch (error) {
+          console.error(`❌ Error generating video for scene ${sceneNumber}:`, error);
+          videoTasks.push({
+            sceneNumber: sceneNumber,
+            status: 'failed',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
+      res.json({
+        trackId,
+        videoTasks,
+        totalVideos: videoTasks.filter(t => t.status === 'processing').length,
+        message: 'Video generation started'
+      });
+      
+    } catch (error) {
+      console.error('Error starting video generation:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : 'Failed to start video generation' 
+      });
+    }
+  });
+
+  // Check video generation status endpoint
+  app.get('/api/video-task-status/:requestId', requireAuth, async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      
+      if (!requestId) {
+        return res.status(400).json({ message: 'Request ID is required' });
+      }
+
+      const status = await wavespeedService.checkVideoStatus(requestId);
+      
+      res.json({
+        requestId: status.id,
+        status: status.status,
+        outputs: status.outputs,
+        error: status.error,
+        model: status.model,
+        created_at: status.created_at,
+        timings: status.timings
+      });
+    } catch (error) {
+      console.error('Error checking video task status:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : 'Failed to check video task status' 
+      });
+    }
+  });
+
+  // Merge videos endpoint (called when all videos are completed)
+  app.post('/api/merge-videos', requireAuth, async (req, res) => {
+    try {
+      const { trackId, videoTasks } = req.body;
+      
+      if (!trackId || !videoTasks || !Array.isArray(videoTasks)) {
+        return res.status(400).json({ message: 'Track ID and video tasks are required' });
+      }
+
+      // Get the track information to access the original audio
+      const userId = (req as any).user.id;
+      const track = await storage.getMusicGeneration(trackId);
+      
+      if (!track) {
+        return res.status(404).json({ message: 'Track not found' });
+      }
+
+      // Filter completed videos and sort by scene number
+      const completedVideos = videoTasks
+        .filter(task => task.status === 'completed' && task.videoUrl)
+        .sort((a, b) => a.sceneNumber - b.sceneNumber);
+
+      if (completedVideos.length === 0) {
+        return res.status(400).json({ message: 'No completed videos found to merge' });
+      }
+
+      if (completedVideos.length < 6) {
+        return res.status(400).json({ 
+          message: `Only ${completedVideos.length} videos completed. Need all 6 videos to merge.` 
+        });
+      }
+
+      console.log(`🎬 Starting video merging for track: ${trackId}`);
+      console.log(`Completed videos:`, completedVideos.map(v => ({ scene: v.sceneNumber, url: v.videoUrl })));
+
+      // Extract video URLs in order
+      const videoUrls = completedVideos.map(video => video.videoUrl);
+
+      // Merge videos using FFMPEG
+      const mergeResult = await mergeVideos({
+        video_urls: videoUrls,
+        audio_url: track.audioUrl || "", // Use original full audio
+        subtitle_url: "",
+        watermark_url: "",
+        dimensions: "768x1024",
+        async: false
+      });
+
+      // Download and save the final merged video
+      const finalVideoUrl = await downloadAndSaveFinalVideo(mergeResult.download_url, trackId);
+
+      res.json({
+        trackId,
+        success: true,
+        finalVideoUrl,
+        mergeResult,
+        videoCount: completedVideos.length,
+        message: 'Videos merged successfully'
+      });
+      
+    } catch (error) {
+      console.error('Error merging videos:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : 'Failed to merge videos' 
+      });
+    }
+  });
+
+  // Check scene generation status endpoint
+  app.get('/api/scene-task-status/:taskId', requireAuth, async (req, res) => {
+    try {
+      const { taskId } = req.params;
+      
+      if (!taskId) {
+        return res.status(400).json({ message: 'Task ID is required' });
+      }
+
+      const status = await checkSceneTaskStatus(taskId);
+      
+      // Parse the result JSON to get the image URLs
+      let resultUrls: string[] = [];
+      if (status.data.resultJson) {
+        try {
+          const resultData = JSON.parse(status.data.resultJson);
+          resultUrls = resultData.resultUrls || [];
+        } catch (error) {
+          console.error('Error parsing result JSON:', error);
+        }
+      }
+
+      res.json({
+        taskId: status.data.taskId,
+        status: status.data.state,
+        resultUrls,
+        error: status.data.failMsg || null,
+        createTime: status.data.createTime,
+        completeTime: status.data.completeTime
+      });
+    } catch (error) {
+      console.error('Error checking scene task status:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : 'Failed to check scene task status' 
       });
     }
   });

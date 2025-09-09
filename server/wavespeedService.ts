@@ -38,6 +38,39 @@ interface WavespeedResultResponse {
   };
 }
 
+// New interfaces for video generation
+interface SeedanceVideoRequest {
+  camera_fixed: boolean;
+  duration: number;
+  image: string;
+  prompt: string;
+  seed: number;
+}
+
+interface InfiniteTalkVideoRequest {
+  audio: string;
+  image: string;
+  prompt: string;
+  resolution: string;
+  seed: number;
+}
+
+interface WavespeedVideoResponse {
+  id: string;
+  urls: {
+    get: string;
+  };
+  error: string;
+  model: string;
+  status: string;
+  outputs: string[];
+  timings: {
+    inference: number;
+  };
+  created_at: string;
+  has_nsfw_contents: boolean | null;
+}
+
 export class WavespeedService {
   private apiKey: string;
   private baseUrl = 'https://api.wavespeed.ai/api/v3';
@@ -202,6 +235,182 @@ export class WavespeedService {
       if (json.code !== 200) throw new Error(json.message || 'Generation failed');
       return json.data.id as string;
     }, 'generateBandPicture');
+  }
+
+  /**
+   * Generate a video using Seedance (image-to-video) for scenes 1,3,5
+   * @param imageUrl The scene image URL
+   * @param prompt The scene prompt
+   * @returns Promise with the request ID
+   */
+  async generateSeedanceVideo(imageUrl: string, prompt: string): Promise<string> {
+    const requestBody: SeedanceVideoRequest = {
+      camera_fixed: false,
+      duration: 5,
+      image: imageUrl,
+      prompt: prompt,
+      seed: -1
+    };
+
+    console.log(`\n=== WAVESPEED SEEDANCE VIDEO GENERATION ===`);
+    console.log(`Image URL: ${imageUrl}`);
+    console.log(`Prompt: ${prompt}`);
+    console.log(`Request Body:`, JSON.stringify(requestBody, null, 2));
+    console.log(`==========================================\n`);
+
+    return this.retryOnce(async () => {
+      const response = await fetch(`${this.baseUrl}/bytedance/seedance-v1-pro-i2v-480p`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Wavespeed Seedance API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: WavespeedVideoResponse = await response.json() as WavespeedVideoResponse;
+      
+      if (result.error) {
+        throw new Error(`Wavespeed Seedance API error: ${result.error}`);
+      }
+
+      console.log(`✅ Seedance video generation started successfully`);
+      console.log(`Request ID: ${result.id}`);
+      
+      return result.id;
+    }, 'generateSeedanceVideo');
+  }
+
+  /**
+   * Generate a video using InfiniteTalk (lipsync with audio) for scenes 2,4,6
+   * @param imageUrl The scene image URL
+   * @param audioUrl The audio part URL
+   * @returns Promise with the request ID
+   */
+  async generateInfiniteTalkVideo(imageUrl: string, audioUrl: string): Promise<string> {
+    const requestBody: InfiniteTalkVideoRequest = {
+      audio: audioUrl,
+      image: imageUrl,
+      prompt: "",
+      resolution: "480p",
+      seed: -1
+    };
+
+    console.log(`\n=== WAVESPEED INFINITETALK VIDEO GENERATION ===`);
+    console.log(`Image URL: ${imageUrl}`);
+    console.log(`Audio URL: ${audioUrl}`);
+    console.log(`Request Body:`, JSON.stringify(requestBody, null, 2));
+    console.log(`==============================================\n`);
+
+    return this.retryOnce(async () => {
+      const response = await fetch(`${this.baseUrl}/wavespeed-ai/infinitetalk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Wavespeed InfiniteTalk API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: WavespeedVideoResponse = await response.json() as WavespeedVideoResponse;
+      
+      if (result.error) {
+        throw new Error(`Wavespeed InfiniteTalk API error: ${result.error}`);
+      }
+
+      console.log(`✅ InfiniteTalk video generation started successfully`);
+      console.log(`Request ID: ${result.id}`);
+      
+      return result.id;
+    }, 'generateInfiniteTalkVideo');
+  }
+
+  /**
+   * Check the status of a video generation request
+   * @param requestId The request ID from video generation
+   * @returns Promise with the result data
+   */
+  async checkVideoStatus(requestId: string): Promise<WavespeedVideoResponse> {
+    console.log(`\n=== WAVESPEED VIDEO STATUS CHECK ===`);
+    console.log(`Request ID: ${requestId}`);
+    console.log(`====================================\n`);
+
+    return this.retryOnce(async () => {
+      const response = await fetch(`${this.baseUrl}/predictions/${requestId}/result`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Wavespeed video status API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: WavespeedVideoResponse = await response.json() as WavespeedVideoResponse;
+      
+      console.log(`📊 Video Status Response:`, JSON.stringify(result, null, 2));
+      
+      return result;
+    }, 'checkVideoStatus');
+  }
+
+  /**
+   * Poll for video generation completion
+   * @param requestId The request ID from video generation
+   * @param maxAttempts Maximum number of polling attempts (default: 60 for videos)
+   * @param intervalMs Polling interval in milliseconds (default: 5000 for videos)
+   * @returns Promise with the completed result data
+   */
+  async waitForVideoCompletion(
+    requestId: string, 
+    maxAttempts: number = 60, 
+    intervalMs: number = 5000
+  ): Promise<WavespeedVideoResponse> {
+    let attempts = 0;
+    
+    console.log(`\n=== WAVESPEED VIDEO POLLING ===`);
+    console.log(`Request ID: ${requestId}`);
+    console.log(`Max Attempts: ${maxAttempts}`);
+    console.log(`Interval: ${intervalMs}ms`);
+    console.log(`===============================\n`);
+    
+    while (attempts < maxAttempts) {
+      try {
+        const result = await this.checkVideoStatus(requestId);
+        
+        if (result.status === 'completed') {
+          console.log(`✅ Video generation completed successfully`);
+          console.log(`Outputs:`, result.outputs);
+          return result;
+        } else if (result.status === 'failed') {
+          throw new Error(`Video generation failed: ${result.error}`);
+        }
+        
+        console.log(`⏳ Video still processing... (attempt ${attempts + 1}/${maxAttempts})`);
+        
+        // Still processing, wait and try again
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        attempts++;
+      } catch (error) {
+        if (attempts >= maxAttempts - 1) {
+          throw error;
+        }
+        console.log(`⚠️ Error checking video status, retrying... (attempt ${attempts + 1}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        attempts++;
+      }
+    }
+    
+    throw new Error('Video generation timed out');
   }
 }
 

@@ -62,3 +62,70 @@ export async function generateLyrics(prompt: string, duration: number = 60): Pro
     throw new Error('Failed to generate lyrics. Please try again.');
   }
 }
+
+export async function generateVideoScenes(videoPrompt: string, trackInfo: { title?: string; tags?: string; lyrics?: string }): Promise<string[]> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are a professional music video director and cinematographer. Create 6 concise scene descriptions for a music video based on the user's vision and track information.
+
+          IMPORTANT SCENE STRUCTURE REQUIREMENTS:
+          - Scene 1: Medium/far distance shot showing characters
+          - Scene 2: Close-up shot of the main character (lead singer)
+          - Scene 3: Medium/far distance shot showing characters
+          - Scene 4: Close-up shot of the main character (lead singer)
+          - Scene 5: Medium/far distance shot showing characters
+          - Scene 6: Close-up shot of the main character (lead singer)
+
+          Guidelines:
+          - Each scene should be a concise, single-sentence description suitable for AI image generation
+          - Focus on visual elements, lighting, composition, and mood
+          - Make scenes cinematic and engaging
+          - Ensure variety in settings and visual elements while maintaining coherence
+          - Consider the music's mood and style when creating scenes
+          - Keep descriptions under 20 words each
+          - Be specific about camera angles and shot types
+          - Include relevant visual details like lighting, colors, and atmosphere
+
+          Return exactly 6 scene descriptions, one per line, numbered 1-6. No additional text or explanations.`
+        },
+        {
+          role: "user",
+          content: `Create 6 scene descriptions for a music video with this vision: "${videoPrompt}"
+
+          Track Information:
+          - Title: ${trackInfo.title || 'Untitled'}
+          - Genre/Style: ${trackInfo.tags || 'Not specified'}
+          - ${trackInfo.lyrics ? `Lyrics: ${trackInfo.lyrics.substring(0, 200)}...` : 'No lyrics provided'}`
+        }
+      ],
+      max_tokens: 600,
+      temperature: 0.8,
+    });
+
+    const scenesText = response.choices[0]?.message?.content?.trim();
+    
+    if (!scenesText) {
+      throw new Error('No scenes generated');
+    }
+
+    // Parse the scenes from the response
+    const scenes = scenesText
+      .split('\n')
+      .map(line => line.replace(/^\d+\.\s*/, '').trim()) // Remove numbering
+      .filter(scene => scene.length > 0)
+      .slice(0, 6); // Ensure we only get 6 scenes
+
+    if (scenes.length !== 6) {
+      throw new Error(`Expected 6 scenes, got ${scenes.length}`);
+    }
+
+    return scenes;
+  } catch (error) {
+    console.error('Error generating video scenes:', error);
+    throw new Error('Failed to generate video scenes. Please try again.');
+  }
+}

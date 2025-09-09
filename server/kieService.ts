@@ -295,3 +295,142 @@ export function buildPromptFromTags(tags: string, lyrics?: string): { prompt: st
   
   return { prompt, style, title };
 }
+
+// New interfaces for video scene generation
+export interface KieSceneGenerationParams {
+  prompt: string;
+  image_urls: string[];
+  output_format?: string;
+  image_size?: string;
+  callBackUrl?: string;
+}
+
+export interface KieSceneGenerationResponse {
+  code: number;
+  message: string;
+  data: {
+    taskId: string;
+  };
+}
+
+export interface KieSceneTaskStatusResponse {
+  code: number;
+  message: string;
+  data: {
+    taskId: string;
+    model: string;
+    state: string;
+    param: string;
+    resultJson: string;
+    failCode: string;
+    failMsg: string;
+    completeTime: number;
+    createTime: number;
+    updateTime: number;
+  };
+}
+
+export async function generateSceneImage(params: KieSceneGenerationParams): Promise<KieSceneGenerationResponse> {
+  const {
+    prompt,
+    image_urls,
+    output_format = "png",
+    image_size = "3:4",
+    callBackUrl
+  } = params;
+
+  try {
+    const requestBody = {
+      model: "google/nano-banana-edit",
+      callBackUrl,
+      input: {
+        prompt,
+        image_urls,
+        output_format,
+        image_size
+      }
+    };
+
+    console.log(`\n=== KIE.AI SCENE GENERATION REQUEST ===`);
+    console.log(`API Base: ${KIE_API_BASE}`);
+    console.log(`API Key: ${KIE_API_KEY ? `${KIE_API_KEY.substring(0, 8)}...` : 'MISSING'}`);
+    console.log(`Request Body:`, JSON.stringify(requestBody, null, 2));
+    console.log(`=====================================\n`);
+
+    const response = await fetch(`${KIE_API_BASE}/jobs/createTask`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${KIE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('KIE.ai scene generation API error:', response.status, errorText);
+      throw new Error(`KIE.ai scene generation API error: ${response.status} ${errorText}`);
+    }
+
+    const result = await response.json() as any;
+    
+    console.log(`📋 KIE.ai Scene Generation Response:`, JSON.stringify(result, null, 2));
+    
+    // Check if response structure is as expected
+    if (!result || !result.data || !result.data.taskId) {
+      console.error('❌ Unexpected KIE.ai scene generation response structure:', result);
+      throw new Error(`Invalid KIE.ai scene generation response: ${JSON.stringify(result)}`);
+    }
+    
+    console.log(`✅ KIE.ai scene generation started successfully`);
+    console.log(`Task ID: ${result.data.taskId}`);
+    
+    return result as KieSceneGenerationResponse;
+  } catch (error) {
+    console.error('KIE.ai scene generation error:', error);
+    throw new Error('Failed to generate scene image with KIE.ai');
+  }
+}
+
+export async function checkSceneTaskStatus(taskId: string): Promise<KieSceneTaskStatusResponse> {
+  try {
+    const requestUrl = `${KIE_API_BASE}/jobs/recordInfo?taskId=${taskId}`;
+    
+    console.log(`\n=== KIE.AI SCENE STATUS CHECK REQUEST ===`);
+    console.log(`🔍 Checking scene task: ${taskId}`);
+    console.log(`🔑 API Key: ${KIE_API_KEY ? `${KIE_API_KEY.substring(0, 8)}...` : 'MISSING'}`);
+    console.log(`🌐 Full URL: ${requestUrl}`);
+    console.log(`=====================================`);
+    
+    const response = await fetch(requestUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${KIE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log(`📡 Scene Response Status: ${response.status} ${response.statusText}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ KIE.ai scene status check error ${response.status}:`, errorText);
+      throw new Error(`KIE.ai scene status check error: ${response.status} ${errorText}`);
+    }
+
+    const result = await response.json() as KieSceneTaskStatusResponse;
+    
+    console.log(`📊 FULL KIE.AI SCENE STATUS RESPONSE:`);
+    console.log(JSON.stringify(result, null, 2));
+    console.log(`=====================================\n`);
+    
+    return result;
+  } catch (error) {
+    console.error(`❌ KIE.ai scene status check failed:`, error);
+    if (error instanceof Error) {
+      console.error(`❌ Error message:`, error.message);
+      console.error(`❌ Error stack:`, error.stack);
+    }
+    throw new Error('Failed to check scene task status with KIE.ai');
+  }
+}
