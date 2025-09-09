@@ -148,6 +148,10 @@ export class LocalStorageService {
   async uploadAudioBuffer(audioBuffer: Uint8Array, filename: string): Promise<string> {
     const filePath = path.join(GENERATED_DIR, filename);
     
+    // Ensure directory exists
+    const dir = path.dirname(filePath);
+    fs.mkdirSync(dir, { recursive: true });
+    
     // Write the buffer to file
     fs.writeFileSync(filePath, audioBuffer);
     
@@ -157,6 +161,11 @@ export class LocalStorageService {
   // Upload image buffer to local storage
   async uploadImageBuffer(imageBuffer: Uint8Array, filename: string): Promise<string> {
     const filePath = path.join(GENERATED_DIR, filename);
+    
+    // Ensure directory exists
+    const dir = path.dirname(filePath);
+    fs.mkdirSync(dir, { recursive: true });
+    
     fs.writeFileSync(filePath, imageBuffer);
     return `/objects/generated/${filename}`;
   }

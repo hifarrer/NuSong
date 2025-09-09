@@ -79,7 +79,7 @@ export async function trimAudio(params: FFMPEGTrimAudioParams): Promise<FFMPEGTr
     let publicAudioUrl: string;
     
     if (storageService.constructor.name === 'GCSStorageService') {
-      publicAudioUrl = await (storageService as any).uploadBuffer(buffer, audioFileName, 'audio/mpeg');
+      publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
     } else if (storageService.constructor.name === 'LocalStorageService') {
       publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
     } else if (storageService.constructor.name === 'RenderStorageService') {
@@ -161,7 +161,7 @@ export async function splitAudio(params: FFMPEGSplitAudioParams): Promise<FFMPEG
     let publicAudioUrl: string;
     
     if (storageService.constructor.name === 'GCSStorageService') {
-      publicAudioUrl = await (storageService as any).uploadBuffer(buffer, audioFileName, 'audio/mpeg');
+      publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
     } else if (storageService.constructor.name === 'LocalStorageService') {
       publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
     } else if (storageService.constructor.name === 'RenderStorageService') {
@@ -253,7 +253,7 @@ export async function downloadAndSaveAudioParts(
       // Save to storage
       let savedUrl: string;
       if (storageService.constructor.name === 'GCSStorageService') {
-        savedUrl = await (storageService as any).uploadBuffer(buffer, fileName, 'audio/mpeg');
+        savedUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), fileName);
       } else if (storageService.constructor.name === 'LocalStorageService') {
         savedUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), fileName);
       } else if (storageService.constructor.name === 'RenderStorageService') {
@@ -302,7 +302,7 @@ export async function mergeVideos(params: FFMPEGMergeVideosParams): Promise<FFMP
     let publicAudioUrl: string;
     
     if (storageService.constructor.name === 'GCSStorageService') {
-      publicAudioUrl = await (storageService as any).uploadBuffer(buffer, audioFileName, 'audio/mpeg');
+      publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
     } else if (storageService.constructor.name === 'LocalStorageService') {
       publicAudioUrl = await (storageService as any).uploadAudioBuffer(new Uint8Array(buffer), audioFileName);
     } else if (storageService.constructor.name === 'RenderStorageService') {
@@ -397,7 +397,8 @@ export async function downloadAndSaveFinalVideo(
     // Save to storage
     let savedUrl: string;
     if (storageService.constructor.name === 'GCSStorageService') {
-      savedUrl = await (storageService as any).uploadBuffer(buffer, fileName, 'video/mp4');
+      // For videos, we'll use uploadImageBuffer as it's the closest method available
+      savedUrl = await (storageService as any).uploadImageBuffer(new Uint8Array(buffer), fileName);
     } else if (storageService.constructor.name === 'LocalStorageService') {
       // For videos, we'll use uploadImageBuffer as it's the closest method available
       savedUrl = await (storageService as any).uploadImageBuffer(new Uint8Array(buffer), fileName);
