@@ -2104,9 +2104,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (!sceneTask.audioPartUrl) {
               throw new Error(`No audio part available for scene ${sceneNumber}`);
             }
+            
+            // Convert audio part URL to public URL for Wavespeed API
+            let publicAudioUrl = sceneTask.audioPartUrl;
+            if (sceneTask.audioPartUrl.startsWith('/objects/')) {
+              const storageService = getStorageService();
+              publicAudioUrl = await (storageService as any).getObjectEntityPublicUrl(sceneTask.audioPartUrl, 3600);
+              console.log(`✅ Converted audio part to public URL: ${publicAudioUrl}`);
+            }
+            
             videoRequestId = await wavespeedService.generateInfiniteTalkVideo(
               sceneImageUrl,
-              sceneTask.audioPartUrl
+              publicAudioUrl
             );
           }
           

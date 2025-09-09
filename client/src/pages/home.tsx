@@ -1479,8 +1479,8 @@ export default function Home() {
 
       {/* Video Creation Modal */}
       <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
-        <DialogContent className="bg-music-dark border-gray-600 text-white max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="bg-music-dark border-gray-600 text-white max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center text-xl">
               <Video className="mr-3 h-6 w-6 text-music-blue" />
               Create Music Video
@@ -1494,7 +1494,7 @@ export default function Home() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6">
+          <div className="flex-1 overflow-y-auto space-y-6 pr-2">
             {/* Track Preview */}
             {selectedTrackForVideo && (
               <div className="bg-music-secondary rounded-lg p-4">
