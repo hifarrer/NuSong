@@ -272,10 +272,16 @@ export class WavespeedService {
         throw new Error(`Wavespeed Seedance API error: ${response.status} ${response.statusText}`);
       }
 
-      const result: WavespeedVideoResponse = await response.json() as WavespeedVideoResponse;
+      const result = await response.json();
+      console.log(`📋 Full Wavespeed Seedance Response:`, JSON.stringify(result, null, 2));
       
       if (result.error) {
         throw new Error(`Wavespeed Seedance API error: ${result.error}`);
+      }
+
+      if (!result.id) {
+        console.error(`❌ No ID in response:`, result);
+        throw new Error(`Wavespeed Seedance API response missing ID field`);
       }
 
       console.log(`✅ Seedance video generation started successfully`);
@@ -320,10 +326,16 @@ export class WavespeedService {
         throw new Error(`Wavespeed InfiniteTalk API error: ${response.status} ${response.statusText}`);
       }
 
-      const result: WavespeedVideoResponse = await response.json() as WavespeedVideoResponse;
+      const result = await response.json();
+      console.log(`📋 Full Wavespeed InfiniteTalk Response:`, JSON.stringify(result, null, 2));
       
       if (result.error) {
         throw new Error(`Wavespeed InfiniteTalk API error: ${result.error}`);
+      }
+
+      if (!result.id) {
+        console.error(`❌ No ID in response:`, result);
+        throw new Error(`Wavespeed InfiniteTalk API response missing ID field`);
       }
 
       console.log(`✅ InfiniteTalk video generation started successfully`);
