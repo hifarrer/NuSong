@@ -202,11 +202,18 @@ export default function Home() {
       
       // Store the generated scenes, tasks, and audio parts
       console.log(`🎵 Frontend handleGenerateVideo - result.trimmedAudioUrl:`, result.trimmedAudioUrl);
+      console.log(`🔍 Frontend handleGenerateVideo - result.trimmedAudioUrl type:`, typeof result.trimmedAudioUrl);
+      console.log(`🔍 Frontend handleGenerateVideo - result.trimmedAudioUrl length:`, result.trimmedAudioUrl?.length);
+      console.log(`🔍 Frontend handleGenerateVideo - result.trimmedAudioUrl is null:`, result.trimmedAudioUrl === null);
+      console.log(`🔍 Frontend handleGenerateVideo - result.trimmedAudioUrl is undefined:`, result.trimmedAudioUrl === undefined);
+      
       setGeneratedScenes(result.scenes || []);
       setSceneTasks(result.sceneTasks || []);
       setAudioParts(result.audioParts || []);
       setTrimmedAudioUrl(result.trimmedAudioUrl || null);
       setShowSceneResults(true);
+      
+      console.log(`🔍 Frontend handleGenerateVideo - After setTrimmedAudioUrl, trimmedAudioUrl state:`, result.trimmedAudioUrl);
       
       toast({
         title: "Video Scenes Generated!",
@@ -401,11 +408,18 @@ export default function Home() {
       console.log(`🔍 Frontend mergeVideos - trimmedAudioUrl type:`, typeof trimmedAudioUrl);
       console.log(`🔍 Frontend mergeVideos - trimmedAudioUrl length:`, trimmedAudioUrl?.length);
       console.log(`🔍 Frontend mergeVideos - selectedTrackForVideo.audioUrl:`, selectedTrackForVideo.audioUrl);
-      const response = await apiRequest("/api/merge-videos", "POST", {
+      console.log(`🔍 Frontend mergeVideos - trimmedAudioUrl is null:`, trimmedAudioUrl === null);
+      console.log(`🔍 Frontend mergeVideos - trimmedAudioUrl is undefined:`, trimmedAudioUrl === undefined);
+      
+      const requestBody = {
         trackId: selectedTrackForVideo.id,
         videoTasks: completedVideoTasks,
         trimmedAudioUrl: trimmedAudioUrl
-      });
+      };
+      
+      console.log(`🔍 Frontend mergeVideos - request body:`, JSON.stringify(requestBody, null, 2));
+      
+      const response = await apiRequest("/api/merge-videos", "POST", requestBody);
       
       const result = await response.json();
       

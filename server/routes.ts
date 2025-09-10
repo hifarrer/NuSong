@@ -1974,15 +1974,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fade_duration: 5
       });
 
-      console.log(`✅ Audio trimmed to 30 seconds: ${audioTrimResult.download_url}`);
-      console.log(`🔍 Trimmed audio URL type: ${typeof audioTrimResult.download_url}`);
-      console.log(`🔍 Trimmed audio URL length: ${audioTrimResult.download_url?.length}`);
+      // Store the trimmed audio URL for later use
+      const trimmedAudioUrl = audioTrimResult.download_url;
+      console.log(`✅ Audio trimmed to 30 seconds: ${trimmedAudioUrl}`);
+      console.log(`🔍 Trimmed audio URL type: ${typeof trimmedAudioUrl}`);
+      console.log(`🔍 Trimmed audio URL length: ${trimmedAudioUrl?.length}`);
+      console.log(`🔍 Original audio URL: ${track.audioUrl}`);
+      console.log(`🔍 URLs are different: ${trimmedAudioUrl !== track.audioUrl}`);
 
       // Now split the trimmed 30-second audio into 6 parts (5 seconds each)
       console.log(`🎵 Starting audio splitting into 6 parts for track: ${trackId}`);
-      console.log(`🔍 About to call splitAudio with URL: ${audioTrimResult.download_url}`);
+      console.log(`🔍 About to call splitAudio with trimmed URL: ${trimmedAudioUrl}`);
       const audioSplitResult = await splitAudio({
-        audio_url: audioTrimResult.download_url,
+        audio_url: trimmedAudioUrl, // Use the trimmed 30-second audio URL
         parts: 6
       });
 
@@ -2045,9 +2049,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      console.log(`🔍 Scene generation response - trimmedAudioUrl: ${audioTrimResult.download_url}`);
-      console.log(`🔍 Scene generation response - trimmedAudioUrl type: ${typeof audioTrimResult.download_url}`);
-      console.log(`🔍 Scene generation response - trimmedAudioUrl length: ${audioTrimResult.download_url?.length}`);
+      console.log(`🔍 Scene generation response - trimmedAudioUrl: ${trimmedAudioUrl}`);
+      console.log(`🔍 Scene generation response - trimmedAudioUrl type: ${typeof trimmedAudioUrl}`);
+      console.log(`🔍 Scene generation response - trimmedAudioUrl length: ${trimmedAudioUrl?.length}`);
       
       res.json({ 
         scenes,
@@ -2057,7 +2061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bandCharacterImages,
         audioParts: savedAudioParts,
         audioSplitSuccess: true,
-        trimmedAudioUrl: audioTrimResult.download_url // Include the 30-second trimmed audio URL
+        trimmedAudioUrl: trimmedAudioUrl // Include the 30-second trimmed audio URL
       });
     } catch (error) {
       console.error('Error generating video scenes:', error);
@@ -2202,6 +2206,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/merge-videos', requireAuth, async (req, res) => {
     try {
       const { trackId, videoTasks, trimmedAudioUrl } = req.body;
+      
+      console.log(`🔍 Merge endpoint received:`);
+      console.log(`  - trackId: ${trackId}`);
+      console.log(`  - videoTasks length: ${videoTasks?.length || 'N/A'}`);
+      console.log(`  - trimmedAudioUrl: ${trimmedAudioUrl}`);
+      console.log(`  - trimmedAudioUrl type: ${typeof trimmedAudioUrl}`);
+      console.log(`  - trimmedAudioUrl is null: ${trimmedAudioUrl === null}`);
+      console.log(`  - trimmedAudioUrl is undefined: ${trimmedAudioUrl === undefined}`);
       
       if (!trackId || !videoTasks || !Array.isArray(videoTasks)) {
         return res.status(400).json({ message: 'Track ID and video tasks are required' });
