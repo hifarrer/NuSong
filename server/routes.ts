@@ -1926,7 +1926,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate video scenes endpoint
   app.post('/api/generate-video-scenes', requireAuth, async (req, res) => {
     try {
-      const { trackId, videoPrompt } = req.body;
+      const { trackId, videoPrompt, videoDurationSec } = req.body as { trackId: string; videoPrompt: string; videoDurationSec?: number };
       
       if (!trackId || !videoPrompt || typeof videoPrompt !== 'string' || !videoPrompt.trim()) {
         return res.status(400).json({ message: 'Track ID and video prompt are required' });
@@ -1969,11 +1969,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lyrics: track.lyrics || undefined
       });
 
-      // First trim audio to 30 seconds, then split into 6 parts using FFMPEG
-      console.log(`🎵 Starting audio trimming to 30 seconds for track: ${trackId}`);
+      // Determine total video duration and per-scene duration
+      const totalDurationSec = videoDurationSec === 60 ? 60 : 30;
+      const perSceneDurationSec = totalDurationSec / 6; // 5s for 30s total, 10s for 60s total
+
+      // First trim audio to selected duration, then split into 6 parts using FFMPEG
+      console.log(`🎵 Starting audio trimming to ${totalDurationSec} seconds for track: ${trackId}`);
       const audioTrimResult = await trimAudio({
         audio_url: track.audioUrl || "",
-        desired_length: 30,
+        desired_length: totalDurationSec,
         fade_duration: 5
       });
 
@@ -1999,17 +2003,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔍 Original audio URL: ${track.audioUrl}`);
       console.log(`🔍 URLs are different: ${trimmedAudioUrl !== track.audioUrl}`);
 
-      // Now split the trimmed 30-second audio into 6 parts (5 seconds each)
-      console.log(`🎵 Starting audio splitting into 6 parts for track: ${trackId}`);
+      // Now split the trimmed audio into 6 parts (equal duration)
+      console.log(`🎵 Starting audio splitting into 6 parts for track: ${trackId} (≈${perSceneDurationSec}s each)`);
       console.log(`🔍 About to call splitAudio with trimmed URL: ${trimmedAudioUrl}`);
       const audioSplitResult = await splitAudio({
-        audio_url: trimmedAudioUrl, // Use the trimmed 30-second audio URL
+        audio_url: trimmedAudioUrl,
         parts: 6
       });
 
       // Download and save audio parts to storage
       const savedAudioParts = await downloadAndSaveAudioParts(audioSplitResult.audio_parts, trackId);
-      console.log(`✅ Audio split and saved: ${savedAudioParts.length} parts (5 seconds each)`);
+      console.log(`✅ Audio split and saved: ${savedAudioParts.length} parts (~${perSceneDurationSec}s each)`);
 
       // Generate scene images with KIE.AI
       const sceneTasks = [];
@@ -2078,7 +2082,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bandCharacterImages,
         audioParts: savedAudioParts,
         audioSplitSuccess: true,
-        trimmedAudioUrl: trimmedAudioUrl // Include the 30-second trimmed audio URL
+        trimmedAudioUrl: trimmedAudioUrl,
+        videoDurationSec: totalDurationSec
       });
     } catch (error) {
       console.error('Error generating video scenes:', error);
@@ -2091,7 +2096,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start video generation endpoint (called after scene images are ready)
   app.post('/api/start-video-generation', requireAuth, async (req, res) => {
     try {
-      const { trackId, sceneTasks } = req.body;
+      const { trackId, sceneTasks, videoDurationSec } = req.body as { trackId: string; sceneTasks: any[]; videoDurationSec?: number };
       
       if (!trackId || !sceneTasks || !Array.isArray(sceneTasks)) {
         return res.status(400).json({ message: 'Track ID and scene tasks are required' });
@@ -2107,6 +2112,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🎬 Starting video generation for track: ${trackId}`);
       console.log(`Scene tasks:`, sceneTasks);
+
+      // Determine per-scene duration
+      const totalDurationSec = videoDurationSec === 60 ? 60 : 30;
+      const perSceneDurationSec = totalDurationSec / 6; // 5 or 10 seconds
 
       // Generate videos for each scene
       const videoTasks = [];
@@ -2134,7 +2143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`🎥 Generating Seedance video for scene ${sceneNumber}`);
             videoRequestId = await wavespeedService.generateSeedanceVideo(
               sceneImageUrl, 
-              sceneTask.prompt
+              sceneTask.prompt,
+              perSceneDurationSec
             );
           } else {
             // Scenes 2, 4, 6: Use InfiniteTalk (lipsync with audio)

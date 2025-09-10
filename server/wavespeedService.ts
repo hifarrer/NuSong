@@ -243,10 +243,10 @@ export class WavespeedService {
    * @param prompt The scene prompt
    * @returns Promise with the request ID
    */
-  async generateSeedanceVideo(imageUrl: string, prompt: string): Promise<string> {
+  async generateSeedanceVideo(imageUrl: string, prompt: string, durationSeconds: number = 5): Promise<string> {
     const requestBody: SeedanceVideoRequest = {
       camera_fixed: false,
-      duration: 5,
+      duration: durationSeconds,
       image: imageUrl,
       prompt: prompt,
       seed: -1

@@ -180,6 +180,9 @@ export default function Home() {
     setShowVideoModal(true);
   };
 
+  // Video duration selection: 30s default, 60s optional
+  const [videoDurationSec, setVideoDurationSec] = useState<number>(30);
+
   const handleGenerateVideo = async () => {
     if (!selectedTrackForVideo || !videoPrompt.trim()) {
       toast({
@@ -196,6 +199,7 @@ export default function Home() {
       const response = await apiRequest("/api/generate-video-scenes", "POST", {
         trackId: selectedTrackForVideo.id,
         videoPrompt: videoPrompt.trim(),
+        videoDurationSec,
       });
       
       const result = await response.json();
@@ -307,7 +311,8 @@ export default function Home() {
     try {
       const response = await apiRequest("/api/start-video-generation", "POST", {
         trackId: selectedTrackForVideo.id,
-        sceneTasks: completedSceneTasks
+        sceneTasks: completedSceneTasks,
+        videoDurationSec,
       });
       
       const result = await response.json();
@@ -1517,6 +1522,32 @@ export default function Home() {
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+            {/* Video Length Selector */}
+            <div className="bg-music-secondary rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-gray-300 mb-2">Video Length</h4>
+              <div className="flex items-center gap-4 text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="video-length"
+                    value={30}
+                    checked={videoDurationSec === 30}
+                    onChange={() => setVideoDurationSec(30)}
+                  />
+                  <span>30 seconds (default)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="video-length"
+                    value={60}
+                    checked={videoDurationSec === 60}
+                    onChange={() => setVideoDurationSec(60)}
+                  />
+                  <span>60 seconds</span>
+                </label>
+              </div>
+            </div>
             {/* Track Preview */}
             {selectedTrackForVideo && (
               <div className="bg-music-secondary rounded-lg p-4">
@@ -1557,15 +1588,7 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Scene Requirements Info */}
-            <div className="bg-music-secondary/50 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-gray-300 mb-2">Scene Structure</h4>
-              <div className="text-xs text-gray-400 space-y-1">
-                <p>• Scenes 1, 3, 5: Medium/far distance shots showing characters</p>
-                <p>• Scenes 2, 4, 6: Close-up shots of the main character (lead singer)</p>
-                <p>• Each scene will be a concise description for image generation</p>
-              </div>
-            </div>
+
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3">
