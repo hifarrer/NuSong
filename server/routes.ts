@@ -2045,6 +2045,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      console.log(`🔍 Scene generation response - trimmedAudioUrl: ${audioTrimResult.download_url}`);
+      console.log(`🔍 Scene generation response - trimmedAudioUrl type: ${typeof audioTrimResult.download_url}`);
+      console.log(`🔍 Scene generation response - trimmedAudioUrl length: ${audioTrimResult.download_url?.length}`);
+      
       res.json({ 
         scenes,
         sceneTasks,
@@ -2232,6 +2236,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`  - trimmedAudioUrl: ${trimmedAudioUrl}`);
       console.log(`  - track.audioUrl: ${track.audioUrl}`);
       console.log(`  - Final audio_url: ${trimmedAudioUrl || track.audioUrl || ""}`);
+      console.log(`🔍 URL Comparison:`);
+      console.log(`  - trimmedAudioUrl is null/undefined: ${!trimmedAudioUrl}`);
+      console.log(`  - trimmedAudioUrl length: ${trimmedAudioUrl?.length || 'N/A'}`);
+      console.log(`  - track.audioUrl length: ${track.audioUrl?.length || 'N/A'}`);
+      console.log(`  - URLs are the same: ${trimmedAudioUrl === track.audioUrl}`);
 
       // Extract video URLs in order
       const videoUrls = completedVideos.map(video => video.videoUrl);

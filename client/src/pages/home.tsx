@@ -398,6 +398,9 @@ export default function Home() {
     setIsMergingVideos(true);
     try {
       console.log(`🎬 Frontend mergeVideos - trimmedAudioUrl:`, trimmedAudioUrl);
+      console.log(`🔍 Frontend mergeVideos - trimmedAudioUrl type:`, typeof trimmedAudioUrl);
+      console.log(`🔍 Frontend mergeVideos - trimmedAudioUrl length:`, trimmedAudioUrl?.length);
+      console.log(`🔍 Frontend mergeVideos - selectedTrackForVideo.audioUrl:`, selectedTrackForVideo.audioUrl);
       const response = await apiRequest("/api/merge-videos", "POST", {
         trackId: selectedTrackForVideo.id,
         videoTasks: completedVideoTasks,
