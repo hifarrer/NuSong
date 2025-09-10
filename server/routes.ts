@@ -59,6 +59,9 @@ import type { Request } from 'express';
 
 const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || "36d002d2-c5db-49fe-b02c-5552be87e29e:cb8148d966acf4a68d72e1cb719d6079";
 
+// In-memory cache for 30s trimmed audio URLs by trackId
+const trimmedAudioCache = new Map<string, string>();
+
 // Helper function to get the appropriate storage service
 export function getStorageService() {
   console.log('🔍 Storage Service Selection:');
@@ -1974,8 +1977,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fade_duration: 5
       });
 
-      // Store the trimmed audio URL for later use
+      // Store the trimmed audio URL for later use (cache + DB column if present)
       const trimmedAudioUrl = audioTrimResult.download_url;
+      try {
+        trimmedAudioCache.set(trackId, trimmedAudioUrl);
+        console.log(`💾 Cached trimmedAudioUrl for track ${trackId}`);
+        // Optional DB persistence if column exists
+        try {
+          await pool.query(
+            'UPDATE music_generations SET trimmed_audio_url = $1, updated_at = NOW() WHERE id = $2',
+            [trimmedAudioUrl, trackId]
+          );
+          console.log(`✅ Persisted trimmedAudioUrl to DB for track ${trackId}`);
+        } catch (_dbErr) {
+          // Column may not exist; ignore silently
+        }
+      } catch (_e) {}
       console.log(`✅ Audio trimmed to 30 seconds: ${trimmedAudioUrl}`);
       console.log(`🔍 Trimmed audio URL type: ${typeof trimmedAudioUrl}`);
       console.log(`🔍 Trimmed audio URL length: ${trimmedAudioUrl?.length}`);
@@ -2244,15 +2261,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🎬 Starting video merging for track: ${trackId}`);
       console.log(`Completed videos:`, completedVideos.map(v => ({ scene: v.sceneNumber, url: v.videoUrl })));
+
+      // Determine final trimmed audio URL, preferring:
+      // 1) request body trimmedAudioUrl
+      // 2) in-memory cache
+      // 3) DB column trimmed_audio_url (if exists)
+      // 4) fallback to track.audioUrl (should rarely happen)
+      let finalTrimmed = trimmedAudioUrl as string | undefined;
+      if (!finalTrimmed) {
+        finalTrimmed = trimmedAudioCache.get(trackId) || undefined;
+        if (finalTrimmed) console.log(`💡 Using cached trimmedAudioUrl for track ${trackId}`);
+      }
+      if (!finalTrimmed) {
+        try {
+          const dbRes = await pool.query('SELECT trimmed_audio_url FROM music_generations WHERE id = $1', [trackId]);
+          const dbUrl = dbRes.rows?.[0]?.trimmed_audio_url as string | undefined;
+          if (dbUrl) {
+            finalTrimmed = dbUrl;
+            console.log(`💡 Using DB trimmedAudioUrl for track ${trackId}`);
+          }
+        } catch (_e) {
+          // Column may not exist; ignore
+        }
+      }
+
+      const finalAudioUrl = finalTrimmed || track.audioUrl || "";
       console.log(`🔊 Audio URL for merging:`);
-      console.log(`  - trimmedAudioUrl: ${trimmedAudioUrl}`);
-      console.log(`  - track.audioUrl: ${track.audioUrl}`);
-      console.log(`  - Final audio_url: ${trimmedAudioUrl || track.audioUrl || ""}`);
-      console.log(`🔍 URL Comparison:`);
-      console.log(`  - trimmedAudioUrl is null/undefined: ${!trimmedAudioUrl}`);
-      console.log(`  - trimmedAudioUrl length: ${trimmedAudioUrl?.length || 'N/A'}`);
-      console.log(`  - track.audioUrl length: ${track.audioUrl?.length || 'N/A'}`);
-      console.log(`  - URLs are the same: ${trimmedAudioUrl === track.audioUrl}`);
+      console.log(`  - from request.trimmedAudioUrl: ${trimmedAudioUrl}`);
+      console.log(`  - from cache: ${trimmedAudioCache.get(trackId) || 'N/A'}`);
+      console.log(`  - from DB: ${finalTrimmed && finalTrimmed !== trimmedAudioCache.get(trackId) ? finalTrimmed : 'N/A'}`);
+      console.log(`  - track.audioUrl (fallback): ${track.audioUrl}`);
+      console.log(`  - Final chosen audio_url: ${finalAudioUrl}`);
 
       // Extract video URLs in order
       const videoUrls = completedVideos.map(video => video.videoUrl);
@@ -2260,7 +2299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Merge videos using FFMPEG
       const mergeResult = await mergeVideos({
         video_urls: videoUrls,
-        audio_url: trimmedAudioUrl || track.audioUrl || "", // Use 30-second trimmed audio if available, fallback to original
+        audio_url: finalAudioUrl, // Always prefer trimmed audio
         subtitle_url: "",
         watermark_url: "",
         dimensions: "768x1024",
