@@ -78,6 +78,7 @@ export default function MyBand() {
   const [bandPictureRequestId, setBandPictureRequestId] = useState<string | null>(null);
   const [bandPictureUrl, setBandPictureUrl] = useState<string | null>(null);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [leadChangeTargetId, setLeadChangeTargetId] = useState<string | null>(null);
 
   // Fetch user's band data
   const { data: bandData, isLoading } = useQuery({
@@ -222,6 +223,37 @@ export default function MyBand() {
       });
     },
   });
+
+  // Quiet update helper to avoid modal/toast side-effects during lead singer swap
+  const updateMemberQuietly = async (id: string, data: any) => {
+    const response = await apiRequest(`/api/band/members/${id}`, "PUT", data);
+    return await response.json();
+  };
+
+  const handleMakeLeadSinger = async (member: BandMember) => {
+    if (!bandData) return;
+    if (member.position === 1) {
+      toast({ title: "Info", description: `${member.name} is already the Lead Singer.` });
+      return;
+    }
+
+    const currentLead = bandData.members.find((m) => m.position === 1) || null;
+    setLeadChangeTargetId(member.id);
+    try {
+      if (currentLead) {
+        // Move current lead to selected member's position first
+        await updateMemberQuietly(currentLead.id, { position: member.position });
+      }
+      // Then make selected member the lead (position 1)
+      await updateMemberQuietly(member.id, { position: 1 });
+      await queryClient.invalidateQueries({ queryKey: ["/api/band"] });
+      toast({ title: "Updated", description: `${member.name} is now the Lead Singer.` });
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || "Failed to set Lead Singer", variant: "destructive" });
+    } finally {
+      setLeadChangeTargetId(null);
+    }
+  };
 
   // Save member image mutation
   const saveMemberImageMutation = useMutation({
@@ -578,7 +610,7 @@ export default function MyBand() {
                       <CardContent className="p-6">
                         <div className="text-center">
                           <h3 className="text-lg font-semibold text-white mb-4">
-                            Member {position}: {position === 1 ? "Lead Singer" : "Optional"}
+                            Member {position}: {position === 1 ? "Lead Singer (used for singing videos)" : "Optional"}
                           </h3>
                           
                           {member ? (
@@ -597,7 +629,7 @@ export default function MyBand() {
                               
                               <div>
                                 <h4 className="text-xl font-semibold text-white">{member.name}</h4>
-                                {position === 1 ? <p className="text-gray-300">Lead Singer</p> : null}
+                                {position === 1 ? <p className="text-gray-300">Lead Singer (used for singing videos)</p> : null}
                                 {member.description && (
                                   <p className="text-sm text-gray-400 mt-2">{member.description}</p>
                                 )}
@@ -613,6 +645,20 @@ export default function MyBand() {
                                   <Edit3 className="h-4 w-4 mr-2" />
                                   Edit
                                 </Button>
+                                {member.position !== 1 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={leadChangeTargetId === member.id}
+                                    onClick={() => handleMakeLeadSinger(member)}
+                                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                                  >
+                                    {leadChangeTargetId === member.id ? (
+                                      <LoadingSpinner className="h-4 w-4 mr-2" />
+                                    ) : null}
+                                    Make Lead Singer
+                                  </Button>
+                                )}
                                 <Button
                                   variant="outline"
                                   size="sm"
