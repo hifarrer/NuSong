@@ -928,10 +928,10 @@ function TrackCard({
           </div>
         </div>
 
-        {/* Right Side - Video Display */}
-        {(track as any).videoUrl && (
-          <div className="flex-shrink-0">
-            <div className="w-32 aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden border border-gray-600">
+        {/* Right Side - Video Display or Create Button */}
+        <div className="flex-shrink-0">
+          {(track as any).videoUrl ? (
+            <div className="w-64 aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden border border-gray-600">
               <video
                 src={(track as any).videoUrl}
                 className="w-full h-full object-cover"
@@ -940,8 +940,17 @@ function TrackCard({
                 poster={track.imageUrl}
               />
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="w-64 aspect-[3/4] bg-gray-900 rounded-lg border border-dashed border-gray-600 flex items-center justify-center">
+              <Button
+                onClick={() => (window.location.href = '/?tab=createVideo')}
+                className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
+              >
+                Create Video
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
