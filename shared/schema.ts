@@ -99,6 +99,7 @@ export const musicGenerations = pgTable("music_generations", {
   falRequestId: varchar("fal_request_id"), // Legacy field for FAL
   kieTaskId: varchar("kie_task_id"), // KIE.ai task ID
   imageUrl: varchar("image_url"), // Track cover image from KIE.ai
+  videoUrl: varchar("video_url"), // Music video URL
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

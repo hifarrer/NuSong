@@ -201,6 +201,7 @@ export default function Home() {
       const result = await response.json();
       
       // Store the generated scenes, tasks, and audio parts
+      console.log(`🎵 Frontend handleGenerateVideo - result.trimmedAudioUrl:`, result.trimmedAudioUrl);
       setGeneratedScenes(result.scenes || []);
       setSceneTasks(result.sceneTasks || []);
       setAudioParts(result.audioParts || []);
@@ -396,6 +397,7 @@ export default function Home() {
     
     setIsMergingVideos(true);
     try {
+      console.log(`🎬 Frontend mergeVideos - trimmedAudioUrl:`, trimmedAudioUrl);
       const response = await apiRequest("/api/merge-videos", "POST", {
         trackId: selectedTrackForVideo.id,
         videoTasks: completedVideoTasks,

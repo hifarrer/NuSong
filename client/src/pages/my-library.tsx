@@ -721,8 +721,12 @@ function TrackCard({
 
   return (
     <div className="bg-music-dark border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors">
-      {/* Track Info */}
-      <div className="flex-1 min-w-0 mb-4">
+      {/* Main Content Row */}
+      <div className="flex gap-4">
+        {/* Left Side - Track Info and Controls */}
+        <div className="flex-1 min-w-0">
+          {/* Track Info */}
+          <div className="mb-4">
         {isEditingTitle ? (
           <Input
             value={editedTitle}
@@ -793,36 +797,36 @@ function TrackCard({
         </div>
       )}
 
-      {/* Controls Row */}
-      <div className="flex items-center gap-4">
-        {/* Album Selector */}
-        <div className="w-full sm:w-40">
-          <Select
-            value={(track as any).albumId || ""}
-            onValueChange={(albumId: string) => updateAlbumMutation.mutate(albumId)}
-            disabled={updateAlbumMutation.isPending}
-          >
-            <SelectTrigger className="w-full sm:w-40 bg-music-secondary border-gray-600 text-white text-xs">
-              <SelectValue placeholder="Select album">
-                {albums.find(a => a.id === (track as any).albumId)?.name || "No album"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="bg-music-dark border-gray-600">
-              {albums.map((album) => (
-                <SelectItem
-                  key={album.id}
-                  value={album.id}
-                  className="text-white hover:bg-gray-700 text-xs"
-                >
-                  {album.name}{album.isDefault ? " (Default)" : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          {/* Controls Row */}
+          <div className="flex items-center gap-4">
+            {/* Album Selector */}
+            <div className="w-full sm:w-40">
+              <Select
+                value={(track as any).albumId || ""}
+                onValueChange={(albumId: string) => updateAlbumMutation.mutate(albumId)}
+                disabled={updateAlbumMutation.isPending}
+              >
+                <SelectTrigger className="w-full sm:w-40 bg-music-secondary border-gray-600 text-white text-xs">
+                  <SelectValue placeholder="Select album">
+                    {albums.find(a => a.id === (track as any).albumId)?.name || "No album"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="bg-music-dark border-gray-600">
+                  {albums.map((album) => (
+                    <SelectItem
+                      key={album.id}
+                      value={album.id}
+                      className="text-white hover:bg-gray-700 text-xs"
+                    >
+                      {album.name}{album.isDefault ? " (Default)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
           {track.status === "completed" && track.audioUrl && (
             !isUserOnFreePlan() ? (
               <Button
@@ -920,7 +924,24 @@ function TrackCard({
             <Trash2 className="w-4 h-4 mb-1" />
             <span className="text-xs">Delete</span>
           </Button>
+            </div>
+          </div>
         </div>
+
+        {/* Right Side - Video Display */}
+        {(track as any).videoUrl && (
+          <div className="flex-shrink-0">
+            <div className="w-32 aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden border border-gray-600">
+              <video
+                src={(track as any).videoUrl}
+                className="w-full h-full object-cover"
+                controls
+                preload="metadata"
+                poster={track.imageUrl}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

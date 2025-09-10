@@ -2225,6 +2225,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🎬 Starting video merging for track: ${trackId}`);
       console.log(`Completed videos:`, completedVideos.map(v => ({ scene: v.sceneNumber, url: v.videoUrl })));
+      console.log(`🔊 Audio URL for merging:`);
+      console.log(`  - trimmedAudioUrl: ${trimmedAudioUrl}`);
+      console.log(`  - track.audioUrl: ${track.audioUrl}`);
+      console.log(`  - Final audio_url: ${trimmedAudioUrl || track.audioUrl || ""}`);
 
       // Extract video URLs in order
       const videoUrls = completedVideos.map(video => video.videoUrl);
@@ -2241,6 +2245,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Download and save the final merged video
       const finalVideoUrl = await downloadAndSaveFinalVideo(mergeResult.download_url, trackId);
+
+      // Update the track with the video URL
+      await pool.query(
+        'UPDATE music_generations SET video_url = $1, updated_at = NOW() WHERE id = $2',
+        [finalVideoUrl, trackId]
+      );
+
+      console.log(`✅ Video URL saved to database: ${finalVideoUrl}`);
 
       res.json({
         trackId,
