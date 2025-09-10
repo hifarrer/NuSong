@@ -154,6 +154,9 @@ export async function splitAudio(params: FFMPEGSplitAudioParams): Promise<FFMPEG
   try {
     // First, download the audio file and upload it to our storage to make it publicly accessible
     console.log(`\n=== DOWNLOADING AND UPLOADING AUDIO FOR FFMPEG ===`);
+    console.log(`🔍 splitAudio received audio_url: ${audio_url}`);
+    console.log(`🔍 splitAudio audio_url type: ${typeof audio_url}`);
+    console.log(`🔍 splitAudio audio_url length: ${audio_url?.length}`);
     console.log(`Original audio URL: ${audio_url}`);
     
     const audioResponse = await fetch(audio_url);

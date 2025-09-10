@@ -1975,9 +1975,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       console.log(`✅ Audio trimmed to 30 seconds: ${audioTrimResult.download_url}`);
+      console.log(`🔍 Trimmed audio URL type: ${typeof audioTrimResult.download_url}`);
+      console.log(`🔍 Trimmed audio URL length: ${audioTrimResult.download_url?.length}`);
 
       // Now split the trimmed 30-second audio into 6 parts (5 seconds each)
       console.log(`🎵 Starting audio splitting into 6 parts for track: ${trackId}`);
+      console.log(`🔍 About to call splitAudio with URL: ${audioTrimResult.download_url}`);
       const audioSplitResult = await splitAudio({
         audio_url: audioTrimResult.download_url,
         parts: 6
