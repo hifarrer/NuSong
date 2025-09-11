@@ -2382,10 +2382,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve generated audio files from storage (supports HTTP Range for seeking)
+  // Serve generated files from storage
+  // If using GCS, redirect to the public GCS URL to avoid auth issues and support Range natively
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
       const storageService = getStorageService();
+
+      // Fast-path for GCS: redirect to public GCS URL instead of proxying
+      if (storageService.constructor && storageService.constructor.name === 'GCSStorageService') {
+        try {
+          const directUrl = (storageService as any).getObjectEntityDirectPublicUrl(req.path);
+          return res.redirect(302, directUrl);
+        } catch (e) {
+          console.error('GCS direct URL redirect failed, falling back to proxy:', e);
+        }
+      }
+
       const objectFile = await storageService.getObjectEntityFile(req.path);
 
       // Fetch metadata for content-type and total size
