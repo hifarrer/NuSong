@@ -98,6 +98,10 @@ export default function Home() {
   const [showSceneResults, setShowSceneResults] = useState(false);
   const [audioParts, setAudioParts] = useState<string[]>([]);
   const [trimmedAudioUrl, setTrimmedAudioUrl] = useState<string | null>(null);
+  
+  // Album creation modal state
+  const [showCreateAlbum, setShowCreateAlbum] = useState(false);
+  const [newAlbumName, setNewAlbumName] = useState("");
   const [videoTasks, setVideoTasks] = useState<any[]>([]);
   const [isGeneratingVideos, setIsGeneratingVideos] = useState(false);
   const [isMergingVideos, setIsMergingVideos] = useState(false);
@@ -114,6 +118,33 @@ export default function Home() {
     queryKey: ["/api/albums"],
     retry: false,
   }) as { data: Array<{ id: string; name: string; isDefault?: boolean }>|undefined };
+
+  // Create album mutation
+  const createAlbumMutation = useMutation({
+    mutationFn: async (albumName: string) => {
+      const response = await apiRequest("/api/albums", "POST", { name: albumName });
+      return await response.json();
+    },
+    onSuccess: (newAlbum) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/albums"] });
+      setAlbumIdText(newAlbum.id);
+      setAlbumIdAudio(newAlbum.id);
+      setShowCreateAlbum(false);
+      setNewAlbumName("");
+      toast({
+        title: "Album Created",
+        description: `"${newAlbum.name}" has been created and selected.`,
+      });
+    },
+    onError: (error: any) => {
+      console.error("Error creating album:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create album. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const [albumIdText, setAlbumIdText] = useState<string>("");
   const [albumIdAudio, setAlbumIdAudio] = useState<string>("");
@@ -1881,6 +1912,59 @@ export default function Home() {
                 </div>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Album Modal */}
+      <Dialog open={showCreateAlbum} onOpenChange={setShowCreateAlbum}>
+        <DialogContent className="bg-music-secondary border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Create New Album</DialogTitle>
+            <DialogDescription className="text-gray-400">Give your album a name. You can add a cover later.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="album-name" className="text-gray-300">Album Name</Label>
+              <Input
+                id="album-name"
+                value={newAlbumName}
+                onChange={(e) => setNewAlbumName(e.target.value)}
+                placeholder="Enter album name..."
+                className="bg-music-dark border-gray-600 text-white focus:border-music-blue"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (newAlbumName.trim()) {
+                      createAlbumMutation.mutate(newAlbumName.trim());
+                    }
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCreateAlbum(false);
+                  setNewAlbumName("");
+                }}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (newAlbumName.trim()) {
+                    createAlbumMutation.mutate(newAlbumName.trim());
+                  }
+                }}
+                disabled={!newAlbumName.trim() || createAlbumMutation.isPending}
+                className="bg-music-blue hover:bg-music-blue/80 text-white"
+              >
+                {createAlbumMutation.isPending ? "Creating..." : "Create Album"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

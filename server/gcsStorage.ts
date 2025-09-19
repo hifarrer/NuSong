@@ -92,19 +92,22 @@ export class GCSStorageService {
 
   normalizeObjectEntityPath(rawPath: string): string {
     if (rawPath.startsWith("file://")) {
-      // Extract the filename from the file:// URL
-      const url = new URL(rawPath);
-      const filename = url.pathname.split("/").pop();
-      return `/objects/uploads/${filename}`;
+      // Not expected for GCS; return as-is
+      return rawPath;
     }
     
     if (rawPath.startsWith("https://storage.googleapis.com/")) {
-      // Extract the path from the GCS URL
+      // Normalize to a stable, direct, public GCS URL (strip query if present)
       const url = new URL(rawPath);
-      const pathParts = url.pathname.split("/");
-      const bucketName = pathParts[1];
-      const objectPath = pathParts.slice(2).join("/");
-      return `/objects/${objectPath}`;
+      const clean = `https://storage.googleapis.com${url.pathname}`;
+      return clean;
+    }
+
+    // Assume already a path within our bucket; convert to direct GCS URL
+    if (rawPath.startsWith("/objects/")) {
+      const parts = rawPath.slice(1).split("/");
+      const entityId = parts.slice(1).join("/");
+      return `https://storage.googleapis.com/${this.bucketName}/${entityId}`;
     }
 
     return rawPath;
@@ -165,7 +168,7 @@ export class GCSStorageService {
       }
     });
     
-    return `/objects/generated/${filename}`;
+    return `https://storage.googleapis.com/${this.bucketName}/generated/${filename}`;
   }
 
   // Upload image buffer to GCS
@@ -177,7 +180,7 @@ export class GCSStorageService {
         contentType: 'image/jpeg'
       }
     });
-    return `/objects/generated/${filename}`;
+    return `https://storage.googleapis.com/${this.bucketName}/generated/${filename}`;
   }
 
   // Download object and stream to response

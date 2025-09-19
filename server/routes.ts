@@ -251,8 +251,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const storageService = getStorageService();
       
-      const objectPath = storageService.normalizeObjectEntityPath(uploadURL);
-      res.json({ objectPath });
+      const normalizedUrlOrPath = storageService.normalizeObjectEntityPath(uploadURL);
+      res.json({ objectPath: normalizedUrlOrPath });
     } catch (error) {
       console.error("Error normalizing object path:", error);
       res.status(500).json({ message: "Failed to normalize object path" });
