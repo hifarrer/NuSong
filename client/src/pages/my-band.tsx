@@ -161,10 +161,11 @@ export default function MyBand() {
 
   // Add/update band member mutation
   const addMemberMutation = useMutation({
-    mutationFn: async (data: { name: string; description?: string; position: number; imageUrl?: string }) => {
+    mutationFn: async (data: { name: string; role: string; description?: string; position: number; imageUrl?: string }) => {
       // First create the member
       const memberResponse = await apiRequest("/api/band/members", "POST", {
         name: data.name,
+        role: data.role,
         description: data.description,
         position: data.position,
       });
@@ -374,6 +375,7 @@ export default function MyBand() {
         const currentDescription = editingMember.description || "";
         const textChanged = (
           memberForm.name.trim() !== editingMember.name ||
+          memberForm.role.trim() !== editingMember.role ||
           trimmedDescription !== currentDescription
         );
 
@@ -382,6 +384,7 @@ export default function MyBand() {
             id: editingMember.id,
             data: {
               name: memberForm.name.trim(),
+              role: memberForm.role.trim(),
               description: trimmedDescription || undefined,
             },
           });
@@ -401,6 +404,7 @@ export default function MyBand() {
       } else {
         await addMemberMutation.mutateAsync({
           name: memberForm.name.trim(),
+          role: memberForm.role.trim() || (selectedPosition === 1 ? "Lead Singer" : "Band Member"),
           description: memberForm.description.trim() || undefined,
           position: selectedPosition,
           imageUrl: memberImageUrl || undefined,
@@ -874,7 +878,18 @@ export default function MyBand() {
               />
             </div>
             
-            {/* Role hidden/optional: default applied automatically (Lead Singer for member 1) */}
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Role *
+              </label>
+              <Input
+                value={memberForm.role}
+                onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
+                placeholder={selectedPosition === 1 ? "Lead Singer" : "Band Member"}
+                className="bg-gray-800 border-gray-600 text-white"
+                required
+              />
+            </div>
             
             <div>
               <label className="block text-sm font-medium text-white mb-2">
