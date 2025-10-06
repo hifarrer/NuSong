@@ -6,7 +6,7 @@ import path from "path";
 import { storage } from "./storage";
 import { pool } from "./db";
 import { setupCustomAuth, requireAuth } from "./customAuth";
-import * as kieService from "./kieService";
+import * as elevenLabsService from "./elevenLabsService";
 import { 
   insertTextToMusicSchema, 
   insertAudioToMusicSchema, 
@@ -941,7 +941,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Text-to-music generation using KIE.ai
+  // Text-to-music generation using ElevenLabs
   app.post("/api/generate-text-to-music", requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -979,11 +979,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Increment user's generation count
       await storage.incrementUserGenerationCount(userId);
       
-      // Build prompt for KIE.ai
-      const { prompt, style, title } = buildPromptFromTags(validation.tags, validation.lyrics || undefined);
+      // Build prompt for ElevenLabs
+      const { prompt, style, title } = elevenLabsService.buildPromptFromTags(validation.tags, validation.lyrics || undefined);
       
       // Log the input parameters
-      console.log(`\n=== TEXT-TO-MUSIC KIE.AI REQUEST ===`);
+      console.log(`\n=== TEXT-TO-MUSIC ELEVENLABS REQUEST ===`);
       console.log(`User ID: ${userId}`);
       console.log(`Generation ID: ${generation.id}`);
       console.log(`Tags: ${validation.tags}`);
@@ -991,45 +991,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Prompt: ${prompt}`);
       console.log(`Style: ${style}`);
       console.log(`Title: ${title}`);
-      console.log(`===================================\n`);
+      console.log(`========================================\n`);
 
-      // Generate music using KIE.ai
-      console.log(`🚀 Calling KIE.ai generateMusic with:`, {
+      // Generate music using ElevenLabs
+      console.log(`🚀 Calling ElevenLabs generateMusic with:`, {
         prompt: prompt.substring(0, 100) + '...',
         style,
         title,
-        instrumental: !validation.lyrics,
-        model: "V4",
-        callBackUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/api/kie-callback`
+        duration: 60 // Default 60 seconds
       });
       
-      const kieResponse = await generateMusic({
+      const elevenLabsResponse = await elevenLabsService.generateMusic({
         prompt: prompt,
         style: style,
         title: title,
-        instrumental: !validation.lyrics, // If no lyrics, make it instrumental
-        model: "V4",
-        callBackUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/api/kie-callback`
+        duration: 60
       });
 
-      if (kieResponse.code !== 200) {
-        throw new Error(`KIE.ai API error: ${kieResponse.msg}`);
+      if (!elevenLabsResponse.id) {
+        throw new Error(`ElevenLabs API error: No composition ID returned`);
       }
 
-      // Update generation with KIE task ID and set status to generating
+      // Update generation with ElevenLabs composition ID and set status to generating
       await storage.updateMusicGeneration(generation.id, {
         status: "generating",
-        kieTaskId: kieResponse.data.taskId,
+        kieTaskId: elevenLabsResponse.id, // Reusing kieTaskId field for ElevenLabs composition ID
       });
+
+      // Process the audio URL the same way as KIE.ai
+      let audioUrlToSave = elevenLabsResponse.audio_url;
+      try {
+        if (process.env.STORAGE_PROVIDER === 'gcs') {
+          console.log('☁️ GCS upload attempt (ElevenLabs):', {
+            provider: process.env.STORAGE_PROVIDER,
+            bucket: process.env.GCS_BUCKET_NAME || 'NOT SET',
+            sourceUrl: elevenLabsResponse.audio_url,
+            generationId: generation.id,
+          });
+          const storageService = getStorageService();
+          const resp = await fetch(elevenLabsResponse.audio_url);
+          console.log(`☁️ GCS fetch (ElevenLabs) status: ${resp.status}`);
+          const arrBuf = await resp.arrayBuffer();
+          console.log(`☁️ GCS fetch (ElevenLabs) bytes: ${arrBuf.byteLength}`);
+          const buf = new Uint8Array(arrBuf);
+          const filename = `${generation.id}.mp3`;
+          audioUrlToSave = await storageService.uploadAudioBuffer(buf, filename);
+          console.log(`☁️ Uploaded ElevenLabs track to GCS path: ${audioUrlToSave}`);
+        } else {
+          console.log('☁️ Skipping GCS upload (ElevenLabs): STORAGE_PROVIDER is not gcs');
+        }
+      } catch (e) {
+        console.error('GCS upload error (ElevenLabs track), falling back to base64 URL:', e);
+      }
+
+      await storage.updateMusicGeneration(generation.id, {
+        status: "completed",
+        audioUrl: audioUrlToSave,
+        title: title || generation.title,
+      });
+      
+      console.log(`🎵 Generation ${generation.id} completed successfully`);
+      console.log(`🎵 Audio URL: ${audioUrlToSave}`);
 
       res.json({ 
         generationId: generation.id, 
-        status: "generating",
-        taskId: kieResponse.data.taskId,
-        message: "Music generation started. You'll be notified when it's ready."
+        status: "completed",
+        taskId: elevenLabsResponse.id,
+        message: "Music generation completed successfully."
       });
     } catch (error) {
-      console.error("Error generating music with KIE.ai:", error);
+      console.error("Error generating music with ElevenLabs:", error);
       
       // Update generation with failure
       try {
@@ -1043,7 +1074,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Audio-to-music generation using KIE.ai
+  // Audio-to-music generation using ElevenLabs
   app.post("/api/generate-audio-to-music", requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -1074,47 +1105,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const publicAudioUrl = await storageService.getObjectEntityPublicUrl(validation.inputAudioUrl, 7200); // 2 hours
       
-      // Use KIE.ai for audio-to-music generation
-      const kieParams = {
-        uploadUrl: publicAudioUrl,
-        prompt: validation.prompt || `A ${validation.tags} style track`, // Use provided prompt or generate from tags
-        style: validation.tags,
-        title: validation.title || "Audio Transformation",
-        customMode: true,
-        instrumental: true,
-        model: "V4",
-        callBackUrl: process.env.KIE_CALLBACK_URL || "https://example.com/callback",
-        negativeTags: "",
-        vocalGender: "",
-        styleWeight: 0.65,
-        weirdnessConstraint: 0.65,
-        audioWeight: 0.65
-      };
+      // Use ElevenLabs for audio-to-music generation
+      const prompt = validation.prompt || `A ${validation.tags} style track based on the provided audio`;
+      const style = validation.tags;
+      const title = validation.title || "Audio Transformation";
 
-      console.log(`\n=== AUDIO-TO-MUSIC KIE.AI REQUEST ===`);
+      console.log(`\n=== AUDIO-TO-MUSIC ELEVENLABS REQUEST ===`);
       console.log(`User ID: ${userId}`);
       console.log(`Generation ID: ${generation.id}`);
-      console.log(`KIE.ai Parameters:`, JSON.stringify(kieParams, null, 2));
-      console.log(`====================================\n`);
+      console.log(`Prompt: ${prompt}`);
+      console.log(`Style: ${style}`);
+      console.log(`Title: ${title}`);
+      console.log(`Audio URL: ${publicAudioUrl}`);
+      console.log(`==========================================\n`);
 
       try {
-        const kieResult = await kieService.generateAudioToMusic(kieParams);
-
-        // Update generation with KIE task ID
-        await storage.updateMusicGeneration(generation.id, {
-          status: "generating",
-          kieTaskId: kieResult.data.taskId,
+        const elevenLabsResult = await elevenLabsService.generateMusic({
+          prompt: prompt,
+          style: style,
+          title: title,
+          duration: 60
         });
 
-        res.json({ generationId: generation.id, taskId: kieResult.data.taskId });
+        // Update generation with ElevenLabs composition ID
+        await storage.updateMusicGeneration(generation.id, {
+          status: "generating",
+          kieTaskId: elevenLabsResult.id, // Reusing kieTaskId field for ElevenLabs composition ID
+        });
+
+        res.json({ generationId: generation.id, taskId: elevenLabsResult.id });
       } catch (apiError) {
-        console.error("KIE.ai request failed:", apiError);
+        console.error("ElevenLabs request failed:", apiError);
         // Mark generation as failed so client polling stops
         await storage.updateMusicGeneration(generation.id, { status: "failed" });
-        return res.status(500).json({ message: "KIE.ai generation failed" });
+        return res.status(500).json({ message: "ElevenLabs generation failed" });
       }
     } catch (error) {
-      console.error("Error generating audio-to-music with KIE.ai:", error);
+      console.error("Error generating audio-to-music with ElevenLabs:", error);
       res.status(500).json({ message: "Failed to generate audio-to-music" });
     }
   });
@@ -1140,61 +1167,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(generation);
       }
 
-      // Prefer KIE.ai status if we have a task id
+      // Prefer ElevenLabs status if we have a composition id
       if (generation.kieTaskId) {
-        console.log(`\n=== API STATUS CHECK: KIE.ai ===`);
+        console.log(`\n=== API STATUS CHECK: ElevenLabs ===`);
         console.log(`Generation ID: ${id}`);
-        console.log(`KIE Task ID: ${generation.kieTaskId}`);
+        console.log(`ElevenLabs Composition ID: ${generation.kieTaskId}`);
         try {
-          const statusResponse = await checkTaskStatus(generation.kieTaskId);
-          console.log(`KIE.ai status response received.`);
+          const statusResponse = await elevenLabsService.checkCompositionStatus(generation.kieTaskId);
+          console.log(`ElevenLabs status response received.`);
           console.log(JSON.stringify(statusResponse, null, 2));
 
-          if (statusResponse.code === 200) {
-            const { status, response } = statusResponse.data as any;
-            if (status === 'SUCCESS' && response?.sunoData && response.sunoData.length > 0) {
-              const sunoData = response.sunoData[0];
-              // Try to upload to GCS from status path as well
-              let statusAudioUrlToSave = sunoData.audioUrl;
-              try {
-                if (process.env.STORAGE_PROVIDER === 'gcs') {
-                  console.log('☁️ GCS upload attempt (status primary):', {
-                    provider: process.env.STORAGE_PROVIDER,
-                    bucket: process.env.GCS_BUCKET_NAME || 'NOT SET',
-                    sourceUrl: sunoData.audioUrl,
-                    generationId: id,
-                  });
-                  const storageService = getStorageService();
-                  const resp = await fetch(sunoData.audioUrl);
-                  console.log(`☁️ GCS fetch (status primary) status: ${resp.status}`);
-                  const arrBuf = await resp.arrayBuffer();
-                  console.log(`☁️ GCS fetch (status primary) bytes: ${arrBuf.byteLength}`);
-                  const buf = new Uint8Array(arrBuf);
-                  const filename = `${id}.mp3`;
-                  statusAudioUrlToSave = await storageService.uploadAudioBuffer(buf, filename);
-                  console.log(`☁️ Uploaded primary track (status) to GCS path: ${statusAudioUrlToSave}`);
-                } else {
-                  console.log('☁️ Skipping GCS upload (status primary): STORAGE_PROVIDER is not gcs');
-                }
-              } catch (e) {
-                console.error('GCS upload error (status primary), falling back to remote URL:', e);
+          if (statusResponse.status === 'completed' && statusResponse.audio_url) {
+            // Try to upload to GCS from status path as well
+            let statusAudioUrlToSave = statusResponse.audio_url;
+            try {
+              if (process.env.STORAGE_PROVIDER === 'gcs') {
+                console.log('☁️ GCS upload attempt (status primary):', {
+                  provider: process.env.STORAGE_PROVIDER,
+                  bucket: process.env.GCS_BUCKET_NAME || 'NOT SET',
+                  sourceUrl: statusResponse.audio_url,
+                  generationId: id,
+                });
+                const storageService = getStorageService();
+                const resp = await fetch(statusResponse.audio_url);
+                console.log(`☁️ GCS fetch (status primary) status: ${resp.status}`);
+                const arrBuf = await resp.arrayBuffer();
+                console.log(`☁️ GCS fetch (status primary) bytes: ${arrBuf.byteLength}`);
+                const buf = new Uint8Array(arrBuf);
+                const filename = `${id}.mp3`;
+                statusAudioUrlToSave = await storageService.uploadAudioBuffer(buf, filename);
+                console.log(`☁️ Uploaded primary track (status) to GCS path: ${statusAudioUrlToSave}`);
+              } else {
+                console.log('☁️ Skipping GCS upload (status primary): STORAGE_PROVIDER is not gcs');
               }
-
-              const updated = await storage.updateMusicGeneration(id, {
-                status: 'completed',
-                audioUrl: statusAudioUrlToSave,
-                imageUrl: sunoData.imageUrl,
-                title: sunoData.title || generation.title,
-              });
-              console.log(`Updated generation ${id} with audioUrl and imageUrl`);
-              return res.json(updated);
-            } else if (status === 'FAILED') {
-              const updated = await storage.updateMusicGeneration(id, { status: 'failed' });
-              return res.json(updated);
+            } catch (e) {
+              console.error('GCS upload error (status primary), falling back to remote URL:', e);
             }
+
+            const updated = await storage.updateMusicGeneration(id, {
+              status: 'completed',
+              audioUrl: statusAudioUrlToSave,
+              title: generation.title,
+            });
+            console.log(`Updated generation ${id} with audioUrl`);
+            return res.json(updated);
+          } else if (statusResponse.status === 'failed') {
+            const updated = await storage.updateMusicGeneration(id, { status: 'failed' });
+            return res.json(updated);
           }
         } catch (e) {
-          console.error(`KIE.ai status check error for generation ${id}:`, e);
+          console.error(`ElevenLabs status check error for generation ${id}:`, e);
         }
       }
 
