@@ -7,7 +7,7 @@ if (!process.env.OPENAI_API_KEY) {
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export async function generateLyrics(prompt: string, duration: number = 60): Promise<string> {
+export async function generateLyrics(prompt: string, duration: number = 60): Promise<{ lyrics: string; title: string }> {
   // Determine song structure based on duration
   let structureGuidance = "";
   if (duration <= 30) {
@@ -26,7 +26,7 @@ export async function generateLyrics(prompt: string, duration: number = 60): Pro
       messages: [
         {
           role: "system",
-          content: `You are a professional songwriter and lyricist. Create engaging, creative lyrics based on the user's prompt. 
+          content: `You are a professional songwriter and lyricist. Create engaging, creative lyrics and a compelling track title based on the user's prompt. 
           
           The song will be ${duration} seconds long, so ${structureGuidance}
           
@@ -38,25 +38,48 @@ export async function generateLyrics(prompt: string, duration: number = 60): Pro
           - Each verse should be 4-8 lines, chorus 4-6 lines
           - Use rhyme schemes that work well for music
           - Adjust the number of sections based on the song duration
+          - Create a catchy, memorable track title that captures the essence of the song
           
-          Return only the lyrics with section markers, no additional text or explanations.`
+          Return your response as a JSON object with this exact structure:
+          {
+            "title": "Your Track Title Here",
+            "lyrics": "Your lyrics here with section markers like [Verse 1], [Chorus], etc."
+          }
+          
+          Make sure the JSON is valid and properly formatted.`
         },
         {
           role: "user",
-          content: `Write lyrics for a song about: ${prompt}`
+          content: `Write lyrics and a track title for a song about: ${prompt}`
         }
       ],
-      max_tokens: 800,
+      max_tokens: 1000,
       temperature: 0.8,
     });
 
-    const lyrics = response.choices[0]?.message?.content?.trim();
+    const content = response.choices[0]?.message?.content?.trim();
     
-    if (!lyrics) {
-      throw new Error('No lyrics generated');
+    if (!content) {
+      throw new Error('No content generated');
     }
 
-    return lyrics;
+    // Parse the JSON response
+    try {
+      const parsed = JSON.parse(content);
+      
+      if (!parsed.title || !parsed.lyrics) {
+        throw new Error('Invalid response structure');
+      }
+
+      return {
+        title: parsed.title,
+        lyrics: parsed.lyrics
+      };
+    } catch (parseError) {
+      console.error('Error parsing JSON response:', parseError);
+      console.error('Raw response:', content);
+      throw new Error('Failed to parse AI response. Please try again.');
+    }
   } catch (error) {
     console.error('Error generating lyrics:', error);
     throw new Error('Failed to generate lyrics. Please try again.');

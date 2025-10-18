@@ -1935,8 +1935,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Prompt is required' });
       }
 
-      const lyrics = await generateLyrics(prompt.trim(), duration);
-      res.json({ lyrics });
+      const result = await generateLyrics(prompt.trim(), duration);
+      res.json({ 
+        lyrics: result.lyrics,
+        title: result.title 
+      });
     } catch (error) {
       console.error('Error generating lyrics:', error);
       res.status(500).json({ 
