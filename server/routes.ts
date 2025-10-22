@@ -2490,7 +2490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/stripe/create-checkout-session", requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { planId, billingCycle, couponCode } = req.body;
+      const { planId, billingCycle } = req.body;
 
       console.log('=== STRIPE CHECKOUT REQUEST DEBUG ===');
       console.log('Full request body:', JSON.stringify(req.body, null, 2));
@@ -2519,7 +2519,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         billingCycle,
         successUrl,
         cancelUrl,
-        couponCode,
       });
 
       console.log(`Created Stripe checkout session:`, {

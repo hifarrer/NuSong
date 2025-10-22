@@ -15,7 +15,6 @@ export default function Pricing() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const [couponCode, setCouponCode] = useState<string>('');
   
   const { data: plans = [], isLoading } = useQuery<SubscriptionPlan[]>({
     queryKey: ["/api/plans"],
@@ -23,11 +22,10 @@ export default function Pricing() {
 
   // Stripe checkout mutation
   const checkoutMutation = useMutation({
-    mutationFn: async ({ planId, billingCycle, couponCode }: { planId: string; billingCycle: 'monthly' | 'yearly'; couponCode?: string }) => {
+    mutationFn: async ({ planId, billingCycle }: { planId: string; billingCycle: 'monthly' | 'yearly' }) => {
       const response = await apiRequest("/api/stripe/create-checkout-session", "POST", {
         planId,
         billingCycle,
-        couponCode,
       });
       return await response.json();
     },
@@ -85,7 +83,7 @@ export default function Pricing() {
     }
 
     console.log('Sending billing cycle to API:', billingCycle, 'Type:', typeof billingCycle);
-    checkoutMutation.mutate({ planId, billingCycle, couponCode: couponCode.trim() || undefined });
+    checkoutMutation.mutate({ planId, billingCycle });
   };
 
   if (isLoading) {
@@ -179,6 +177,42 @@ export default function Pricing() {
       <Header currentPage="pricing" />
 
       <div className="container mx-auto px-4 py-16">
+        {/* Promotional Banner */}
+        <div className="max-w-4xl mx-auto mb-12">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 p-1 animate-pulse">
+            <div className="bg-gray-900 rounded-xl p-6 md:p-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="text-center md:text-left">
+                  <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                    <span className="text-2xl">🎉</span>
+                    <h3 className="text-2xl md:text-3xl font-bold text-white">
+                      Limited Time Offer!
+                    </h3>
+                    <span className="text-2xl">🎉</span>
+                  </div>
+                  <p className="text-lg md:text-xl text-gray-200 mb-3">
+                    Get <span className="text-green-400 font-bold text-2xl">50% OFF</span> your first month!
+                  </p>
+                  <div className="inline-flex items-center gap-3 bg-gray-800 px-4 py-2 rounded-lg border-2 border-purple-500">
+                    <span className="text-gray-300 text-sm">Use coupon code:</span>
+                    <span className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 tracking-wider">
+                      NEWNUSONG
+                    </span>
+                  </div>
+                </div>
+                <div className="flex-shrink-0">
+                  <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg transform hover:scale-105 transition-transform">
+                    50% OFF
+                  </div>
+                </div>
+              </div>
+              <p className="text-center md:text-left text-sm text-gray-400 mt-4">
+                💡 Enter the code at checkout to claim your discount
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
@@ -217,33 +251,6 @@ export default function Pricing() {
               <span className="text-green-400 text-xs font-medium bg-green-900/20 px-2 py-1 rounded ml-2">
                 Save up to {Math.max(...plans.map(plan => getSavingsPercentage(plan)))}%
               </span>
-            )}
-          </div>
-          
-          {/* Coupon Code Input */}
-          <div className="mt-6 max-w-md mx-auto">
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                placeholder="Enter coupon code (optional)"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
-                className="flex-1 px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-              {couponCode && (
-                <button
-                  onClick={() => setCouponCode('')}
-                  className="px-3 py-2 text-gray-400 hover:text-white transition-colors"
-                  title="Clear coupon code"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            {couponCode && (
-              <p className="text-sm text-gray-400 mt-2 text-center">
-                Coupon code "{couponCode}" will be applied at checkout
-              </p>
             )}
           </div>
         </div>

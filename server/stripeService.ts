@@ -27,7 +27,6 @@ export interface CreateCheckoutSessionParams {
   billingCycle: 'weekly' | 'monthly' | 'yearly';
   successUrl: string;
   cancelUrl: string;
-  couponCode?: string;
 }
 
 export async function createCheckoutSession({
@@ -36,7 +35,6 @@ export async function createCheckoutSession({
   billingCycle,
   successUrl,
   cancelUrl,
-  couponCode,
 }: CreateCheckoutSessionParams): Promise<Stripe.Checkout.Session> {
   const stripeInstance = await getStripeInstance();
 
@@ -83,6 +81,7 @@ export async function createCheckoutSession({
     ],
     success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl,
+    allow_promotion_codes: true, // Enable coupon code input on Stripe checkout page
     metadata: {
       userId,
       planId,
@@ -96,15 +95,6 @@ export async function createCheckoutSession({
       },
     },
   };
-
-  // Add coupon code if provided
-  if (couponCode) {
-    sessionConfig.discounts = [
-      {
-        coupon: couponCode,
-      },
-    ];
-  }
 
   const session = await stripeInstance.checkout.sessions.create(sessionConfig);
 
