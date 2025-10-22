@@ -185,7 +185,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-white">Email Support</h4>
-                    <p className="text-gray-300">support@nusong.app</p>
+                    <p className="text-gray-300">support@nusong.ai</p>
                     <p className="text-sm text-gray-400">For general inquiries and support</p>
                   </div>
                 </div>

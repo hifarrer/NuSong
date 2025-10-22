@@ -330,7 +330,7 @@ This link will expire in 1 hour. If you didn't request a password reset, you can
 
     try {
       await resend.emails.send({
-        from: 'NuSong <noreply@notifications.nusong.app>',
+        from: 'NuSong <noreply@notifications.nusong.ai>',
         to: email,
         subject: 'Reset Your NuSong Password',
         html: emailHtml,

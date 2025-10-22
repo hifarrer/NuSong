@@ -210,8 +210,8 @@ export default function Terms() {
                 </p>
                 <div className="bg-music-dark p-4 rounded-lg border border-gray-600">
                   <p className="font-medium">NuSong Legal Team</p>
-                  <p>Email: legal@nusong.app</p>
-                  <p>Website: nusong.app</p>
+                  <p>Email: legal@nusong.ai</p>
+                  <p>Website: nusong.ai</p>
                 </div>
               </div>
             </section>

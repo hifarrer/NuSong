@@ -386,7 +386,7 @@ export function AdminSiteSettings() {
                     <p className="font-medium text-white mb-2">2. Create a new webhook endpoint</p>
                     <p>Click "Add endpoint" and use this URL:</p>
                     <div className="bg-gray-900 border border-gray-500 rounded p-2 mt-1 font-mono text-green-400 text-xs">
-                      https://nusong.app/api/webhooks/stripe
+                      https://nusong.ai/api/webhooks/stripe
                     </div>
                   </div>
                   
@@ -414,14 +414,14 @@ export function AdminSiteSettings() {
                 <label className="text-gray-200 text-sm font-medium">Your Webhook Endpoint URL</label>
                 <div className="flex space-x-2 mt-1">
                   <Input
-                    value="https://nusong.app/api/webhooks/stripe"
+                    value="https://nusong.ai/api/webhooks/stripe"
                     readOnly
                     className="bg-gray-700 border-gray-600 text-gray-300 cursor-not-allowed"
                     data-testid="input-webhook-endpoint-url"
                   />
                   <Button
                     onClick={() => {
-                      navigator.clipboard.writeText("https://nusong.app/api/webhooks/stripe");
+                      navigator.clipboard.writeText("https://nusong.ai/api/webhooks/stripe");
                       toast({
                         title: "Copied!",
                         description: "Webhook URL copied to clipboard",

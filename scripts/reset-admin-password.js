@@ -3,7 +3,7 @@ import { pool } from '../server/db.js';
 
 async function resetAdminPassword() {
   try {
-    const email = 'admin@nusong.app';
+    const email = 'admin@nusong.ai';
     const newPassword = 'admin123';
     
     // Hash the new password

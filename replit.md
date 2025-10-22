@@ -10,9 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Project Configuration
 
-**Production Domain**: nusong.app  
+**Production Domain**: nusong.ai  
 **Development Environment**: Replit workspace  
-**Webhook Endpoints**: Configured for nusong.app domain
+**Webhook Endpoints**: Configured for nusong.ai domain
 
 ## Subscription Plans
 

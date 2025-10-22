@@ -158,8 +158,8 @@ export default function Privacy() {
                 </p>
                 <div className="bg-music-dark p-4 rounded-lg border border-gray-600">
                   <p className="font-medium">NuSong Support</p>
-                  <p>Email: privacy@nusong.app</p>
-                  <p>Website: nusong.app</p>
+                  <p>Email: privacy@nusong.ai</p>
+                  <p>Website: nusong.ai</p>
                 </div>
               </div>
             </section>
