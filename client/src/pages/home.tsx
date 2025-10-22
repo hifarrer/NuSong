@@ -171,7 +171,7 @@ export default function Home() {
 
   const upgradeInline = (
     <p className="mt-2 text-sm text-red-500">
-      To generate tracks please subscribe (7 day trial) {""}
+      To generate tracks please subscribe {""}
       <a href="/pricing" className="underline">View plans</a>
     </p>
   );
@@ -596,7 +596,7 @@ export default function Home() {
     if (!canGenerate) {
       toast({
         title: "Upgrade Required",
-        description: "To generate tracks please subscribe (7 day trial)",
+        description: "To generate tracks please subscribe",
         variant: "destructive",
       });
       return;
@@ -628,7 +628,7 @@ export default function Home() {
     if (!canGenerate) {
       toast({
         title: "Upgrade Required",
-        description: "To generate tracks please subscribe (7 day trial)",
+        description: "To generate tracks please subscribe",
         variant: "destructive",
       });
       return;

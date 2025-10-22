@@ -44,6 +44,31 @@ export function AddToPlaylistModal({ isOpen, onClose, trackId, trackTitle }: Add
     enabled: isOpen,
   });
 
+  // Auto-create "My Playlist" if user has no playlists
+  useEffect(() => {
+    if (isOpen && !playlistsLoading && playlists.length === 0) {
+      const createDefaultPlaylist = async () => {
+        try {
+          const response = await apiRequest("/api/playlists", "POST", {
+            name: "My Playlist",
+            description: "Your personal playlist",
+            isPublic: false,
+          });
+          const newPlaylist = await response.json();
+          queryClient.invalidateQueries({ queryKey: ["/api/playlists"] });
+          setSelectedPlaylistId(newPlaylist.id);
+          toast({
+            title: "Playlist created",
+            description: "Created 'My Playlist' for you!",
+          });
+        } catch (error) {
+          console.error("Failed to create default playlist:", error);
+        }
+      };
+      createDefaultPlaylist();
+    }
+  }, [isOpen, playlistsLoading, playlists.length, queryClient, toast]);
+
   // Create playlist mutation
   const createPlaylistMutation = useMutation({
     mutationFn: async (data: { name: string; description?: string; isPublic: boolean }) => {

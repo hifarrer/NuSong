@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Header } from "@/components/Header";
 import { AudioPlayer } from "@/components/ui/audio-player";
+import { AddToPlaylistModal } from "@/components/AddToPlaylistModal";
 import { 
   Music, 
   Download, 
@@ -27,7 +28,8 @@ import {
   Plus,
   Settings,
   Mic,
-  Users
+  Users,
+  ListMusic
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
 
@@ -41,6 +43,10 @@ export default function MyLibrary() {
   const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [trackToDelete, setTrackToDelete] = useState<MusicGeneration | null>(null);
+  
+  // Playlist modal state
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [selectedTrackForPlaylist, setSelectedTrackForPlaylist] = useState<MusicGeneration | null>(null);
 
   // Album modals state (ported from create page)
   const [showCreateAlbum, setShowCreateAlbum] = useState(false);
@@ -179,6 +185,11 @@ export default function MyLibrary() {
   const handleDeleteTrack = (track: MusicGeneration) => {
     setTrackToDelete(track);
     setShowDeleteConfirm(true);
+  };
+
+  const handleAddToPlaylist = (track: MusicGeneration) => {
+    setSelectedTrackForPlaylist(track);
+    setShowPlaylistModal(true);
   };
 
   const confirmDelete = () => {
@@ -320,6 +331,7 @@ export default function MyLibrary() {
                         user={user} 
                         albums={albums || []} 
                         onDelete={handleDeleteTrack}
+                        onAddToPlaylist={handleAddToPlaylist}
                         isUserOnFreePlan={isUserOnFreePlan}
                       />
                     ))}
@@ -570,6 +582,17 @@ export default function MyLibrary() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add to Playlist Modal */}
+      <AddToPlaylistModal
+        isOpen={showPlaylistModal}
+        onClose={() => {
+          setShowPlaylistModal(false);
+          setSelectedTrackForPlaylist(null);
+        }}
+        trackId={selectedTrackForPlaylist?.id || ""}
+        trackTitle={selectedTrackForPlaylist?.title}
+      />
     </div>
   );
 }
@@ -580,12 +603,14 @@ function TrackCard({
   user, 
   albums, 
   onDelete,
+  onAddToPlaylist,
   isUserOnFreePlan 
 }: { 
   track: MusicGeneration; 
   user: any; 
   albums: Array<{ id: string; name: string; isDefault?: boolean }>;
   onDelete: (track: MusicGeneration) => void;
+  onAddToPlaylist: (track: MusicGeneration) => void;
   isUserOnFreePlan: () => boolean;
 }) {
   const { toast } = useToast();
@@ -913,6 +938,16 @@ function TrackCard({
               <Eye className="w-4 h-4 mb-1" />
             )}
             <span className="text-xs">{track.visibility === "public" ? "Hide" : "Show"}</span>
+          </Button>
+          
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onAddToPlaylist(track)}
+            className="text-gray-400 hover:text-music-blue flex-1 sm:flex-initial flex-col h-auto py-2"
+          >
+            <ListMusic className="w-4 h-4 mb-1" />
+            <span className="text-xs">+ Playlist</span>
           </Button>
           
           <Button
