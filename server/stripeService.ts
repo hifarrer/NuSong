@@ -27,6 +27,7 @@ export interface CreateCheckoutSessionParams {
   billingCycle: 'weekly' | 'monthly' | 'yearly';
   successUrl: string;
   cancelUrl: string;
+  couponCode?: string;
 }
 
 export async function createCheckoutSession({
@@ -35,6 +36,7 @@ export async function createCheckoutSession({
   billingCycle,
   successUrl,
   cancelUrl,
+  couponCode,
 }: CreateCheckoutSessionParams): Promise<Stripe.Checkout.Session> {
   const stripeInstance = await getStripeInstance();
 
@@ -69,7 +71,7 @@ export async function createCheckoutSession({
   }
 
   // Create checkout session
-  const session = await stripeInstance.checkout.sessions.create({
+  const sessionConfig: Stripe.Checkout.SessionCreateParams = {
     payment_method_types: ['card'],
     mode: 'subscription',
     customer_email: user.email,
@@ -93,7 +95,18 @@ export async function createCheckoutSession({
         billingCycle,
       },
     },
-  });
+  };
+
+  // Add coupon code if provided
+  if (couponCode) {
+    sessionConfig.discounts = [
+      {
+        coupon: couponCode,
+      },
+    ];
+  }
+
+  const session = await stripeInstance.checkout.sessions.create(sessionConfig);
 
   return session;
 }

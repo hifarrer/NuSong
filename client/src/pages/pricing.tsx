@@ -15,6 +15,7 @@ export default function Pricing() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [couponCode, setCouponCode] = useState<string>('');
   
   const { data: plans = [], isLoading } = useQuery<SubscriptionPlan[]>({
     queryKey: ["/api/plans"],
@@ -22,10 +23,11 @@ export default function Pricing() {
 
   // Stripe checkout mutation
   const checkoutMutation = useMutation({
-    mutationFn: async ({ planId, billingCycle }: { planId: string; billingCycle: 'monthly' | 'yearly' }) => {
+    mutationFn: async ({ planId, billingCycle, couponCode }: { planId: string; billingCycle: 'monthly' | 'yearly'; couponCode?: string }) => {
       const response = await apiRequest("/api/stripe/create-checkout-session", "POST", {
         planId,
         billingCycle,
+        couponCode,
       });
       return await response.json();
     },
@@ -83,7 +85,7 @@ export default function Pricing() {
     }
 
     console.log('Sending billing cycle to API:', billingCycle, 'Type:', typeof billingCycle);
-    checkoutMutation.mutate({ planId, billingCycle });
+    checkoutMutation.mutate({ planId, billingCycle, couponCode: couponCode.trim() || undefined });
   };
 
   if (isLoading) {
@@ -215,6 +217,33 @@ export default function Pricing() {
               <span className="text-green-400 text-xs font-medium bg-green-900/20 px-2 py-1 rounded ml-2">
                 Save up to {Math.max(...plans.map(plan => getSavingsPercentage(plan)))}%
               </span>
+            )}
+          </div>
+          
+          {/* Coupon Code Input */}
+          <div className="mt-6 max-w-md mx-auto">
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                placeholder="Enter coupon code (optional)"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                className="flex-1 px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              {couponCode && (
+                <button
+                  onClick={() => setCouponCode('')}
+                  className="px-3 py-2 text-gray-400 hover:text-white transition-colors"
+                  title="Clear coupon code"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {couponCode && (
+              <p className="text-sm text-gray-400 mt-2 text-center">
+                Coupon code "{couponCode}" will be applied at checkout
+              </p>
             )}
           </div>
         </div>
