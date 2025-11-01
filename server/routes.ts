@@ -1281,12 +1281,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user's generation status (current usage vs limit)
+  // Get user's generation status (current usage vs limit for both audio and video)
   app.get("/api/user/generation-status", requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const status = await storage.canUserGenerateMusic(userId);
-      res.json(status);
+      const audioStatus = await storage.canUserGenerateAudio(userId);
+      const videoStatus = await storage.canUserGenerateVideo(userId);
+      res.json({
+        // For backwards compatibility
+        canGenerate: audioStatus.canGenerate,
+        reason: audioStatus.reason,
+        currentUsage: audioStatus.currentUsage,
+        maxGenerations: audioStatus.maxGenerations,
+        // Separate audio and video status
+        audio: audioStatus,
+        video: videoStatus,
+      });
     } catch (error) {
       console.error("Error fetching generation status:", error);
       res.status(500).json({ message: "Failed to fetch generation status" });

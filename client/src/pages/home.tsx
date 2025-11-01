@@ -169,17 +169,30 @@ export default function Home() {
     }
   }, [albums, albumIdText, albumIdAudio]);
 
-  // Fetch user's generation status
+  // Fetch user's generation status (audio and video separately)
   const { data: generationStatus } = useQuery({
     queryKey: ["/api/user/generation-status"],
     retry: false,
-  }) as { data: { canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number } | undefined };
+  }) as { data: { 
+    canGenerate: boolean; 
+    reason?: string; 
+    currentUsage: number; 
+    maxGenerations: number;
+    audio?: { canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number };
+    video?: { canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number };
+  } | undefined };
   
   // Determine if user has an active paid subscription from local auth state
   const hasActiveSubscription = !!(user && (user as any)?.subscriptionPlanId && (user as any)?.planStatus === 'active');
   
-  // Can the user generate? Default based on subscription status until status loads
-  const canGenerate = generationStatus ? generationStatus.canGenerate : hasActiveSubscription;
+  // Can the user generate audio? Default based on subscription status until status loads
+  const canGenerateAudio = generationStatus?.audio?.canGenerate ?? generationStatus?.canGenerate ?? hasActiveSubscription;
+  
+  // Can the user generate video? Default based on subscription status until status loads
+  const canGenerateVideo = generationStatus?.video?.canGenerate ?? hasActiveSubscription;
+  
+  // For backwards compatibility
+  const canGenerate = canGenerateAudio;
 
   const upgradeInline = (
     <p className="mt-2 text-sm text-red-500">
@@ -218,8 +231,26 @@ export default function Home() {
 
   // Video creation handlers
   const handleCreateVideo = (track: MusicGeneration) => {
+    // Check video generation limit before opening modal
+    if (!canGenerateVideo) {
+      const videoStatus = generationStatus?.video;
+      toast({
+        title: "Video Generation Limit Reached",
+        description: videoStatus?.reason || `You've used ${videoStatus?.currentUsage || 0} / ${videoStatus?.maxGenerations || 1} video generations this month. Please upgrade your plan to continue generating videos.`,
+        variant: "destructive",
+        action: (
+          <a href="/pricing" className="underline text-white font-semibold">
+            View Plans
+          </a>
+        ) as any,
+      });
+      return;
+    }
+    
     setSelectedTrackForVideo(track);
     setVideoPrompt("");
+    setShowSceneResults(false); // Reset to show creation form
+    setFinalVideoUrl(null); // Clear any existing video URL to show creation form
     setShowVideoModal(true);
   };
 
@@ -235,6 +266,22 @@ export default function Home() {
         title: "Missing Information",
         description: "Please enter a video description.",
         variant: "destructive",
+      });
+      return;
+    }
+
+    // Check video generation limit before proceeding
+    if (!canGenerateVideo) {
+      const videoStatus = generationStatus?.video;
+      toast({
+        title: "Video Generation Limit Reached",
+        description: videoStatus?.reason || `You've used ${videoStatus?.currentUsage || 0} / ${videoStatus?.maxGenerations || 1} video generations this month. Please upgrade your plan to continue generating videos.`,
+        variant: "destructive",
+        action: (
+          <a href="/pricing" className="underline text-white font-semibold">
+            View Plans
+          </a>
+        ) as any,
       });
       return;
     }
@@ -268,8 +315,25 @@ export default function Home() {
       // Start polling for scene completion
       pollSceneTasks(result.sceneTasks || []);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating video scenes:", error);
+      
+      // Handle generation limit exceeded error
+      if (error?.response?.status === 403) {
+        const errorData = error.response.data;
+        toast({
+          title: "Video Generation Limit Reached",
+          description: errorData.message || "You have reached your video generation limit. Please upgrade your plan to continue.",
+          variant: "destructive",
+          action: (
+            <a href="/pricing" className="underline text-white font-semibold">
+              View Plans
+            </a>
+          ) as any,
+        });
+        return;
+      }
+      
       toast({
         title: "Generation Failed",
         description: "There was an error generating video scenes. Please try again.",
@@ -458,12 +522,35 @@ export default function Home() {
       
       if (result.success) {
         setFinalVideoUrl(result.finalVideoUrl);
+        // Refresh the generations list to show the new video
+        queryClient.invalidateQueries({ queryKey: ["/api/my-generations"] });
+        toast({
+          title: "Video Created!",
+          description: "Your music video has been successfully created.",
+        });
       } else {
         throw new Error(result.message || 'Video merging failed');
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error merging videos:", error);
+      
+      // Handle generation limit exceeded error
+      if (error?.response?.status === 403) {
+        const errorData = error.response.data;
+        toast({
+          title: "Video Generation Limit Reached",
+          description: errorData.message || "You have reached your video generation limit. Please upgrade your plan to continue.",
+          variant: "destructive",
+          action: (
+            <a href="/pricing" className="underline text-white font-semibold">
+              View Plans
+            </a>
+          ) as any,
+        });
+        return;
+      }
+      
       toast({
         title: "Video Merging Failed",
         description: "There was an error merging the videos. Please try again.",
@@ -547,10 +634,17 @@ export default function Home() {
     // Handle generation limit exceeded error
     if (error?.response?.status === 403) {
       const errorData = error.response.data;
+      const isAudioGeneration = error.response.config?.url?.includes('text-to-music') || error.response.config?.url?.includes('audio-to-music');
+      const limitType = isAudioGeneration ? 'Audio' : 'Video';
       toast({
-        title: "Generation Limit Reached",
-        description: errorData.message || "You have reached your generation limit. Please upgrade your plan to continue.",
+        title: `${limitType} Generation Limit Reached`,
+        description: errorData.message || `You have reached your ${limitType.toLowerCase()} generation limit. Please upgrade your plan to continue.`,
         variant: "destructive",
+        action: (
+          <a href="/pricing" className="underline text-white font-semibold">
+            View Plans
+          </a>
+        ) as any,
       });
       return;
     }
@@ -585,11 +679,17 @@ export default function Home() {
   const handleGenerateTextToMusic = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!canGenerate) {
+    if (!canGenerateAudio) {
+      const audioStatus = generationStatus?.audio;
       toast({
-        title: "Upgrade Required",
-        description: "To generate tracks please subscribe",
+        title: "Audio Generation Limit Reached",
+        description: audioStatus?.reason || `You've used ${audioStatus?.currentUsage || 0} / ${audioStatus?.maxGenerations || 5} audio generations this month. Please upgrade your plan to continue generating music.`,
         variant: "destructive",
+        action: (
+          <a href="/pricing" className="underline text-white font-semibold">
+            View Plans
+          </a>
+        ) as any,
       });
       return;
     }
@@ -617,11 +717,17 @@ export default function Home() {
   const handleGenerateAudioToMusic = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!canGenerate) {
+    if (!canGenerateAudio) {
+      const audioStatus = generationStatus?.audio;
       toast({
-        title: "Upgrade Required",
-        description: "To generate tracks please subscribe",
+        title: "Audio Generation Limit Reached",
+        description: audioStatus?.reason || `You've used ${audioStatus?.currentUsage || 0} / ${audioStatus?.maxGenerations || 5} audio generations this month. Please upgrade your plan to continue generating music.`,
         variant: "destructive",
+        action: (
+          <a href="/pricing" className="underline text-white font-semibold">
+            View Plans
+          </a>
+        ) as any,
       });
       return;
     }
@@ -1459,13 +1565,15 @@ export default function Home() {
                               {/* Track Info */}
                               <div className="flex-1 min-w-0">
                                 <h4 className="text-lg font-semibold text-white truncate">
-                                  {track.title || "Untitled Track"}
+                                  {track.title || track.tags || "Untitled Track"}
                                 </h4>
                                 <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
-                                  <span className="flex items-center">
-                                    <Tags className="w-4 h-4 mr-1" />
-                                    {track.tags}
-                                  </span>
+                                  {track.title && (
+                                    <span className="flex items-center">
+                                      <Tags className="w-4 h-4 mr-1" />
+                                      {track.tags}
+                                    </span>
+                                  )}
                                   <span className="flex items-center">
                                     <Clock className="w-4 h-4 mr-1" />
                                     {track.duration ? `${track.duration}s` : "N/A"}
@@ -1481,16 +1589,43 @@ export default function Home() {
                                 />
                               </div>
 
-                              {/* Create Video Button */}
-                              <div className="flex-shrink-0">
-                                <Button
-                                  onClick={() => handleCreateVideo(track)}
-                                  className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
-                                  data-testid={`button-create-video-${track.id}`}
-                                >
-                                  <Film className="mr-2 h-4 w-4" />
-                                  Create Video
-                                </Button>
+                              {/* Video Actions */}
+                              <div className="flex-shrink-0 flex items-center gap-2">
+                                {(track as any).videoUrl ? (
+                                  <>
+                                    <Button
+                                      onClick={() => {
+                                        setSelectedTrackForVideo(track);
+                                        setFinalVideoUrl((track as any).videoUrl);
+                                        setShowSceneResults(true); // Show video display section
+                                        setShowVideoModal(true);
+                                      }}
+                                      variant="outline"
+                                      className="border-gray-600 text-gray-300 hover:text-white hover:border-gray-500"
+                                      data-testid={`button-play-video-${track.id}`}
+                                    >
+                                      <Play className="mr-2 h-4 w-4" />
+                                      Play Video
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleCreateVideo(track)}
+                                      className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
+                                      data-testid={`button-recreate-video-${track.id}`}
+                                    >
+                                      <Film className="mr-2 h-4 w-4" />
+                                      Recreate Video
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button
+                                    onClick={() => handleCreateVideo(track)}
+                                    className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
+                                    data-testid={`button-create-video-${track.id}`}
+                                  >
+                                    <Film className="mr-2 h-4 w-4" />
+                                    Create Video
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </CardContent>
@@ -1543,12 +1678,13 @@ export default function Home() {
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center text-xl">
               <Video className="mr-3 h-6 w-6 text-music-blue" />
-              Create Music Video
+              {finalVideoUrl ? "Music Video" : "Create Music Video"}
             </DialogTitle>
             <DialogDescription className="text-gray-300">
               {selectedTrackForVideo && (
                 <span>
-                  Creating video for: <span className="text-white font-semibold">{selectedTrackForVideo.title || "Untitled Track"}</span>
+                  {finalVideoUrl ? "Viewing video for: " : "Creating video for: "}
+                  <span className="text-white font-semibold">{selectedTrackForVideo.title || selectedTrackForVideo.tags || "Untitled Track"}</span>
                 </span>
               )}
             </DialogDescription>
@@ -1590,10 +1726,15 @@ export default function Home() {
                   className="w-full"
                 />
                 <div className="flex items-center space-x-4 text-xs text-gray-400 mt-2">
-                  <span className="flex items-center">
-                    <Tags className="w-3 h-3 mr-1" />
-                    {selectedTrackForVideo.tags}
+                  <span className="text-white font-medium">
+                    {selectedTrackForVideo.title || selectedTrackForVideo.tags || "Untitled Track"}
                   </span>
+                  {selectedTrackForVideo.title && (
+                    <span className="flex items-center">
+                      <Tags className="w-3 h-3 mr-1" />
+                      {selectedTrackForVideo.tags}
+                    </span>
+                  )}
                   <span className="flex items-center">
                     <Clock className="w-3 h-3 mr-1" />
                     {selectedTrackForVideo.duration ? `${selectedTrackForVideo.duration}s` : "N/A"}
@@ -1673,24 +1814,32 @@ export default function Home() {
                 {showSceneResults ? "Close" : "Cancel"}
               </Button>
               {!showSceneResults && (
-                <Button
-                  onClick={handleGenerateVideo}
-                  disabled={!videoPrompt.trim() || isGeneratingVideo || !hasValidBand}
-                  className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  data-testid="button-generate-video"
-                >
-                  {isGeneratingVideo ? (
-                    <>
-                      <LoadingSpinner className="mr-2 h-4 w-4" />
-                      Generating Scenes...
-                    </>
-                  ) : (
-                    <>
-                      <WandSparkles className="mr-2 h-4 w-4" />
-                      Generate Video Scenes
-                    </>
+                <>
+                  <Button
+                    onClick={handleGenerateVideo}
+                    disabled={!videoPrompt.trim() || isGeneratingVideo || !hasValidBand || !canGenerateVideo}
+                    className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    data-testid="button-generate-video"
+                  >
+                    {isGeneratingVideo ? (
+                      <>
+                        <LoadingSpinner className="mr-2 h-4 w-4" />
+                        Generating Scenes...
+                      </>
+                    ) : (
+                      <>
+                        <WandSparkles className="mr-2 h-4 w-4" />
+                        Generate Video Scenes
+                      </>
+                    )}
+                  </Button>
+                  {!canGenerateVideo && generationStatus?.video && (
+                    <p className="mt-2 text-sm text-red-500">
+                      {generationStatus.video.reason || `You've used ${generationStatus.video.currentUsage} / ${generationStatus.video.maxGenerations} video generations this month. `}
+                      <a href="/pricing" className="underline font-semibold">Upgrade your plan</a> to continue.
+                    </p>
                   )}
-                </Button>
+                </>
               )}
             </div>
 
@@ -1925,11 +2074,9 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-                  </>
-                )}
 
                 {/* Final Video Display */}
-                {finalVideoUrl && (
+                {(finalVideoUrl || (selectedTrackForVideo as any)?.videoUrl) && (
                   <div className="mt-4 p-4 bg-gradient-to-r from-music-purple/20 to-music-blue/20 rounded-lg border border-music-purple/30">
                     <h5 className="text-lg font-semibold text-white mb-3 flex items-center">
                       🎉 Final Music Video
@@ -1937,28 +2084,30 @@ export default function Home() {
                     <div className="bg-music-dark rounded-lg p-4">
                       <div className="w-full max-w-md mx-auto">
                         <video
-                          src={finalVideoUrl}
+                          src={finalVideoUrl || (selectedTrackForVideo as any)?.videoUrl}
                           controls
                           className="w-full aspect-[3/4] object-cover rounded border border-gray-600"
                           preload="metadata"
-                          poster={selectedTrackForVideo?.coverUrl}
+                          poster={selectedTrackForVideo?.imageUrl || selectedTrackForVideo?.coverUrl}
                         />
                       </div>
                       <div className="mt-3 flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-300">
-                            <strong>Track:</strong> {selectedTrackForVideo?.title || 'Untitled'}
+                            <strong>Track:</strong> {selectedTrackForVideo?.title || selectedTrackForVideo?.tags || 'Untitled'}
                           </p>
-                          <p className="text-sm text-gray-400">
-                            <strong>Description:</strong> {videoPrompt}
-                          </p>
+                          {videoPrompt && (
+                            <p className="text-sm text-gray-400">
+                              <strong>Description:</strong> {videoPrompt}
+                            </p>
+                          )}
                         </div>
                         <div className="text-right">
                           <p className="text-sm text-green-400">
-                            ✅ Video creation complete!
+                            ✅ Video {finalVideoUrl ? 'creation complete' : 'available'}!
                           </p>
                           <p className="text-xs text-gray-400">
-                            All 6 scenes merged with original audio
+                            {finalVideoUrl ? 'All 6 scenes merged with original audio' : 'Your generated music video'}
                           </p>
                         </div>
                       </div>
