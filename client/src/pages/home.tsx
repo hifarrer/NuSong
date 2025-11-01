@@ -35,6 +35,7 @@ import {
   AudioWaveform,
   LogOut,
   User,
+  Users,
   Edit2,
   Check,
   X,
@@ -123,6 +124,12 @@ export default function Home() {
     queryKey: ["/api/albums"],
     retry: false,
   }) as { data: Array<{ id: string; name: string; isDefault?: boolean }>|undefined };
+
+  // Fetch user's band data
+  const { data: bandData } = useQuery({
+    queryKey: ["/api/band"],
+    retry: false,
+  }) as { data: { band: { id: string; name: string } | null; members: Array<{ id: string; imageUrl: string | null }> } | undefined };
 
   // Create album mutation
   const createAlbumMutation = useMutation({
@@ -215,6 +222,9 @@ export default function Home() {
     setVideoPrompt("");
     setShowVideoModal(true);
   };
+
+  // Check if user has a band with members that have images
+  const hasValidBand = bandData?.band && bandData.members.some(member => member.imageUrl);
 
   // Video duration selection: 30s default, 60s optional
   const [videoDurationSec, setVideoDurationSec] = useState<number>(30);
@@ -1437,10 +1447,20 @@ export default function Home() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-300">
+                  <p className="text-gray-300 mb-3">
                     Select one of your tracks below and create a music video with AI-generated scenes. 
                     Describe your vision and we'll generate 6 scene prompts for your video.
                   </p>
+                  {!hasValidBand && (
+                    <div className="mt-3 pt-3 border-t border-gray-600">
+                      <p className="text-sm text-yellow-400 flex items-center">
+                        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <span>You need to create a <a href="/my-band" className="underline hover:text-yellow-300 font-medium">band with members</a> first. Band members will be used as characters in your music videos.</span>
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -1605,6 +1625,35 @@ export default function Home() {
               </div>
             )}
 
+            {/* Band Requirement Warning */}
+            {!hasValidBand && (
+              <div className="bg-yellow-900/20 border border-yellow-600/50 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-yellow-400 mb-1">Band Required</h4>
+                    <p className="text-sm text-yellow-300/90 mb-3">
+                      You need to create a band with at least one member before you can generate music videos. Your band members will be used as characters in the video scenes.
+                    </p>
+                    <Button
+                      onClick={() => {
+                        setShowVideoModal(false);
+                        window.location.href = '/my-band';
+                      }}
+                      className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white text-sm"
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      Go to My Band
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Video Description */}
             <div>
               <Label className="text-sm font-semibold text-gray-300 mb-3 block">
@@ -1618,6 +1667,7 @@ export default function Home() {
                 rows={4}
                 className="bg-music-secondary border-gray-600 text-white placeholder-gray-400 focus:border-music-blue resize-none"
                 data-testid="textarea-video-prompt"
+                disabled={!hasValidBand}
               />
               <p className="text-xs text-gray-400 mt-2">
                 Be specific about the visual style, setting, and mood. We'll generate 6 scene prompts based on your description.
@@ -1648,8 +1698,8 @@ export default function Home() {
               {!showSceneResults && (
                 <Button
                   onClick={handleGenerateVideo}
-                  disabled={!videoPrompt.trim() || isGeneratingVideo}
-                  className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
+                  disabled={!videoPrompt.trim() || isGeneratingVideo || !hasValidBand}
+                  className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   data-testid="button-generate-video"
                 >
                   {isGeneratingVideo ? (
