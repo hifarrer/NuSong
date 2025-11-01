@@ -947,8 +947,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const validation = insertTextToMusicSchema.parse(req.body);
       
-      // Check if user can generate more music
-      const generationCheck = await storage.canUserGenerateMusic(userId);
+      // Check if user can generate more audio
+      const generationCheck = await storage.canUserGenerateAudio(userId);
       if (!generationCheck.canGenerate) {
         return res.status(403).json({ 
           message: generationCheck.reason,
@@ -976,8 +976,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create generation record
       const generation = await storage.createTextToMusicGeneration(userId, validation);
       
-      // Increment user's generation count
-      await storage.incrementUserGenerationCount(userId);
+      // Increment user's audio generation count
+      await storage.incrementAudioGenerationCount(userId);
       
       // Build prompt for ElevenLabs
       const { prompt, style, title } = elevenLabsService.buildPromptFromTags(validation.tags, validation.lyrics || undefined);
@@ -1080,8 +1080,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const validation = insertAudioToMusicSchema.parse(req.body) as any;
       
-      // Check if user can generate more music
-      const generationCheck = await storage.canUserGenerateMusic(userId);
+      // Check if user can generate more audio
+      const generationCheck = await storage.canUserGenerateAudio(userId);
       if (!generationCheck.canGenerate) {
         return res.status(403).json({ 
           message: generationCheck.reason,
@@ -1093,8 +1093,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create generation record
       const generation = await storage.createAudioToMusicGeneration(userId, validation);
       
-      // Increment user's generation count
-      await storage.incrementUserGenerationCount(userId);
+      // Increment user's audio generation count
+      await storage.incrementAudioGenerationCount(userId);
       
       // Validate audio URL is provided
       if (!validation.inputAudioUrl) {
@@ -1795,7 +1795,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates: any = {
         subscriptionPlanId: planId || null,
         planStatus: status || (planId ? 'active' : 'free'),
-        generationsUsedThisMonth: 0, // Reset usage when changing plans
+        generationsUsedThisMonth: 0, // Reset usage when changing plans (deprecated)
+        audioGenerationsUsedThisMonth: 0, // Reset audio usage when changing plans
+        videoGenerationsUsedThisMonth: 0, // Reset video usage when changing plans
       };
 
       // Set plan dates if activating a plan
@@ -2273,6 +2275,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get the track information to access the original audio
       const userId = (req as any).user.id;
+      
+      // Check if user can generate more videos
+      const videoGenerationCheck = await storage.canUserGenerateVideo(userId);
+      if (!videoGenerationCheck.canGenerate) {
+        return res.status(403).json({ 
+          message: videoGenerationCheck.reason,
+          currentUsage: videoGenerationCheck.currentUsage,
+          maxGenerations: videoGenerationCheck.maxGenerations
+        });
+      }
+      
       const track = await storage.getMusicGeneration(trackId);
       
       if (!track) {
@@ -2349,6 +2362,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'UPDATE music_generations SET video_url = $1, updated_at = NOW() WHERE id = $2',
         [finalVideoUrl, trackId]
       );
+
+      // Increment user's video generation count
+      await storage.incrementVideoGenerationCount(userId);
 
       console.log(`✅ Video URL saved to database: ${finalVideoUrl}`);
 

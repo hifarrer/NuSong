@@ -490,13 +490,27 @@ export default function ProfilePage() {
                   
                   <div className="grid md:grid-cols-2 gap-4 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Weekly Generations:</span>
-                      <span className="text-white font-medium">{currentPlan.maxGenerations}</span>
+                      <span className="text-gray-400">Audio Generations (Monthly):</span>
+                      <span className="text-white font-medium">
+                        {(currentPlan as any)?.maxAudioGenerations ?? currentPlan.maxGenerations ?? 5}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Used This Month:</span>
+                      <span className="text-gray-400">Audio Used This Month:</span>
                       <span className="text-white font-medium">
-                        {(user as any)?.generationsUsedThisMonth || 0} / {currentPlan.maxGenerations}
+                        {(user as any)?.audioGenerationsUsedThisMonth || 0} / {(currentPlan as any)?.maxAudioGenerations ?? currentPlan.maxGenerations ?? 5}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Video Generations (Monthly):</span>
+                      <span className="text-white font-medium">
+                        {(currentPlan as any)?.maxVideoGenerations ?? 1}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Video Used This Month:</span>
+                      <span className="text-white font-medium">
+                        {(user as any)?.videoGenerationsUsedThisMonth || 0} / {(currentPlan as any)?.maxVideoGenerations ?? 1}
                       </span>
                     </div>
                     <div className="flex justify-between">

@@ -70,8 +70,12 @@ export interface IStorage {
   getPublicMusicGenerations(): Promise<MusicGeneration[]>;
   getAllMusicGenerationsWithUsers(): Promise<Array<MusicGeneration & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> }>>;
   deleteMusicGeneration(id: string): Promise<void>;
-  canUserGenerateMusic(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }>;
-  incrementUserGenerationCount(userId: string): Promise<void>;
+  canUserGenerateMusic(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }>; // Deprecated - use canUserGenerateAudio
+  canUserGenerateAudio(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }>;
+  canUserGenerateVideo(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }>;
+  incrementUserGenerationCount(userId: string): Promise<void>; // Deprecated - use incrementAudioGenerationCount
+  incrementAudioGenerationCount(userId: string): Promise<void>;
+  incrementVideoGenerationCount(userId: string): Promise<void>;
   resetMonthlyGenerationCounts(): Promise<void>;
   // Album operations
   getUserAlbums(userId: string): Promise<Album[]>;
@@ -359,6 +363,8 @@ export class DatabaseStorage implements IStorage {
         subscriptionPlanId: users.subscriptionPlanId,
         planStatus: users.planStatus,
         generationsUsedThisMonth: users.generationsUsedThisMonth,
+        audioGenerationsUsedThisMonth: users.audioGenerationsUsedThisMonth,
+        videoGenerationsUsedThisMonth: users.videoGenerationsUsedThisMonth,
         planStartDate: users.planStartDate,
         planEndDate: users.planEndDate,
         stripeCustomerId: users.stripeCustomerId,
@@ -369,6 +375,8 @@ export class DatabaseStorage implements IStorage {
         planName: subscriptionPlans.name,
         planDescription: subscriptionPlans.description,
         maxGenerations: subscriptionPlans.maxGenerations,
+        maxAudioGenerations: subscriptionPlans.maxAudioGenerations,
+        maxVideoGenerations: subscriptionPlans.maxVideoGenerations,
       })
       .from(users)
       .leftJoin(musicGenerations, eq(users.id, musicGenerations.userId))
@@ -386,6 +394,8 @@ export class DatabaseStorage implements IStorage {
         users.subscriptionPlanId,
         users.planStatus,
         users.generationsUsedThisMonth,
+        users.audioGenerationsUsedThisMonth,
+        users.videoGenerationsUsedThisMonth,
         users.planStartDate,
         users.planEndDate,
         users.stripeCustomerId,
@@ -394,7 +404,9 @@ export class DatabaseStorage implements IStorage {
         users.updatedAt,
         subscriptionPlans.name,
         subscriptionPlans.description,
-        subscriptionPlans.maxGenerations
+        subscriptionPlans.maxGenerations,
+        subscriptionPlans.maxAudioGenerations,
+        subscriptionPlans.maxVideoGenerations
       )
       .orderBy(desc(users.createdAt));
 
@@ -442,6 +454,8 @@ export class DatabaseStorage implements IStorage {
         subscriptionPlanId: users.subscriptionPlanId,
         planStatus: users.planStatus,
         generationsUsedThisMonth: users.generationsUsedThisMonth,
+        audioGenerationsUsedThisMonth: users.audioGenerationsUsedThisMonth,
+        videoGenerationsUsedThisMonth: users.videoGenerationsUsedThisMonth,
         planStartDate: users.planStartDate,
         planEndDate: users.planEndDate,
         stripeCustomerId: users.stripeCustomerId,
@@ -452,6 +466,8 @@ export class DatabaseStorage implements IStorage {
         planName: subscriptionPlans.name,
         planDescription: subscriptionPlans.description,
         maxGenerations: subscriptionPlans.maxGenerations,
+        maxAudioGenerations: subscriptionPlans.maxAudioGenerations,
+        maxVideoGenerations: subscriptionPlans.maxVideoGenerations,
       })
       .from(users)
       .leftJoin(musicGenerations, eq(users.id, musicGenerations.userId))
@@ -470,6 +486,8 @@ export class DatabaseStorage implements IStorage {
         users.subscriptionPlanId,
         users.planStatus,
         users.generationsUsedThisMonth,
+        users.audioGenerationsUsedThisMonth,
+        users.videoGenerationsUsedThisMonth,
         users.planStartDate,
         users.planEndDate,
         users.stripeCustomerId,
@@ -478,7 +496,9 @@ export class DatabaseStorage implements IStorage {
         users.updatedAt,
         subscriptionPlans.name,
         subscriptionPlans.description,
-        subscriptionPlans.maxGenerations
+        subscriptionPlans.maxGenerations,
+        subscriptionPlans.maxAudioGenerations,
+        subscriptionPlans.maxVideoGenerations
       );
 
     const [user] = result;
@@ -551,47 +571,66 @@ export class DatabaseStorage implements IStorage {
   }
 
   async canUserGenerateMusic(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }> {
-    const userWithPlan = await this.getUserWithGenerationCount(userId);
-    
-    if (!userWithPlan) {
-      return { canGenerate: false, reason: "User not found", currentUsage: 0, maxGenerations: 0 };
-    }
+    // Deprecated - delegate to canUserGenerateAudio for backwards compatibility
+    return this.canUserGenerateAudio(userId);
+  }
 
-    // Get the user's current plan
+  async canUserGenerateAudio(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }> {
     const user = await this.getUser(userId);
+    
     if (!user) {
       return { canGenerate: false, reason: "User not found", currentUsage: 0, maxGenerations: 0 };
     }
 
-    // Require an active paid plan
-    if (!user.subscriptionPlanId || user.planStatus !== 'active') {
-      return {
-        canGenerate: false,
-        reason: "Please upgrade",
-        currentUsage: user.generationsUsedThisMonth || 0,
-        maxGenerations: 0,
-      };
+    // Get the user's current plan - free users get free plan limits
+    let maxGenerations = 5; // Default free plan limit
+    let currentUsage = user.audioGenerationsUsedThisMonth || 0;
+
+    // If user has a subscription plan, get limits from plan
+    if (user.subscriptionPlanId) {
+      const plan = await this.getSubscriptionPlan(user.subscriptionPlanId);
+      if (plan) {
+        maxGenerations = plan.maxAudioGenerations || 5;
+      }
     }
 
-    // Load plan to determine maxGenerations
-    const plan = await this.getSubscriptionPlan(user.subscriptionPlanId);
-    if (!plan) {
-      return {
-        canGenerate: false,
-        reason: "Please upgrade",
-        currentUsage: user.generationsUsedThisMonth || 0,
-        maxGenerations: 0,
-      };
-    }
-
-    const maxGenerations = plan.maxGenerations;
-
-    const currentUsage = user.generationsUsedThisMonth || 0;
-    
+    // Check if user has exceeded limit
     if (currentUsage >= maxGenerations) {
       return { 
         canGenerate: false,
-        reason: "Please upgrade",
+        reason: "Audio generation limit reached. Please upgrade your plan.",
+        currentUsage, 
+        maxGenerations 
+      };
+    }
+
+    return { canGenerate: true, currentUsage, maxGenerations };
+  }
+
+  async canUserGenerateVideo(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }> {
+    const user = await this.getUser(userId);
+    
+    if (!user) {
+      return { canGenerate: false, reason: "User not found", currentUsage: 0, maxGenerations: 0 };
+    }
+
+    // Get the user's current plan - free users get free plan limits
+    let maxGenerations = 1; // Default free plan limit
+    let currentUsage = user.videoGenerationsUsedThisMonth || 0;
+
+    // If user has a subscription plan, get limits from plan
+    if (user.subscriptionPlanId) {
+      const plan = await this.getSubscriptionPlan(user.subscriptionPlanId);
+      if (plan) {
+        maxGenerations = plan.maxVideoGenerations || 1;
+      }
+    }
+
+    // Check if user has exceeded limit
+    if (currentUsage >= maxGenerations) {
+      return { 
+        canGenerate: false,
+        reason: "Video generation limit reached. Please upgrade your plan.",
         currentUsage, 
         maxGenerations 
       };
@@ -601,10 +640,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async incrementUserGenerationCount(userId: string): Promise<void> {
+    // Deprecated - delegate to incrementAudioGenerationCount for backwards compatibility
+    await this.incrementAudioGenerationCount(userId);
+  }
+
+  async incrementAudioGenerationCount(userId: string): Promise<void> {
     await db
       .update(users)
       .set({
-        generationsUsedThisMonth: sql`${users.generationsUsedThisMonth} + 1`,
+        audioGenerationsUsedThisMonth: sql`COALESCE(${users.audioGenerationsUsedThisMonth}, 0) + 1`,
+        generationsUsedThisMonth: sql`COALESCE(${users.generationsUsedThisMonth}, 0) + 1`, // Keep old field in sync for compatibility
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async incrementVideoGenerationCount(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        videoGenerationsUsedThisMonth: sql`COALESCE(${users.videoGenerationsUsedThisMonth}, 0) + 1`,
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
@@ -616,6 +671,8 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({
         generationsUsedThisMonth: 0,
+        audioGenerationsUsedThisMonth: 0,
+        videoGenerationsUsedThisMonth: 0,
         updatedAt: new Date(),
       });
   }

@@ -18,8 +18,10 @@ interface PlanFormData {
   yearlyPrice: string;
   monthlyPriceId: string;
   yearlyPriceId: string;
-  maxGenerations: number;
-  generationsNumber: number;
+  maxGenerations: number; // Deprecated - kept for backwards compatibility
+  generationsNumber: number; // Deprecated - kept for backwards compatibility
+  maxAudioGenerations: number;
+  maxVideoGenerations: number;
   sortOrder: number;
   isActive: boolean;
 }
@@ -36,8 +38,10 @@ export function AdminPlanManagement() {
     yearlyPrice: "0",
     monthlyPriceId: "",
     yearlyPriceId: "",
-    maxGenerations: 5,
-    generationsNumber: 5,
+    maxGenerations: 5, // Deprecated
+    generationsNumber: 5, // Deprecated
+    maxAudioGenerations: 5,
+    maxVideoGenerations: 1,
     sortOrder: 0,
     isActive: true,
   });
@@ -122,8 +126,10 @@ export function AdminPlanManagement() {
       yearlyPrice: "0",
       monthlyPriceId: "",
       yearlyPriceId: "",
-      maxGenerations: 5,
-      generationsNumber: 5,
+      maxGenerations: 5, // Deprecated
+      generationsNumber: 5, // Deprecated
+      maxAudioGenerations: 5,
+      maxVideoGenerations: 1,
       sortOrder: 0,
       isActive: true,
     });
@@ -151,8 +157,10 @@ export function AdminPlanManagement() {
       yearlyPrice: plan.yearlyPrice || "0",
       monthlyPriceId: plan.monthlyPriceId || "",
       yearlyPriceId: plan.yearlyPriceId || "",
-      maxGenerations: plan.maxGenerations || 5,
-      generationsNumber: plan.generationsNumber || 5,
+      maxGenerations: plan.maxGenerations || 5, // Deprecated
+      generationsNumber: plan.generationsNumber || 5, // Deprecated
+      maxAudioGenerations: (plan as any).maxAudioGenerations ?? plan.maxGenerations ?? 5,
+      maxVideoGenerations: (plan as any).maxVideoGenerations ?? (plan as any).generationsNumber ?? 1,
       sortOrder: plan.sortOrder || 0,
       isActive: plan.isActive,
     });
@@ -325,28 +333,30 @@ export function AdminPlanManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-gray-200 text-sm font-medium">Max Generations</label>
+                  <label className="text-gray-200 text-sm font-medium">Max Audio Generations (Monthly)</label>
                   <Input 
                     type="number"
-                    value={formData.maxGenerations}
-                    onChange={(e) => setFormData({ ...formData, maxGenerations: parseInt(e.target.value) || 5 })}
+                    value={formData.maxAudioGenerations}
+                    onChange={(e) => setFormData({ ...formData, maxAudioGenerations: parseInt(e.target.value) || 5 })}
                     className="bg-gray-800 border-gray-600 text-white mt-1"
                     placeholder="5"
-                    min="1"
-                    data-testid="input-max-generations"
+                    min="0"
+                    data-testid="input-max-audio-generations"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Number of audio generations allowed per month</p>
                 </div>
                 <div>
-                  <label className="text-gray-200 text-sm font-medium">Generations Number</label>
+                  <label className="text-gray-200 text-sm font-medium">Max Video Generations (Monthly)</label>
                   <Input 
                     type="number"
-                    value={formData.generationsNumber}
-                    onChange={(e) => setFormData({ ...formData, generationsNumber: parseInt(e.target.value) || 5 })}
+                    value={formData.maxVideoGenerations}
+                    onChange={(e) => setFormData({ ...formData, maxVideoGenerations: parseInt(e.target.value) || 1 })}
                     className="bg-gray-800 border-gray-600 text-white mt-1"
-                    placeholder="5"
-                    min="1"
-                    data-testid="input-generations-number"
+                    placeholder="1"
+                    min="0"
+                    data-testid="input-max-video-generations"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Number of video generations allowed per month</p>
                 </div>
               </div>
 
@@ -463,21 +473,15 @@ export function AdminPlanManagement() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Max Generations</span>
-                  <span className="text-white font-semibold" data-testid={`text-max-generations-${plan.id}`}>
-                    {plan.maxGenerations}
+                  <span className="text-gray-400">Max Audio Generations</span>
+                  <span className="text-white font-semibold" data-testid={`text-max-audio-generations-${plan.id}`}>
+                    {(plan as any).maxAudioGenerations ?? plan.maxGenerations ?? 5}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Max Generations</span>
-                  <span className="text-white font-semibold" data-testid={`text-max-generations-${plan.id}`}>
-                    {plan.maxGenerations}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Generations Number</span>
-                  <span className="text-white font-semibold" data-testid={`text-generations-number-${plan.id}`}>
-                    {plan.generationsNumber}
+                  <span className="text-gray-400">Max Video Generations</span>
+                  <span className="text-white font-semibold" data-testid={`text-max-video-generations-${plan.id}`}>
+                    {(plan as any).maxVideoGenerations ?? (plan as any).generationsNumber ?? 1}
                   </span>
                 </div>
                 {Array.isArray(plan.features) && plan.features.length > 0 && (
@@ -618,26 +622,28 @@ export function AdminPlanManagement() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-gray-200 text-sm font-medium">Max Generations</label>
+                <label className="text-gray-200 text-sm font-medium">Max Audio Generations (Monthly)</label>
                 <Input 
                   type="number"
-                  value={formData.maxGenerations}
-                  onChange={(e) => setFormData({ ...formData, maxGenerations: parseInt(e.target.value) || 5 })}
+                  value={formData.maxAudioGenerations}
+                  onChange={(e) => setFormData({ ...formData, maxAudioGenerations: parseInt(e.target.value) || 5 })}
                   className="bg-gray-800 border-gray-600 text-white mt-1"
-                  min="1"
-                  data-testid="input-edit-max-generations"
+                  min="0"
+                  data-testid="input-edit-max-audio-generations"
                 />
+                <p className="text-xs text-gray-400 mt-1">Number of audio generations allowed per month</p>
               </div>
               <div>
-                <label className="text-gray-200 text-sm font-medium">Generations Number</label>
+                <label className="text-gray-200 text-sm font-medium">Max Video Generations (Monthly)</label>
                 <Input 
                   type="number"
-                  value={formData.generationsNumber}
-                  onChange={(e) => setFormData({ ...formData, generationsNumber: parseInt(e.target.value) || 5 })}
+                  value={formData.maxVideoGenerations}
+                  onChange={(e) => setFormData({ ...formData, maxVideoGenerations: parseInt(e.target.value) || 1 })}
                   className="bg-gray-800 border-gray-600 text-white mt-1"
-                  min="1"
-                  data-testid="input-edit-generations-number"
+                  min="0"
+                  data-testid="input-edit-max-video-generations"
                 />
+                <p className="text-xs text-gray-400 mt-1">Number of video generations allowed per month</p>
               </div>
             </div>
 

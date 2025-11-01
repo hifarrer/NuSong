@@ -265,11 +265,6 @@ export default function Home() {
       
       console.log(`🔍 Frontend handleGenerateVideo - After setTrimmedAudioUrl, trimmedAudioUrl state:`, result.trimmedAudioUrl);
       
-      toast({
-        title: "Video Scenes Generated!",
-        description: `Audio split into 6 parts and ${result.sceneTasks?.length || 0} scene images are being generated.`,
-      });
-      
       // Start polling for scene completion
       pollSceneTasks(result.sceneTasks || []);
       
@@ -331,10 +326,6 @@ export default function Home() {
       if (allCompleted) {
         clearInterval(pollInterval);
         const completedCount = updatedTasks.filter(t => t.status === 'completed').length;
-        toast({
-          title: "Scene Generation Complete!",
-          description: `${completedCount} out of ${updatedTasks.length} scenes have been generated successfully.`,
-        });
         
         // Automatically start video generation if all scenes are completed
         if (completedCount === updatedTasks.length && selectedTrackForVideo) {
@@ -364,11 +355,6 @@ export default function Home() {
       const result = await response.json();
       
       setVideoTasks(result.videoTasks || []);
-      
-      toast({
-        title: "Video Generation Started!",
-        description: `${result.totalVideos} videos are being generated. This may take several minutes.`,
-      });
       
       // Start polling for video completion
       pollVideoTasks(result.videoTasks || []);
@@ -431,10 +417,6 @@ export default function Home() {
       if (allCompleted) {
         clearInterval(pollInterval);
         const completedCount = updatedTasks.filter(t => t.status === 'completed').length;
-        toast({
-          title: "Video Generation Complete!",
-          description: `${completedCount} out of ${updatedTasks.length} videos have been generated successfully.`,
-        });
         
         // Automatically start video merging if all videos are completed
         if (completedCount === updatedTasks.length && selectedTrackForVideo) {
@@ -476,11 +458,6 @@ export default function Home() {
       
       if (result.success) {
         setFinalVideoUrl(result.finalVideoUrl);
-        
-        toast({
-          title: "Video Merging Complete!",
-          description: "Your music video has been successfully created and is ready to view!",
-        });
       } else {
         throw new Error(result.message || 'Video merging failed');
       }

@@ -211,7 +211,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session):
     planStatus: 'active',
     planStartDate: startDate,
     planEndDate: endDate,
-    generationsUsedThisMonth: 0, // Reset usage
+    generationsUsedThisMonth: 0, // Reset usage (deprecated)
+    audioGenerationsUsedThisMonth: 0, // Reset audio usage
+    videoGenerationsUsedThisMonth: 0, // Reset video usage
     stripeCustomerId: session.customer as string,
     stripeSubscriptionId: session.subscription as string,
   });
@@ -366,7 +368,9 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<v
   const updatePayload: any = {
     planStatus: 'active',
     planEndDate: newEndDate,
-    generationsUsedThisMonth: 0, // Reset usage
+    generationsUsedThisMonth: 0, // Reset usage (deprecated)
+    audioGenerationsUsedThisMonth: 0, // Reset audio usage
+    videoGenerationsUsedThisMonth: 0, // Reset video usage
   };
 
   // Ensure subscriptionPlanId is set if missing but present in subscription metadata

@@ -48,7 +48,9 @@ export const users = pgTable("users", {
   authMethod: varchar("auth_method").notNull().default("email"), // email, google, both
   subscriptionPlanId: varchar("subscription_plan_id").references(() => subscriptionPlans.id),
   planStatus: varchar("plan_status").notNull().default("free"), // free, active, expired, cancelled
-  generationsUsedThisMonth: integer("generations_used_this_month").notNull().default(0),
+  generationsUsedThisMonth: integer("generations_used_this_month").notNull().default(0), // Deprecated - kept for backwards compatibility
+  audioGenerationsUsedThisMonth: integer("audio_generations_used_this_month").notNull().default(0), // Monthly audio generation count
+  videoGenerationsUsedThisMonth: integer("video_generations_used_this_month").notNull().default(0), // Monthly video generation count
   planStartDate: timestamp("plan_start_date"),
   planEndDate: timestamp("plan_end_date"),
   stripeCustomerId: varchar("stripe_customer_id"),
@@ -184,8 +186,10 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   weeklyPriceId: varchar("weekly_price_id"), // Stripe price ID for weekly billing
   monthlyPriceId: varchar("monthly_price_id"), // Stripe price ID for monthly billing
   yearlyPriceId: varchar("yearly_price_id"), // Stripe price ID for yearly billing
-  maxGenerations: integer("max_generations").notNull().default(5), // weekly generation limit
-  generationsNumber: integer("generations_number").notNull().default(5), // number of generations allowed
+  maxGenerations: integer("max_generations").notNull().default(5), // Deprecated - kept for backwards compatibility
+  generationsNumber: integer("generations_number").notNull().default(5), // Deprecated - kept for backwards compatibility
+  maxAudioGenerations: integer("max_audio_generations").notNull().default(5), // Monthly audio generation limit
+  maxVideoGenerations: integer("max_video_generations").notNull().default(1), // Monthly video generation limit
   features: jsonb("features").default(sql`'[]'::jsonb`), // array of feature strings
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").default(0),
