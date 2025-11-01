@@ -133,6 +133,71 @@ async function runMigrations() {
     `);
     console.log('✅ Shareable links table created successfully');
     
+    // Migration 4: Add audio/video generation tracking columns
+    console.log('🎵 Migration 4: Adding audio/video generation tracking columns...');
+    
+    // Add columns to users table
+    await client.query(`
+      ALTER TABLE "users" 
+      ADD COLUMN IF NOT EXISTS "audio_generations_used_this_month" INTEGER NOT NULL DEFAULT 0;
+    `);
+    await client.query(`
+      ALTER TABLE "users" 
+      ADD COLUMN IF NOT EXISTS "video_generations_used_this_month" INTEGER NOT NULL DEFAULT 0;
+    `);
+    console.log('✅ Added audio/video generation columns to users table');
+    
+    // Add columns to subscription_plans table
+    await client.query(`
+      ALTER TABLE "subscription_plans" 
+      ADD COLUMN IF NOT EXISTS "max_audio_generations" INTEGER NOT NULL DEFAULT 5;
+    `);
+    await client.query(`
+      ALTER TABLE "subscription_plans" 
+      ADD COLUMN IF NOT EXISTS "max_video_generations" INTEGER NOT NULL DEFAULT 1;
+    `);
+    console.log('✅ Added audio/video generation limit columns to subscription_plans table');
+    
+    // Update existing plans with default values based on plan name
+    console.log('🔄 Updating existing subscription plans with default values...');
+    
+    // Free plan: 5 audio, 1 video
+    await client.query(`
+      UPDATE "subscription_plans" 
+      SET "max_audio_generations" = 5, "max_video_generations" = 1
+      WHERE (name ILIKE '%free%' OR name = 'Free') 
+      AND ("max_audio_generations" = 5 OR "max_audio_generations" IS NULL)
+      AND ("max_video_generations" = 1 OR "max_video_generations" IS NULL);
+    `);
+    
+    // Basic plan: 30 audio, 5 video
+    await client.query(`
+      UPDATE "subscription_plans" 
+      SET "max_audio_generations" = 30, "max_video_generations" = 5
+      WHERE (name ILIKE '%basic%' OR name = 'Basic') 
+      AND ("max_audio_generations" = 5 OR "max_audio_generations" IS NULL)
+      AND ("max_video_generations" = 1 OR "max_video_generations" IS NULL);
+    `);
+    
+    // Premium plan: 100 audio, 10 video
+    await client.query(`
+      UPDATE "subscription_plans" 
+      SET "max_audio_generations" = 100, "max_video_generations" = 10
+      WHERE (name ILIKE '%premium%' OR name = 'Premium') 
+      AND ("max_audio_generations" = 5 OR "max_audio_generations" IS NULL)
+      AND ("max_video_generations" = 1 OR "max_video_generations" IS NULL);
+    `);
+    
+    // Ensure no NULL values remain
+    await client.query(`
+      UPDATE "subscription_plans" 
+      SET "max_audio_generations" = COALESCE("max_audio_generations", 5),
+          "max_video_generations" = COALESCE("max_video_generations", 1)
+      WHERE "max_audio_generations" IS NULL OR "max_video_generations" IS NULL;
+    `);
+    
+    console.log('✅ Updated existing subscription plans with default values');
+    
     console.log('🎉 All migrations completed successfully!');
     
   } catch (error) {
