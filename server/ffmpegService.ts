@@ -61,24 +61,38 @@ export async function trimAudio(params: FFMPEGTrimAudioParams): Promise<FFMPEGTr
   try {
     // First, download the audio file and upload it to our storage to make it publicly accessible
     console.log(`\n=== DOWNLOADING AND UPLOADING AUDIO FOR TRIMMING ===`);
-    console.log(`Original audio URL: ${audio_url}`);
+    console.log(`Original audio URL: ${audio_url.substring(0, 100)}...`);
     
-    // Convert relative path to public URL if needed
-    let downloadUrl = audio_url;
-    if (audio_url.startsWith('/objects/')) {
-      const { getStorageService } = await import('./routes');
-      const storageService = getStorageService();
-      downloadUrl = await (storageService as any).getObjectEntityPublicUrl(audio_url, 3600);
-      console.log(`✅ Converted audio to public URL: ${downloadUrl}`);
+    let buffer: Buffer;
+    
+    // Handle data URLs (base64-encoded)
+    if (audio_url.startsWith('data:')) {
+      console.log(`🔍 Detected data URL, extracting base64 data...`);
+      const matches = audio_url.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        throw new Error('Invalid data URL format');
+      }
+      const base64Data = matches[2];
+      buffer = Buffer.from(base64Data, 'base64');
+      console.log(`✅ Extracted ${buffer.length} bytes from data URL`);
+    } else {
+      // Convert relative path to public URL if needed
+      let downloadUrl = audio_url;
+      if (audio_url.startsWith('/objects/')) {
+        const { getStorageService } = await import('./routes');
+        const storageService = getStorageService();
+        downloadUrl = await (storageService as any).getObjectEntityPublicUrl(audio_url, 3600);
+        console.log(`✅ Converted audio to public URL: ${downloadUrl}`);
+      }
+      
+      const audioResponse = await fetch(downloadUrl);
+      if (!audioResponse.ok) {
+        throw new Error(`Failed to download audio: ${audioResponse.status} ${audioResponse.statusText}`);
+      }
+      
+      const audioBuffer = await audioResponse.arrayBuffer();
+      buffer = Buffer.from(audioBuffer);
     }
-    
-    const audioResponse = await fetch(downloadUrl);
-    if (!audioResponse.ok) {
-      throw new Error(`Failed to download audio: ${audioResponse.status} ${audioResponse.statusText}`);
-    }
-    
-    const audioBuffer = await audioResponse.arrayBuffer();
-    const buffer = Buffer.from(audioBuffer);
     
     // Generate a unique filename for the audio
     const audioFileName = `temp-audio/${Date.now()}_${Math.random().toString(36).substring(7)}.mp3`;
@@ -153,18 +167,31 @@ export async function splitAudio(params: FFMPEGSplitAudioParams): Promise<FFMPEG
   try {
     // First, download the audio file and upload it to our storage to make it publicly accessible
     console.log(`\n=== DOWNLOADING AND UPLOADING AUDIO FOR FFMPEG ===`);
-    console.log(`🔍 splitAudio received audio_url: ${audio_url}`);
-    console.log(`🔍 splitAudio audio_url type: ${typeof audio_url}`);
+    console.log(`🔍 splitAudio received audio_url type: ${typeof audio_url}`);
     console.log(`🔍 splitAudio audio_url length: ${audio_url?.length}`);
-    console.log(`Original audio URL: ${audio_url}`);
+    console.log(`Original audio URL: ${audio_url.substring(0, 100)}...`);
     
-    const audioResponse = await fetch(audio_url);
-    if (!audioResponse.ok) {
-      throw new Error(`Failed to download audio: ${audioResponse.status} ${audioResponse.statusText}`);
+    let buffer: Buffer;
+    
+    // Handle data URLs (base64-encoded)
+    if (audio_url.startsWith('data:')) {
+      console.log(`🔍 Detected data URL, extracting base64 data...`);
+      const matches = audio_url.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        throw new Error('Invalid data URL format');
+      }
+      const base64Data = matches[2];
+      buffer = Buffer.from(base64Data, 'base64');
+      console.log(`✅ Extracted ${buffer.length} bytes from data URL`);
+    } else {
+      const audioResponse = await fetch(audio_url);
+      if (!audioResponse.ok) {
+        throw new Error(`Failed to download audio: ${audioResponse.status} ${audioResponse.statusText}`);
+      }
+      
+      const audioBuffer = await audioResponse.arrayBuffer();
+      buffer = Buffer.from(audioBuffer);
     }
-    
-    const audioBuffer = await audioResponse.arrayBuffer();
-    const buffer = Buffer.from(audioBuffer);
     
     // Generate a unique filename for the audio
     const audioFileName = `temp-audio/${Date.now()}_${Math.random().toString(36).substring(7)}.mp3`;
@@ -297,24 +324,38 @@ export async function mergeVideos(params: FFMPEGMergeVideosParams): Promise<FFMP
   try {
     // Download and upload the audio file to make it publicly accessible
     console.log(`\n=== DOWNLOADING AND UPLOADING AUDIO FOR VIDEO MERGING ===`);
-    console.log(`Original audio URL: ${audio_url}`);
+    console.log(`Original audio URL: ${audio_url.substring(0, 100)}...`);
     
-    // Convert relative path to public URL if needed
-    let downloadUrl = audio_url;
-    if (audio_url.startsWith('/objects/')) {
-      const { getStorageService } = await import('./routes');
-      const storageService = getStorageService();
-      downloadUrl = await (storageService as any).getObjectEntityPublicUrl(audio_url, 3600);
-      console.log(`✅ Converted audio to public URL: ${downloadUrl}`);
+    let buffer: Buffer;
+    
+    // Handle data URLs (base64-encoded)
+    if (audio_url.startsWith('data:')) {
+      console.log(`🔍 Detected data URL, extracting base64 data...`);
+      const matches = audio_url.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        throw new Error('Invalid data URL format');
+      }
+      const base64Data = matches[2];
+      buffer = Buffer.from(base64Data, 'base64');
+      console.log(`✅ Extracted ${buffer.length} bytes from data URL`);
+    } else {
+      // Convert relative path to public URL if needed
+      let downloadUrl = audio_url;
+      if (audio_url.startsWith('/objects/')) {
+        const { getStorageService } = await import('./routes');
+        const storageService = getStorageService();
+        downloadUrl = await (storageService as any).getObjectEntityPublicUrl(audio_url, 3600);
+        console.log(`✅ Converted audio to public URL: ${downloadUrl}`);
+      }
+      
+      const audioResponse = await fetch(downloadUrl);
+      if (!audioResponse.ok) {
+        throw new Error(`Failed to download audio: ${audioResponse.status} ${audioResponse.statusText}`);
+      }
+      
+      const audioBuffer = await audioResponse.arrayBuffer();
+      buffer = Buffer.from(audioBuffer);
     }
-    
-    const audioResponse = await fetch(downloadUrl);
-    if (!audioResponse.ok) {
-      throw new Error(`Failed to download audio: ${audioResponse.status} ${audioResponse.statusText}`);
-    }
-    
-    const audioBuffer = await audioResponse.arrayBuffer();
-    const buffer = Buffer.from(audioBuffer);
     
     // Generate a unique filename for the audio
     const audioFileName = `temp-audio/${Date.now()}_${Math.random().toString(36).substring(7)}.mp3`;
