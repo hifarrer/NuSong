@@ -2074,6 +2074,8 @@ export default function Home() {
                     </div>
                   </div>
                 )}
+                  </>
+                )}
 
                 {/* Final Video Display */}
                 {(finalVideoUrl || (selectedTrackForVideo as any)?.videoUrl) && (
