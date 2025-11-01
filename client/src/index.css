@@ -278,4 +278,19 @@ html, body {
   .via-music-accent {
     --tw-gradient-via: var(--music-accent);
   }
+  
+  @keyframes video-progress-glow {
+    from {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 40px rgba(139, 92, 246, 0.4);
+    }
+    to {
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(139, 92, 246, 0.6);
+    }
+  }
+  
+  .video-progress-glow {
+    animation: video-progress-glow 2s ease-in-out infinite alternate;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 40px rgba(139, 92, 246, 0.4);
+  }
 }

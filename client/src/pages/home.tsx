@@ -73,12 +73,17 @@ export default function Home() {
   const [currentGeneration, setCurrentGeneration] = useState<MusicGeneration | null>(null);
   const [activeTab, setActiveTab] = useState("textToMusic");
 
+  // Debug mode from URL parameter
+  const [isDebugMode, setIsDebugMode] = useState(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
     if (tab === 'textToMusic' || tab === 'audioToMusic' || tab === 'createVideo') {
       setActiveTab(tab);
     }
+    // Check for debug parameter
+    setIsDebugMode(params.get('debug') === '1');
   }, []);
   
   // Lyrics generator modal state
@@ -1662,13 +1667,81 @@ export default function Home() {
               )}
             </div>
 
-            {/* Debug UI - Scene Results */}
+            {/* Progress Bar */}
             {showSceneResults && (
               <div className="mt-6 pt-6 border-t border-gray-600">
-                <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-                  <Film className="mr-2 h-5 w-5 text-music-accent" />
-                  Generated Scene Images (Debug)
-                </h4>
+                {/* Calculate progress */}
+                {(() => {
+                  const totalSteps = 3;
+                  let progress = 0;
+                  let currentStep = '';
+                  
+                  // Step 1: Scene Images (0-33%)
+                  const completedScenes = sceneTasks.filter(t => t.status === 'completed').length;
+                  const totalScenes = sceneTasks.length || 6;
+                  const sceneProgress = (completedScenes / totalScenes) * 33;
+                  
+                  // Step 2: Video Generation (33-83%)
+                  const completedVideos = videoTasks.filter(t => t.status === 'completed').length;
+                  const totalVideos = videoTasks.length || 6;
+                  const videoProgress = totalVideos > 0 ? (completedVideos / totalVideos) * 50 : 0;
+                  
+                  // Step 3: Video Merging (83-100%)
+                  const mergeProgress = finalVideoUrl ? 17 : (isMergingVideos ? 5 : 0);
+                  
+                  if (finalVideoUrl) {
+                    // Final video is ready
+                    progress = 100;
+                    currentStep = 'Complete! Your video is ready.';
+                  } else if (totalVideos > 0 && completedVideos === totalVideos) {
+                    // All videos done, merging in progress
+                    progress = 83 + mergeProgress;
+                    currentStep = isMergingVideos ? 'Merging videos...' : 'Preparing to merge...';
+                  } else if (totalVideos > 0) {
+                    // Videos in progress
+                    progress = 33 + videoProgress;
+                    currentStep = `Generating videos: ${completedVideos}/${totalVideos}`;
+                  } else if (totalScenes > 0) {
+                    // Scenes in progress
+                    progress = sceneProgress;
+                    currentStep = `Generating scene images: ${completedScenes}/${totalScenes}`;
+                  } else {
+                    progress = 0;
+                    currentStep = 'Initializing...';
+                  }
+                  
+                  return (
+                    <div className="space-y-4">
+                      {/* Progress Bar */}
+                      <div className="w-full">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-lg font-semibold text-white flex items-center">
+                            <Film className="mr-2 h-5 w-5 text-music-accent" />
+                            Generating Your Music Video
+                          </h4>
+                          <span className="text-sm text-gray-400">{Math.round(progress)}%</span>
+                        </div>
+                        <div className="relative w-full h-4 bg-music-dark rounded-full overflow-hidden">
+                          <div
+                            className="absolute top-0 left-0 h-full rounded-full transition-all duration-500 ease-out video-progress-glow"
+                            style={{
+                              width: `${progress}%`
+                            }}
+                          />
+                        </div>
+                        <p className="text-sm text-gray-400 mt-2">{currentStep}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Debug UI - Scene Results - Only show if debug=1 */}
+                {isDebugMode && (
+                  <>
+                    <h4 className="text-lg font-semibold text-white mb-4 flex items-center mt-6">
+                      <Film className="mr-2 h-5 w-5 text-music-accent" />
+                      Generated Scene Images (Debug)
+                    </h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {sceneTasks.map((task, index) => (
@@ -1743,8 +1816,8 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* Audio Parts Debug Info */}
-                {audioParts.length > 0 && (
+                {/* Audio Parts Debug Info - Only show if debug=1 */}
+                {isDebugMode && audioParts.length > 0 && (
                   <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
                     <h5 className="text-sm font-semibold text-gray-300 mb-2">Audio Parts (Debug)</h5>
                     <p className="text-sm text-gray-400 mb-2">
@@ -1763,8 +1836,8 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Video Generation Debug Info */}
-                {videoTasks.length > 0 && (
+                {/* Video Generation Debug Info - Only show if debug=1 */}
+                {isDebugMode && videoTasks.length > 0 && (
                   <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
                     <h5 className="text-sm font-semibold text-gray-300 mb-2">Video Generation (Debug)</h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1825,6 +1898,8 @@ export default function Home() {
                     </div>
                   </div>
                 )}
+                  </>
+                )}
 
                 {/* Final Video Display */}
                 {finalVideoUrl && (
@@ -1864,8 +1939,8 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Video Merging Status */}
-                {isMergingVideos && (
+                {/* Video Merging Status - Only show if debug=1 */}
+                {isDebugMode && isMergingVideos && (
                   <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <LoadingSpinner className="h-5 w-5 text-music-accent" />
@@ -1879,37 +1954,39 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Summary */}
-                <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
-                  <p className="text-sm text-gray-300">
-                    <strong>Summary:</strong> {sceneTasks.filter(t => t.status === 'completed').length} of {sceneTasks.length} scenes completed
-                  </p>
-                  {audioParts.length > 0 && (
-                    <p className="text-sm text-green-400 mt-1">
-                      ✅ Audio successfully split into {audioParts.length} parts
+                {/* Summary - Only show if debug=1 */}
+                {isDebugMode && (
+                  <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
+                    <p className="text-sm text-gray-300">
+                      <strong>Summary:</strong> {sceneTasks.filter(t => t.status === 'completed').length} of {sceneTasks.length} scenes completed
                     </p>
-                  )}
-                  {videoTasks.length > 0 && (
-                    <p className="text-sm text-blue-400 mt-1">
-                      🎬 Videos: {videoTasks.filter(t => t.status === 'completed').length} of {videoTasks.length} completed
-                    </p>
-                  )}
-                  {finalVideoUrl && (
-                    <p className="text-sm text-green-400 mt-1">
-                      🎉 Final video successfully created and saved!
-                    </p>
-                  )}
-                  {sceneTasks.some(t => t.status === 'processing') && (
-                    <p className="text-sm text-blue-400 mt-1">
-                      Some scenes are still being generated. This page will update automatically.
-                    </p>
-                  )}
-                  {videoTasks.some(t => t.status === 'processing') && (
-                    <p className="text-sm text-blue-400 mt-1">
-                      Some videos are still being generated. This may take several minutes.
-                    </p>
-                  )}
-                </div>
+                    {audioParts.length > 0 && (
+                      <p className="text-sm text-green-400 mt-1">
+                        ✅ Audio successfully split into {audioParts.length} parts
+                      </p>
+                    )}
+                    {videoTasks.length > 0 && (
+                      <p className="text-sm text-blue-400 mt-1">
+                        🎬 Videos: {videoTasks.filter(t => t.status === 'completed').length} of {videoTasks.length} completed
+                      </p>
+                    )}
+                    {finalVideoUrl && (
+                      <p className="text-sm text-green-400 mt-1">
+                        🎉 Final video successfully created and saved!
+                      </p>
+                    )}
+                    {sceneTasks.some(t => t.status === 'processing') && (
+                      <p className="text-sm text-blue-400 mt-1">
+                        Some scenes are still being generated. This page will update automatically.
+                      </p>
+                    )}
+                    {videoTasks.some(t => t.status === 'processing') && (
+                      <p className="text-sm text-blue-400 mt-1">
+                        Some videos are still being generated. This may take several minutes.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
