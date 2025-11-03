@@ -27,9 +27,15 @@ import {
   playlistTracks,
   type InsertPlaylist,
   type UpdatePlaylist,
+  trackLikes,
+  trackComments,
+  type TrackLike,
+  type InsertTrackLike,
+  type TrackComment,
+  type InsertTrackComment,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, count, asc } from "drizzle-orm";
+import { eq, desc, and, sql, count, asc, inArray } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -136,6 +142,19 @@ export interface IStorage {
   // View tracking operations
   incrementAlbumViewCount(albumId: string): Promise<void>;
   incrementTrackViewCount(trackId: string): Promise<void>;
+  
+  // Likes operations
+  toggleTrackLike(trackId: string, userId: string): Promise<{ liked: boolean; likeCount: number }>;
+  getTrackLikeCount(trackId: string): Promise<number>;
+  hasUserLikedTrack(trackId: string, userId: string): Promise<boolean>;
+  
+  // Comments operations
+  createTrackComment(trackId: string, userId: string, comment: string): Promise<TrackComment>;
+  getTrackComments(trackId: string): Promise<Array<TrackComment & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl" | "username"> }>>;
+  deleteTrackComment(commentId: string, userId: string): Promise<boolean>;
+  
+  // Community feed
+  getCommunityTracks(limit?: number, offset?: number): Promise<Array<MusicGeneration & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl" | "username">; album: Album | null; likeCount: number; commentCount: number }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1275,6 +1294,221 @@ export class DatabaseStorage implements IStorage {
       .update(musicGenerations)
       .set({ viewCount: sql`${musicGenerations.viewCount} + 1` })
       .where(eq(musicGenerations.id, trackId));
+  }
+
+  // Likes operations
+  async toggleTrackLike(trackId: string, userId: string): Promise<{ liked: boolean; likeCount: number }> {
+    // Check if like already exists
+    const existingLike = await db
+      .select()
+      .from(trackLikes)
+      .where(and(eq(trackLikes.trackId, trackId), eq(trackLikes.userId, userId)))
+      .limit(1);
+
+    if (existingLike.length > 0) {
+      // Unlike - remove the like
+      await db
+        .delete(trackLikes)
+        .where(and(eq(trackLikes.trackId, trackId), eq(trackLikes.userId, userId)));
+    } else {
+      // Like - add the like
+      await db
+        .insert(trackLikes)
+        .values({
+          trackId,
+          userId,
+          createdAt: new Date(),
+        });
+    }
+
+    // Get updated like count
+    const likeCount = await this.getTrackLikeCount(trackId);
+    return { liked: existingLike.length === 0, likeCount };
+  }
+
+  async getTrackLikeCount(trackId: string): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(trackLikes)
+      .where(eq(trackLikes.trackId, trackId));
+    
+    return result[0]?.count || 0;
+  }
+
+  async hasUserLikedTrack(trackId: string, userId: string): Promise<boolean> {
+    const result = await db
+      .select()
+      .from(trackLikes)
+      .where(and(eq(trackLikes.trackId, trackId), eq(trackLikes.userId, userId)))
+      .limit(1);
+    
+    return result.length > 0;
+  }
+
+  // Comments operations
+  async createTrackComment(trackId: string, userId: string, comment: string): Promise<TrackComment> {
+    const [newComment] = await db
+      .insert(trackComments)
+      .values({
+        trackId,
+        userId,
+        comment,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    
+    return newComment;
+  }
+
+  async getTrackComments(trackId: string): Promise<Array<TrackComment & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl" | "username"> }>> {
+    const comments = await db
+      .select({
+        id: trackComments.id,
+        trackId: trackComments.trackId,
+        userId: trackComments.userId,
+        comment: trackComments.comment,
+        createdAt: trackComments.createdAt,
+        updatedAt: trackComments.updatedAt,
+        user: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          profileImageUrl: users.profileImageUrl,
+          username: users.username,
+        },
+      })
+      .from(trackComments)
+      .innerJoin(users, eq(trackComments.userId, users.id))
+      .where(eq(trackComments.trackId, trackId))
+      .orderBy(desc(trackComments.createdAt));
+
+    return comments.map(c => ({
+      id: c.id,
+      trackId: c.trackId,
+      userId: c.userId,
+      comment: c.comment,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+      user: c.user,
+    }));
+  }
+
+  async deleteTrackComment(commentId: string, userId: string): Promise<boolean> {
+    // Verify the comment belongs to the user
+    const comment = await db
+      .select()
+      .from(trackComments)
+      .where(and(eq(trackComments.id, commentId), eq(trackComments.userId, userId)))
+      .limit(1);
+
+    if (comment.length === 0) {
+      return false;
+    }
+
+    await db
+      .delete(trackComments)
+      .where(eq(trackComments.id, commentId));
+
+    return true;
+  }
+
+  // Community feed
+  async getCommunityTracks(limit: number = 50, offset: number = 0): Promise<Array<MusicGeneration & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl" | "username">; album: Album | null; likeCount: number; commentCount: number }>> {
+    // Get public tracks with user info, ordered by creation date (newest first)
+    const tracks = await db
+      .select({
+        id: musicGenerations.id,
+        userId: musicGenerations.userId,
+        albumId: musicGenerations.albumId,
+        type: musicGenerations.type,
+        tags: musicGenerations.tags,
+        lyrics: musicGenerations.lyrics,
+        duration: musicGenerations.duration,
+        inputAudioUrl: musicGenerations.inputAudioUrl,
+        audioUrl: musicGenerations.audioUrl,
+        seed: musicGenerations.seed,
+        status: musicGenerations.status,
+        visibility: musicGenerations.visibility,
+        showInGallery: musicGenerations.showInGallery,
+        title: musicGenerations.title,
+        viewCount: musicGenerations.viewCount,
+        falRequestId: musicGenerations.falRequestId,
+        kieTaskId: musicGenerations.kieTaskId,
+        imageUrl: musicGenerations.imageUrl,
+        videoUrl: musicGenerations.videoUrl,
+        createdAt: musicGenerations.createdAt,
+        updatedAt: musicGenerations.updatedAt,
+        user: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          profileImageUrl: users.profileImageUrl,
+          username: users.username,
+        },
+      })
+      .from(musicGenerations)
+      .innerJoin(users, eq(musicGenerations.userId, users.id))
+      .where(and(
+        eq(musicGenerations.visibility, "public"),
+        eq(musicGenerations.status, "completed")
+      ))
+      .orderBy(desc(musicGenerations.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Get albums for tracks
+    const albumIds = tracks.filter(t => t.albumId).map(t => t.albumId!);
+    const albumsMap = new Map<string, Album>();
+    if (albumIds.length > 0) {
+      const albumsData = await db
+        .select()
+        .from(albums)
+        .where(inArray(albums.id, albumIds));
+      
+      albumsData.forEach(album => albumsMap.set(album.id, album));
+    }
+
+    // Get like counts and comment counts for all tracks
+    const trackIds = tracks.map(t => t.id);
+    const likeCountsMap = new Map<string, number>();
+    const commentCountsMap = new Map<string, number>();
+
+    if (trackIds.length > 0) {
+      // Get like counts
+      const likeCounts = await db
+        .select({
+          trackId: trackLikes.trackId,
+          count: count(),
+        })
+        .from(trackLikes)
+        .where(inArray(trackLikes.trackId, trackIds))
+        .groupBy(trackLikes.trackId);
+
+      likeCounts.forEach(lc => likeCountsMap.set(lc.trackId, Number(lc.count)));
+
+      // Get comment counts
+      const commentCounts = await db
+        .select({
+          trackId: trackComments.trackId,
+          count: count(),
+        })
+        .from(trackComments)
+        .where(inArray(trackComments.trackId, trackIds))
+        .groupBy(trackComments.trackId);
+
+      commentCounts.forEach(cc => commentCountsMap.set(cc.trackId, Number(cc.count)));
+    }
+
+    // Combine results
+    return tracks.map(track => ({
+      ...track,
+      album: track.albumId ? albumsMap.get(track.albumId) || null : null,
+      likeCount: likeCountsMap.get(track.id) || 0,
+      commentCount: commentCountsMap.get(track.id) || 0,
+    }));
   }
 }
 

@@ -404,3 +404,41 @@ export type InsertBandForm = z.infer<typeof insertBandSchema>;
 export type UpdateBandForm = z.infer<typeof updateBandSchema>;
 export type InsertBandMemberForm = z.infer<typeof insertBandMemberSchema>;
 export type UpdateBandMemberForm = z.infer<typeof updateBandMemberSchema>;
+
+// Track likes table
+export const trackLikes = pgTable("track_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  trackId: varchar("track_id").notNull().references(() => musicGenerations.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_track_likes_track_id").on(table.trackId),
+  index("idx_track_likes_user_id").on(table.userId),
+  index("idx_track_likes_unique").on(table.trackId, table.userId),
+]);
+
+// Track comments table
+export const trackComments = pgTable("track_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  trackId: varchar("track_id").notNull().references(() => musicGenerations.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  comment: text("comment").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_track_comments_track_id").on(table.trackId),
+  index("idx_track_comments_user_id").on(table.userId),
+  index("idx_track_comments_created_at").on(table.createdAt),
+]);
+
+export type TrackLike = typeof trackLikes.$inferSelect;
+export type InsertTrackLike = typeof trackLikes.$inferInsert;
+export type TrackComment = typeof trackComments.$inferSelect;
+export type InsertTrackComment = typeof trackComments.$inferInsert;
+
+export const insertTrackCommentSchema = z.object({
+  comment: z.string().min(1, "Comment cannot be empty").max(1000, "Comment must be less than 1000 characters"),
+  trackId: z.string().min(1, "Track ID is required"),
+});
+
+export type InsertTrackCommentForm = z.infer<typeof insertTrackCommentSchema>;

@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import MyLibrary from "@/pages/my-library";
+import Community from "@/pages/community";
 import Profile from "@/pages/profile";
 import Pricing from "@/pages/pricing";
 import Privacy from "@/pages/privacy";
@@ -73,6 +74,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/library" component={MyLibrary} />
+          <Route path="/community" component={Community} />
           <Route path="/playlists" component={PlaylistsPage} />
           <Route path="/my-band" component={MyBand} />
           <Route path="/profile" component={Profile} />

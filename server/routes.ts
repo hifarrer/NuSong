@@ -25,6 +25,7 @@ import {
   updateBandSchema,
   insertBandMemberSchema,
   updateBandMemberSchema,
+  insertTrackCommentSchema,
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { LocalStorageService } from "./localStorage";
@@ -3334,6 +3335,181 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error removing track from playlist:', error);
       res.status(500).json({ message: 'Failed to remove track from playlist' });
+    }
+  });
+
+  // Community feed routes
+  app.get('/api/community/tracks', async (req: any, res) => {
+    try {
+      const limit = parseInt(req.query.limit || '50');
+      const offset = parseInt(req.query.offset || '0');
+      const tracks = await storage.getCommunityTracks(limit, offset);
+      
+      // Get user's like status if authenticated
+      const userId = req.isAuthenticated() ? (req.user as any).id : null;
+      const tracksWithUserLikes = await Promise.all(
+        tracks.map(async (track) => {
+          const userLiked = userId ? await storage.hasUserLikedTrack(track.id, userId) : false;
+          return { ...track, userLiked };
+        })
+      );
+      
+      res.json(tracksWithUserLikes);
+    } catch (error) {
+      console.error('Error fetching community tracks:', error);
+      res.status(500).json({ message: 'Failed to fetch community tracks' });
+    }
+  });
+
+  // Track likes routes
+  app.post('/api/tracks/:id/like', requireAuth, async (req: any, res) => {
+    try {
+      const { id: trackId } = req.params;
+      const userId = req.user.id;
+      
+      const result = await storage.toggleTrackLike(trackId, userId);
+      res.json(result);
+    } catch (error) {
+      console.error('Error toggling track like:', error);
+      res.status(500).json({ message: 'Failed to toggle like' });
+    }
+  });
+
+  app.get('/api/tracks/:id/likes', async (req: any, res) => {
+    try {
+      const { id: trackId } = req.params;
+      const likeCount = await storage.getTrackLikeCount(trackId);
+      const userId = req.isAuthenticated() ? (req.user as any).id : null;
+      const userLiked = userId ? await storage.hasUserLikedTrack(trackId, userId) : false;
+      
+      res.json({ likeCount, userLiked });
+    } catch (error) {
+      console.error('Error fetching track likes:', error);
+      res.status(500).json({ message: 'Failed to fetch likes' });
+    }
+  });
+
+  // Track comments routes
+  app.post('/api/tracks/:id/comments', requireAuth, async (req: any, res) => {
+    try {
+      const { id: trackId } = req.params;
+      const userId = req.user.id;
+      const validation = insertTrackCommentSchema.parse({ ...req.body, trackId });
+      
+      const comment = await storage.createTrackComment(trackId, userId, validation.comment);
+      
+      // Get user info for the comment
+      const user = await storage.getUser(userId);
+      const commentWithUser = {
+        ...comment,
+        user: user ? {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          profileImageUrl: user.profileImageUrl,
+          username: user.username,
+        } : null,
+      };
+      
+      res.json(commentWithUser);
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to create comment' });
+    }
+  });
+
+  app.get('/api/tracks/:id/comments', async (req: any, res) => {
+    try {
+      const { id: trackId } = req.params;
+      const comments = await storage.getTrackComments(trackId);
+      res.json(comments);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      res.status(500).json({ message: 'Failed to fetch comments' });
+    }
+  });
+
+  app.delete('/api/tracks/:trackId/comments/:commentId', requireAuth, async (req: any, res) => {
+    try {
+      const { commentId } = req.params;
+      const userId = req.user.id;
+      
+      const deleted = await storage.deleteTrackComment(commentId, userId);
+      if (!deleted) {
+        return res.status(404).json({ message: 'Comment not found or access denied' });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      res.status(500).json({ message: 'Failed to delete comment' });
+    }
+  });
+
+  // Get track with album and band info for community feed
+  app.get('/api/tracks/:id/community-info', async (req: any, res) => {
+    try {
+      const { id: trackId } = req.params;
+      const track = await storage.getMusicGeneration(trackId);
+      
+      if (!track || track.visibility !== 'public' || track.status !== 'completed') {
+        return res.status(404).json({ message: 'Track not found or not available' });
+      }
+      
+      // Get album info
+      const album = track.albumId ? await storage.getAlbumById(track.albumId) : null;
+      
+      // Get user info
+      const user = await storage.getUser(track.userId);
+      
+      // Get band info
+      let band = null;
+      let bandMembers = [];
+      if (user) {
+        const bandResult = await pool.query(
+          'SELECT id, name, description, band_image_url AS "bandImageUrl" FROM bands WHERE user_id = $1',
+          [user.id]
+        );
+        if (bandResult.rows.length > 0) {
+          band = bandResult.rows[0];
+          const membersResult = await pool.query(
+            'SELECT id, name, role, image_url AS "imageUrl", description, position FROM band_members WHERE band_id = $1 ORDER BY position',
+            [band.id]
+          );
+          bandMembers = membersResult.rows;
+        }
+      }
+      
+      // Get like and comment counts
+      const likeCount = await storage.getTrackLikeCount(trackId);
+      const comments = await storage.getTrackComments(trackId);
+      const userId = req.isAuthenticated() ? (req.user as any).id : null;
+      const userLiked = userId ? await storage.hasUserLikedTrack(trackId, userId) : false;
+      
+      res.json({
+        track,
+        user: user ? {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          profileImageUrl: user.profileImageUrl,
+          username: user.username,
+        } : null,
+        album,
+        band,
+        bandMembers,
+        likeCount,
+        commentCount: comments.length,
+        userLiked,
+      });
+    } catch (error) {
+      console.error('Error fetching track community info:', error);
+      res.status(500).json({ message: 'Failed to fetch track info' });
     }
   });
 

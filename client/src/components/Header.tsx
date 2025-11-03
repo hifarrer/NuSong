@@ -44,6 +44,16 @@ export function Header({ currentPage }: HeaderProps) {
                   Library
                 </a>
                 <a 
+                  href="/community" 
+                  className={`transition-colors ${
+                    currentPage === 'community' 
+                      ? 'text-music-blue font-medium' 
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  Community
+                </a>
+                <a 
                   href="/playlists" 
                   className={`transition-colors ${
                     currentPage === 'playlists' 
