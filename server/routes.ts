@@ -1338,12 +1338,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Only allow access to public tracks or if user owns the track
       if (track.visibility === "private") {
-        if (!req.isAuthenticated()) {
+        const userId = req.session?.userId || req.user?.id;
+        if (!userId) {
           return res.status(401).json({ message: "Authentication required" });
         }
         
         const user = req.user as any;
-        if (track.userId !== user.id) {
+        if (track.userId !== user?.id) {
           return res.status(403).json({ message: "Access denied" });
         }
       }
@@ -3346,7 +3347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tracks = await storage.getCommunityTracks(limit, offset);
       
       // Get user's like status if authenticated
-      const userId = req.isAuthenticated() ? (req.user as any).id : null;
+      const userId = req.session?.userId || req.user?.id || null;
       const tracksWithUserLikes = await Promise.all(
         tracks.map(async (track) => {
           const userLiked = userId ? await storage.hasUserLikedTrack(track.id, userId) : false;
@@ -3379,7 +3380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id: trackId } = req.params;
       const likeCount = await storage.getTrackLikeCount(trackId);
-      const userId = req.isAuthenticated() ? (req.user as any).id : null;
+      const userId = req.session?.userId || req.user?.id || null;
       const userLiked = userId ? await storage.hasUserLikedTrack(trackId, userId) : false;
       
       res.json({ likeCount, userLiked });
@@ -3487,7 +3488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get like and comment counts
       const likeCount = await storage.getTrackLikeCount(trackId);
       const comments = await storage.getTrackComments(trackId);
-      const userId = req.isAuthenticated() ? (req.user as any).id : null;
+      const userId = req.session?.userId || req.user?.id || null;
       const userLiked = userId ? await storage.hasUserLikedTrack(trackId, userId) : false;
       
       res.json({
