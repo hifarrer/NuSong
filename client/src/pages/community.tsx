@@ -18,7 +18,9 @@ import {
   Music,
   User,
   Disc,
-  Users as UsersIcon
+  Users as UsersIcon,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -84,6 +86,7 @@ export default function Community() {
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [trackInfos, setTrackInfos] = useState<Map<string, TrackCommunityInfo>>(new Map());
+  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
@@ -174,6 +177,8 @@ export default function Community() {
     
     const video = videoRefs.current.get(currentTrack.id);
     if (video && currentTrack.videoUrl) {
+      // Set muted state on video element
+      video.muted = isMuted;
       video.play().catch(() => {
         // Autoplay failed, user interaction required
       });
@@ -185,7 +190,14 @@ export default function Community() {
         v.pause();
       }
     });
-  }, [currentIndex, currentTrack]);
+  }, [currentIndex, currentTrack, isMuted]);
+
+  // Update muted state on all videos when isMuted changes
+  useEffect(() => {
+    videoRefs.current.forEach((video) => {
+      video.muted = isMuted;
+    });
+  }, [isMuted]);
 
   // Like mutation
   const likeMutation = useMutation({
@@ -350,13 +362,17 @@ export default function Community() {
                   {hasVideo ? (
                     <video
                       ref={(el) => {
-                        if (el) videoRefs.current.set(track.id, el);
-                        else videoRefs.current.delete(track.id);
+                        if (el) {
+                          videoRefs.current.set(track.id, el);
+                          el.muted = isMuted;
+                        } else {
+                          videoRefs.current.delete(track.id);
+                        }
                       }}
                       src={track.videoUrl!}
                       className="w-full h-full object-cover"
                       loop
-                      muted
+                      muted={isMuted}
                       playsInline
                     />
                   ) : (
@@ -462,6 +478,36 @@ export default function Community() {
                         )}
                       </Avatar>
                     </div>
+
+                    {/* Mute/Unmute button (only for videos) */}
+                    {hasVideo && (
+                      <button
+                        onClick={() => {
+                          const newMutedState = !isMuted;
+                          setIsMuted(newMutedState);
+                          const video = videoRefs.current.get(track.id);
+                          if (video) {
+                            video.muted = newMutedState;
+                            // Try to play with sound if unmuting
+                            if (!newMutedState) {
+                              video.play().catch(() => {
+                                // Autoplay with sound may fail, user will need to interact
+                                console.log('Autoplay with sound blocked, user interaction required');
+                              });
+                            }
+                          }
+                        }}
+                        className="flex flex-col items-center gap-1"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-gray-800/50 hover:bg-gray-700/50 flex items-center justify-center">
+                          {isMuted ? (
+                            <VolumeX className="w-6 h-6 text-white" />
+                          ) : (
+                            <Volume2 className="w-6 h-6 text-white" />
+                          )}
+                        </div>
+                      </button>
+                    )}
 
                     {/* Like button */}
                     <button
