@@ -129,7 +129,7 @@ export default function Home() {
   const { data: bandData } = useQuery({
     queryKey: ["/api/band"],
     retry: false,
-  }) as { data: { band: { id: string; name: string } | null; members: Array<{ id: string; imageUrl: string | null }> } | undefined };
+  }) as { data: { band: { id: string; name: string } | null; members: Array<{ id: string; name?: string; role?: string; imageUrl: string | null }> } | undefined };
 
   // Create album mutation
   const createAlbumMutation = useMutation({
@@ -1691,130 +1691,171 @@ export default function Home() {
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-            {/* Video Length Selector */}
-            <div className="bg-music-secondary rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-gray-300 mb-2">Video Length</h4>
-              <div className="flex items-center gap-4 text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="video-length"
-                    value={30}
-                    checked={videoDurationSec === 30}
-                    onChange={() => setVideoDurationSec(30)}
-                  />
-                  <span>30 seconds (default)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="video-length"
-                    value={60}
-                    checked={videoDurationSec === 60}
-                    onChange={() => setVideoDurationSec(60)}
-                  />
-                  <span>60 seconds</span>
-                </label>
-              </div>
-            </div>
-            {/* Track Preview */}
-            {selectedTrackForVideo && (
-              <div className="bg-music-secondary rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-300 mb-2">Track Preview</h4>
-                <AudioPlayer 
-                  src={selectedTrackForVideo.audioUrl!}
-                  className="w-full"
-                />
-                <div className="flex items-center space-x-4 text-xs text-gray-400 mt-2">
-                  <span className="text-white font-medium">
-                    {selectedTrackForVideo.title || selectedTrackForVideo.tags || "Untitled Track"}
-                  </span>
-                  {selectedTrackForVideo.title && (
-                    <span className="flex items-center">
-                      <Tags className="w-3 h-3 mr-1" />
-                      {selectedTrackForVideo.tags}
-                    </span>
-                  )}
-                  <span className="flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {selectedTrackForVideo.duration ? `${selectedTrackForVideo.duration}s` : "N/A"}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Band Requirement Warning */}
-            {!hasValidBand && (
-              <div className="bg-yellow-900/20 border border-yellow-600/50 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-yellow-400 mb-1">Band Required</h4>
-                    <p className="text-sm text-yellow-300/90 mb-3">
-                      You need to create a band with at least one member before you can generate music videos. Your band members will be used as characters in the video scenes.
-                    </p>
-                    <Button
-                      onClick={() => {
-                        setShowVideoModal(false);
-                        window.location.href = '/my-band';
-                      }}
-                      className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white text-sm"
-                    >
-                      <Users className="mr-2 h-4 w-4" />
-                      Go to My Band
-                    </Button>
+            {/* Only show creation form when not viewing an existing video */}
+            {!showSceneResults && !finalVideoUrl && !(selectedTrackForVideo as any)?.videoUrl && (
+              <>
+                {/* Video Length Selector */}
+                <div className="bg-music-secondary rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-300 mb-2">Video Length</h4>
+                  <div className="flex items-center gap-4 text-sm">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="video-length"
+                        value={30}
+                        checked={videoDurationSec === 30}
+                        onChange={() => setVideoDurationSec(30)}
+                      />
+                      <span>30 seconds (default)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="video-length"
+                        value={60}
+                        checked={videoDurationSec === 60}
+                        onChange={() => setVideoDurationSec(60)}
+                      />
+                      <span>60 seconds</span>
+                    </label>
                   </div>
                 </div>
-              </div>
-            )}
+                {/* Track Preview */}
+                {selectedTrackForVideo && (
+                  <div className="bg-music-secondary rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-gray-300 mb-2">Track Preview</h4>
+                    <AudioPlayer 
+                      src={selectedTrackForVideo.audioUrl!}
+                      className="w-full"
+                    />
+                    <div className="flex items-center space-x-4 text-xs text-gray-400 mt-2">
+                      <span className="text-white font-medium">
+                        {selectedTrackForVideo.title || selectedTrackForVideo.tags || "Untitled Track"}
+                      </span>
+                      {selectedTrackForVideo.title && (
+                        <span className="flex items-center">
+                          <Tags className="w-3 h-3 mr-1" />
+                          {selectedTrackForVideo.tags}
+                        </span>
+                      )}
+                      <span className="flex items-center">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {selectedTrackForVideo.duration ? `${selectedTrackForVideo.duration}s` : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
-            {/* Video Description */}
-            <div>
-              <Label className="text-sm font-semibold text-gray-300 mb-3 block">
-                <Film className="inline mr-2 h-4 w-4 text-music-accent" />
-                Describe Your Video Vision
-              </Label>
-              <Textarea
-                value={videoPrompt}
-                onChange={(e) => setVideoPrompt(e.target.value)}
-                placeholder="Describe the style, mood, and scenes you want for your music video. For example: 'A cinematic music video with a character driving through a neon-lit city at night, with close-up shots of the singer performing in a futuristic studio.'"
-                rows={4}
-                className="bg-music-secondary border-gray-600 text-white placeholder-gray-400 focus:border-music-blue resize-none"
-                data-testid="textarea-video-prompt"
-                disabled={!hasValidBand}
-              />
-              <p className="text-xs text-gray-400 mt-2">
-                Be specific about the visual style, setting, and mood. We'll generate 6 scene prompts based on your description.
-              </p>
-            </div>
+                {/* Band Members Preview */}
+                {hasValidBand && bandData?.members && (() => {
+                  const membersWithImages = bandData.members.filter((m) => m.imageUrl);
+                  return membersWithImages.length > 0 ? (
+                    <div className="bg-music-secondary rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-gray-300 mb-3 flex items-center">
+                        <Users className="mr-2 h-4 w-4 text-music-blue" />
+                        Band Members in Video
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                        {membersWithImages.map((member) => (
+                          <div 
+                            key={member.id} 
+                            className="flex flex-col items-center bg-music-dark rounded-lg p-3 border border-gray-600"
+                          >
+                            <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-700 mb-2">
+                              {member.imageUrl && (
+                                <img 
+                                  src={member.imageUrl} 
+                                  alt={member.name || 'Band member'} 
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <div className="text-xs text-center">
+                              <p className="text-white font-medium">{member.name || 'Member'}</p>
+                              {member.role && (
+                                <p className="text-gray-400 text-[10px] mt-0.5">{member.role}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-400 bg-music-dark/50 rounded p-2 border border-gray-700/50">
+                        <strong className="text-gray-300">Note:</strong> Your band members will automatically appear in the video scenes. Focus your description on the video setting, story, and visual style—no need to describe the band members themselves.
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Band Requirement Warning */}
+                {!hasValidBand && (
+                  <div className="bg-yellow-900/20 border border-yellow-600/50 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-yellow-400 mb-1">Band Required</h4>
+                        <p className="text-sm text-yellow-300/90 mb-3">
+                          You need to create a band with at least one member before you can generate music videos. Your band members will be used as characters in the video scenes.
+                        </p>
+                        <Button
+                          onClick={() => {
+                            setShowVideoModal(false);
+                            window.location.href = '/my-band';
+                          }}
+                          className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white text-sm"
+                        >
+                          <Users className="mr-2 h-4 w-4" />
+                          Go to My Band
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Video Description */}
+                <div>
+                  <Label className="text-sm font-semibold text-gray-300 mb-3 block">
+                    <Film className="inline mr-2 h-4 w-4 text-music-accent" />
+                    Describe Your Video Vision
+                  </Label>
+                  <Textarea
+                    value={videoPrompt}
+                    onChange={(e) => setVideoPrompt(e.target.value)}
+                    placeholder="Describe the setting, story, visual style, and mood of your music video. For example: 'A cinematic music video set in a neon-lit city at night, following a character driving through empty streets with dramatic lighting and close-up shots of urban details.'"
+                    rows={4}
+                    className="bg-music-secondary border-gray-600 text-white placeholder-gray-400 focus:border-music-blue resize-none"
+                    data-testid="textarea-video-prompt"
+                    disabled={!hasValidBand}
+                  />
+                  <p className="text-xs text-gray-400 mt-2">
+                    Focus on the video setting, story, visual style, and mood. Your band members will automatically appear in the scenes—no need to describe them. We'll generate 6 scene prompts based on your description.
+                  </p>
+                </div>
 
 
 
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowVideoModal(false);
-                  setShowSceneResults(false);
-                  setGeneratedScenes([]);
-                  setSceneTasks([]);
-                  setAudioParts([]);
-                  setTrimmedAudioUrl(null);
-                  setVideoTasks([]);
-                  setFinalVideoUrl(null);
-                }}
-                className="border-gray-600 text-gray-300 hover:text-white"
-                disabled={isGeneratingVideo}
-              >
-                {showSceneResults ? "Close" : "Cancel"}
-              </Button>
-              {!showSceneResults && (
-                <>
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowVideoModal(false);
+                      setShowSceneResults(false);
+                      setGeneratedScenes([]);
+                      setSceneTasks([]);
+                      setAudioParts([]);
+                      setTrimmedAudioUrl(null);
+                      setVideoTasks([]);
+                      setFinalVideoUrl(null);
+                    }}
+                    className="border-gray-600 text-gray-300 hover:text-white"
+                    disabled={isGeneratingVideo}
+                  >
+                    Cancel
+                  </Button>
                   <Button
                     onClick={handleGenerateVideo}
                     disabled={!videoPrompt.trim() || isGeneratingVideo || !hasValidBand || !canGenerateVideo}
@@ -1839,12 +1880,29 @@ export default function Home() {
                       <a href="/pricing" className="underline font-semibold">Upgrade your plan</a> to continue.
                     </p>
                   )}
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
 
-            {/* Progress Bar */}
-            {showSceneResults && (
+            {/* Close button for viewing existing video */}
+            {(showSceneResults || finalVideoUrl || (selectedTrackForVideo as any)?.videoUrl) && !sceneTasks.length && !videoTasks.length && (
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowVideoModal(false);
+                    setShowSceneResults(false);
+                    setFinalVideoUrl(null);
+                  }}
+                  className="border-gray-600 text-gray-300 hover:text-white"
+                >
+                  Close
+                </Button>
+              </div>
+            )}
+
+            {/* Progress Bar - Only show when actively generating a video */}
+            {showSceneResults && (sceneTasks.length > 0 || videoTasks.length > 0 || isGeneratingVideo || isMergingVideos) && (
               <div className="mt-6 pt-6 border-t border-gray-600">
                 {/* Calculate progress */}
                 {(() => {
@@ -2077,46 +2135,6 @@ export default function Home() {
                   </>
                 )}
 
-                {/* Final Video Display */}
-                {(finalVideoUrl || (selectedTrackForVideo as any)?.videoUrl) && (
-                  <div className="mt-4 p-4 bg-gradient-to-r from-music-purple/20 to-music-blue/20 rounded-lg border border-music-purple/30">
-                    <h5 className="text-lg font-semibold text-white mb-3 flex items-center">
-                      🎉 Final Music Video
-                    </h5>
-                    <div className="bg-music-dark rounded-lg p-4">
-                      <div className="w-full max-w-md mx-auto">
-                        <video
-                          src={finalVideoUrl || (selectedTrackForVideo as any)?.videoUrl}
-                          controls
-                          className="w-full aspect-[3/4] object-cover rounded border border-gray-600"
-                          preload="metadata"
-                          poster={selectedTrackForVideo?.imageUrl || selectedTrackForVideo?.coverUrl}
-                        />
-                      </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-300">
-                            <strong>Track:</strong> {selectedTrackForVideo?.title || selectedTrackForVideo?.tags || 'Untitled'}
-                          </p>
-                          {videoPrompt && (
-                            <p className="text-sm text-gray-400">
-                              <strong>Description:</strong> {videoPrompt}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-green-400">
-                            ✅ Video {finalVideoUrl ? 'creation complete' : 'available'}!
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {finalVideoUrl ? 'All 6 scenes merged with original audio' : 'Your generated music video'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Video Merging Status - Only show if debug=1 */}
                 {isDebugMode && isMergingVideos && (
                   <div className="mt-4 p-3 bg-music-secondary/50 rounded-lg">
@@ -2165,6 +2183,46 @@ export default function Home() {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Final Video Display - Show when viewing an existing video or after generation */}
+            {(finalVideoUrl || (selectedTrackForVideo as any)?.videoUrl) && (
+              <div className="mt-4 p-4 bg-gradient-to-r from-music-purple/20 to-music-blue/20 rounded-lg border border-music-purple/30">
+                <h5 className="text-lg font-semibold text-white mb-3 flex items-center">
+                  🎉 Final Music Video
+                </h5>
+                <div className="bg-music-dark rounded-lg p-4">
+                  <div className="w-full max-w-md mx-auto">
+                    <video
+                      src={finalVideoUrl || (selectedTrackForVideo as any)?.videoUrl}
+                      controls
+                      className="w-full aspect-[3/4] object-cover rounded border border-gray-600"
+                      preload="metadata"
+                      poster={selectedTrackForVideo?.imageUrl || selectedTrackForVideo?.coverUrl}
+                    />
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">
+                        <strong>Track:</strong> {selectedTrackForVideo?.title || selectedTrackForVideo?.tags || 'Untitled'}
+                      </p>
+                      {videoPrompt && (
+                        <p className="text-sm text-gray-400">
+                          <strong>Description:</strong> {videoPrompt}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-green-400">
+                        ✅ Video {finalVideoUrl ? 'creation complete' : 'available'}!
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {finalVideoUrl ? 'All 6 scenes merged with original audio' : 'Your generated music video'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
