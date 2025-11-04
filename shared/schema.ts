@@ -102,6 +102,10 @@ export const musicGenerations = pgTable("music_generations", {
   kieTaskId: varchar("kie_task_id"), // KIE.ai task ID
   imageUrl: varchar("image_url"), // Track cover image from KIE.ai
   videoUrl: varchar("video_url"), // Music video URL
+  // MUX fields for video streaming
+  muxAssetId: varchar("mux_asset_id"), // MUX asset ID
+  muxPlaybackId: varchar("mux_playback_id"), // Playback ID for streaming
+  muxAssetStatus: varchar("mux_asset_status"), // Status: preparing/ready/errored
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

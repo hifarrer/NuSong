@@ -45,6 +45,7 @@ import { trimAudio, splitAudio, downloadAndSaveAudioParts, mergeVideos, download
 import { wavespeedService } from "./wavespeedService";
 import { ObjectNotFoundError } from "./objectStorage";
 import { createSlug } from "./urlUtils";
+import { createMuxAssetForVideo } from "./services/muxJobs.js";
 import { 
   createCheckoutSession, 
   createCustomerPortalSession, 
@@ -770,6 +771,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lyrics: track.lyrics,
           audioUrl: track.audioUrl,
           imageUrl: track.imageUrl,
+          videoUrl: track.videoUrl,
+          muxPlaybackId: track.muxPlaybackId,
+          muxAssetStatus: track.muxAssetStatus,
           duration: track.duration,
           type: track.type,
           viewCount: track.viewCount + 1, // Show incremented count
@@ -2379,6 +2383,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.incrementVideoGenerationCount(userId);
 
       console.log(`✅ Video URL saved to database: ${finalVideoUrl}`);
+
+      // Queue for MUX processing (non-blocking)
+      try {
+        await createMuxAssetForVideo(trackId, finalVideoUrl);
+        console.log(`📋 MUX processing queued for track ${trackId}`);
+      } catch (error) {
+        console.error('⚠️  Failed to queue MUX processing:', error);
+        // Don't fail the request if MUX fails - video still works via direct URL
+      }
 
       res.json({
         trackId,

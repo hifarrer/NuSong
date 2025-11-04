@@ -49,6 +49,7 @@ import {
   Film
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
+import { MuxVideoPlayer } from "../components/MuxVideoPlayer";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -2194,11 +2195,11 @@ export default function Home() {
                 </h5>
                 <div className="bg-music-dark rounded-lg p-4">
                   <div className="w-full max-w-md mx-auto">
-                    <video
-                      src={finalVideoUrl || (selectedTrackForVideo as any)?.videoUrl}
-                      controls
+                    <MuxVideoPlayer
+                      playbackId={(selectedTrackForVideo as any)?.muxPlaybackId}
+                      fallbackUrl={finalVideoUrl || (selectedTrackForVideo as any)?.videoUrl}
                       className="w-full aspect-[3/4] object-cover rounded border border-gray-600"
-                      preload="metadata"
+                      controls={true}
                       poster={selectedTrackForVideo?.imageUrl || selectedTrackForVideo?.coverUrl}
                     />
                   </div>

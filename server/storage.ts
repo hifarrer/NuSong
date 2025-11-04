@@ -1438,6 +1438,9 @@ export class DatabaseStorage implements IStorage {
         kieTaskId: musicGenerations.kieTaskId,
         imageUrl: musicGenerations.imageUrl,
         videoUrl: musicGenerations.videoUrl,
+        muxAssetId: musicGenerations.muxAssetId,
+        muxPlaybackId: musicGenerations.muxPlaybackId,
+        muxAssetStatus: musicGenerations.muxAssetStatus,
         createdAt: musicGenerations.createdAt,
         updatedAt: musicGenerations.updatedAt,
         user: {

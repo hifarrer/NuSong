@@ -32,6 +32,7 @@ import {
   ListMusic
 } from "lucide-react";
 import type { MusicGeneration } from "@shared/schema";
+import { MuxVideoPlayer } from "../components/MuxVideoPlayer";
 
 export default function MyLibrary() {
   const { user, isAuthenticated } = useAuth();
@@ -967,11 +968,11 @@ function TrackCard({
         <div className="flex-shrink-0">
           {(track as any).videoUrl ? (
             <div className="w-64 aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden border border-gray-600">
-              <video
-                src={(track as any).videoUrl}
+              <MuxVideoPlayer
+                playbackId={(track as any).muxPlaybackId}
+                fallbackUrl={(track as any).videoUrl}
                 className="w-full h-full object-cover"
-                controls
-                preload="metadata"
+                controls={true}
                 poster={track.imageUrl}
               />
             </div>

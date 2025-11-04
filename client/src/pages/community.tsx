@@ -23,6 +23,7 @@ import {
   VolumeX
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { MuxVideoPlayer } from "../components/MuxVideoPlayer";
 
 interface CommunityTrack {
   id: string;
@@ -30,6 +31,7 @@ interface CommunityTrack {
   tags: string;
   audioUrl: string | null;
   videoUrl: string | null;
+  muxPlaybackId?: string | null; // MUX playback ID
   imageUrl: string | null;
   createdAt: string;
   user: {
@@ -360,7 +362,7 @@ export default function Community() {
                 {/* Main content area */}
                 <div className="flex-1 relative bg-black">
                   {hasVideo ? (
-                    <video
+                    <MuxVideoPlayer
                       ref={(el) => {
                         if (el) {
                           videoRefs.current.set(track.id, el);
@@ -369,11 +371,13 @@ export default function Community() {
                           videoRefs.current.delete(track.id);
                         }
                       }}
-                      src={track.videoUrl!}
+                      playbackId={track.muxPlaybackId}
+                      fallbackUrl={track.videoUrl!}
                       className="w-full h-full object-cover"
-                      loop
+                      controls={false}
+                      loop={true}
                       muted={isMuted}
-                      playsInline
+                      autoPlay={isActive}
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-black p-8">

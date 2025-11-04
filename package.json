@@ -17,6 +17,9 @@
     "db:migrate-google-oauth": "tsx scripts/migrate-google-oauth.js",
     "db:migrate-albums": "tsx scripts/migrate-albums.js",
     "db:migrate": "node scripts/run-migrations.js",
+    "db:add-mux-columns": "node scripts/add-mux-columns.js",
+    "db:add-mux-columns-sql": "node scripts/run-mux-migration-sql.js",
+    "mux:process-existing": "node scripts/process-existing-videos-to-mux.js",
     "test:gcs": "tsx test-gcs.js"
   },
   "dependencies": {
@@ -25,6 +28,8 @@
     "@google-cloud/storage": "^7.17.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
+    "@mux/mux-node": "^12.8.0",
+    "@mux/mux-player-react": "^3.8.0",
     "@neondatabase/serverless": "^0.10.4",
     "@radix-ui/react-accordion": "^1.2.4",
     "@radix-ui/react-alert-dialog": "^1.1.7",
