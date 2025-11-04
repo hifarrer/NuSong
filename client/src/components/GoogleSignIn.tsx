@@ -30,10 +30,6 @@ export function GoogleSignIn({ onSuccess, disabled = false, className = '' }: Go
     },
     onSuccess: (result) => {
       queryClient.setQueryData(['/api/auth/user'], result.user);
-      toast({
-        title: result.isNewUser ? 'Welcome to NuSong!' : 'Welcome back!',
-        description: result.message,
-      });
       if (onSuccess) {
         onSuccess();
       } else {

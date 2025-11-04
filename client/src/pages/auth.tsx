@@ -92,10 +92,6 @@ export default function Auth() {
     },
     onSuccess: (user) => {
       queryClient.setQueryData(["/api/auth/user"], user);
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
-      });
       setLocation("/");
     },
     onError: (error: any) => {

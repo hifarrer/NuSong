@@ -130,7 +130,7 @@ export default function Community() {
     retry: false,
   });
 
-  // Handle scroll/wheel for navigation
+  // Handle scroll/wheel for navigation (desktop)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -153,6 +153,59 @@ export default function Community() {
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
+  }, [currentIndex, tracks.length]);
+
+  // Handle touch/swipe for navigation (mobile)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let isSwiping = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+      isSwiping = false;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      touchEndY = e.touches[0].clientY;
+      const deltaY = touchStartY - touchEndY;
+      
+      // Only prevent default if we're actually swiping (threshold: 10px)
+      if (Math.abs(deltaY) > 10) {
+        isSwiping = true;
+        e.preventDefault();
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!isSwiping) return;
+      
+      const deltaY = touchStartY - touchEndY;
+      const minSwipeDistance = 50; // Minimum distance for a swipe
+
+      if (Math.abs(deltaY) > minSwipeDistance) {
+        if (deltaY > 0 && currentIndex < tracks.length - 1) {
+          // Swiped up - go to next
+          setCurrentIndex(prev => prev + 1);
+        } else if (deltaY < 0 && currentIndex > 0) {
+          // Swiped down - go to previous
+          setCurrentIndex(prev => prev - 1);
+        }
+      }
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
   }, [currentIndex, tracks.length]);
 
   // Handle keyboard navigation
