@@ -55,7 +55,7 @@ export function Header({ currentPage }: HeaderProps) {
                 </SheetHeader>
                 
                 <div className="mt-8">
-                  <Accordion type="single" collapsible className="w-full">
+                  <Accordion type="single" collapsible className="w-full" defaultValue="navigation">
                     <AccordionItem value="navigation" className="border-gray-700">
                       <AccordionTrigger className="text-white hover:no-underline">
                         Navigation
