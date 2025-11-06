@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, UserCheck, UserX, Mail, MailCheck, Calendar, Music, CreditCard, Crown } from "lucide-react";
+import { Edit, Trash2, UserCheck, UserX, Mail, MailCheck, Calendar, Music, CreditCard, Crown, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
@@ -66,16 +66,36 @@ export default function AdminUserManagement() {
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("free");
   const [planStatus, setPlanStatus] = useState<string>("active");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [emailFilter, setEmailFilter] = useState("");
+  const [subscriptionFilter, setSubscriptionFilter] = useState<string>("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["/api/admin/regular-users"],
+  const { data: usersData, isLoading } = useQuery({
+    queryKey: ["/api/admin/regular-users", currentPage, emailFilter, subscriptionFilter],
     queryFn: async () => {
-      const response = await apiRequest("/api/admin/regular-users", "GET");
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: "20",
+      });
+      
+      if (emailFilter) {
+        params.append("email", emailFilter);
+      }
+      
+      if (subscriptionFilter !== "all") {
+        params.append("subscriptionPlanId", subscriptionFilter);
+      }
+      
+      const response = await apiRequest(`/api/admin/regular-users?${params.toString()}`, "GET");
       return response.json();
     },
   });
+
+  const users = usersData?.users || [];
+  const totalUsers = usersData?.total || 0;
+  const totalPages = usersData?.totalPages || 1;
 
   // Fetch subscription plans for the dropdown
   const { data: subscriptionPlans = [] } = useQuery({
@@ -119,6 +139,10 @@ export default function AdminUserManagement() {
         title: "User Deleted",
         description: "User and all their data have been permanently deleted.",
       });
+      // Reset to first page if current page becomes empty
+      if (users.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
     },
     onError: (error: any) => {
       toast({
@@ -250,6 +274,10 @@ export default function AdminUserManagement() {
     );
   }
 
+  const handleFilterChange = () => {
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -258,9 +286,61 @@ export default function AdminUserManagement() {
           <p className="text-gray-400">Manage regular users, edit their information, and handle subscriptions</p>
         </div>
         <Badge variant="outline" className="text-purple-400 border-purple-500">
-          {users.length} Total Users
+          {totalUsers} Total Users
         </Badge>
       </div>
+
+      {/* Filters */}
+      <Card className="bg-gray-900/50 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white">Filters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="email-filter" className="text-gray-300 mb-2 block">Search by Email</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  id="email-filter"
+                  placeholder="Search by email..."
+                  value={emailFilter}
+                  onChange={(e) => {
+                    setEmailFilter(e.target.value);
+                    handleFilterChange();
+                  }}
+                  className="pl-10 bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="subscription-filter" className="text-gray-300 mb-2 block">Filter by Subscription</Label>
+              <Select
+                value={subscriptionFilter}
+                onValueChange={(value) => {
+                  setSubscriptionFilter(value);
+                  handleFilterChange();
+                }}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectItem value="all">All Subscriptions</SelectItem>
+                  <SelectItem value="null">Free Plan</SelectItem>
+                  {subscriptionPlans
+                    .filter((plan: SubscriptionPlan) => plan.isActive)
+                    .map((plan: SubscriptionPlan) => (
+                      <SelectItem key={plan.id} value={plan.id} className="text-white">
+                        {plan.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="bg-gray-900/50 border-gray-700">
         <CardHeader>
@@ -435,6 +515,66 @@ export default function AdminUserManagement() {
               </div>
             )}
           </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-700">
+              <div className="text-sm text-gray-400">
+                Showing {(currentPage - 1) * 20 + 1} to {Math.min(currentPage * 20, totalUsers)} of {totalUsers} users
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="bg-gray-800 border-gray-600 text-white"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={
+                          currentPage === pageNum
+                            ? "bg-purple-600 hover:bg-purple-700"
+                            : "bg-gray-800 border-gray-600 text-white"
+                        }
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="bg-gray-800 border-gray-600 text-white"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -35,7 +35,7 @@ import {
   type InsertTrackComment,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, count, asc, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, count, asc, inArray, like, or, isNull } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -60,6 +60,7 @@ export interface IStorage {
   // Admin user management operations
   getAllUsers(): Promise<User[]>;
   getAllUsersWithGenerationCount(): Promise<Array<User & { generationCount: number, subscriptionPlan?: SubscriptionPlan }>>;
+  getAllUsersWithGenerationCountPaginated(options: { page?: number; limit?: number; emailFilter?: string; subscriptionPlanId?: string | null }): Promise<{ users: Array<User & { generationCount: number, subscriptionPlan?: SubscriptionPlan }>; total: number; page: number; limit: number; totalPages: number }>;
   updateUser(userId: string, updates: Partial<User>): Promise<User>;
   deleteUser(userId: string): Promise<void>;
   getUserWithGenerationCount(userId: string): Promise<User & { generationCount: number } | undefined>;
@@ -436,6 +437,127 @@ export class DatabaseStorage implements IStorage {
         ? ({ id: u.subscriptionPlanId!, name: u.planName, description: u.planDescription, maxGenerations: u.maxGenerations } as any)
         : undefined,
     }));
+  }
+
+  async getAllUsersWithGenerationCountPaginated(options: { page?: number; limit?: number; emailFilter?: string; subscriptionPlanId?: string | null }): Promise<{ users: Array<User & { generationCount: number, subscriptionPlan?: SubscriptionPlan }>; total: number; page: number; limit: number; totalPages: number }> {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const offset = (page - 1) * limit;
+
+    // Build where conditions
+    const conditions = [];
+    
+    // Email filter (case-insensitive)
+    if (options.emailFilter) {
+      const emailPattern = `%${options.emailFilter.toLowerCase()}%`;
+      conditions.push(sql`LOWER(${users.email}) LIKE ${emailPattern}`);
+    }
+    
+    // Subscription plan filter
+    if (options.subscriptionPlanId !== undefined) {
+      if (options.subscriptionPlanId === null) {
+        // Filter for users with no subscription (free plan)
+        conditions.push(isNull(users.subscriptionPlanId));
+      } else {
+        // Filter for specific subscription plan
+        conditions.push(eq(users.subscriptionPlanId, options.subscriptionPlanId));
+      }
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count for pagination
+    const totalCountResult = await db
+      .select({ count: count() })
+      .from(users)
+      .where(whereClause);
+    const total = Number(totalCountResult[0]?.count || 0);
+
+    // Get paginated results
+    let query = db
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        passwordHash: users.passwordHash,
+        profileImageUrl: users.profileImageUrl,
+        emailVerified: users.emailVerified,
+        emailVerificationToken: users.emailVerificationToken,
+        emailVerificationExpiry: users.emailVerificationExpiry,
+        subscriptionPlanId: users.subscriptionPlanId,
+        planStatus: users.planStatus,
+        generationsUsedThisMonth: users.generationsUsedThisMonth,
+        audioGenerationsUsedThisMonth: users.audioGenerationsUsedThisMonth,
+        videoGenerationsUsedThisMonth: users.videoGenerationsUsedThisMonth,
+        planStartDate: users.planStartDate,
+        planEndDate: users.planEndDate,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        generationCount: count(musicGenerations.id).as("generationCount"),
+        planName: subscriptionPlans.name,
+        planDescription: subscriptionPlans.description,
+        maxGenerations: subscriptionPlans.maxGenerations,
+        maxAudioGenerations: subscriptionPlans.maxAudioGenerations,
+        maxVideoGenerations: subscriptionPlans.maxVideoGenerations,
+      })
+      .from(users)
+      .leftJoin(musicGenerations, eq(users.id, musicGenerations.userId))
+      .leftJoin(subscriptionPlans, eq(users.subscriptionPlanId, subscriptionPlans.id));
+
+    if (whereClause) {
+      query = query.where(whereClause) as any;
+    }
+
+    const results = await query
+      .groupBy(
+        users.id,
+        users.email,
+        users.firstName,
+        users.lastName,
+        users.passwordHash,
+        users.profileImageUrl,
+        users.emailVerified,
+        users.emailVerificationToken,
+        users.emailVerificationExpiry,
+        users.subscriptionPlanId,
+        users.planStatus,
+        users.generationsUsedThisMonth,
+        users.audioGenerationsUsedThisMonth,
+        users.videoGenerationsUsedThisMonth,
+        users.planStartDate,
+        users.planEndDate,
+        users.stripeCustomerId,
+        users.stripeSubscriptionId,
+        users.createdAt,
+        users.updatedAt,
+        subscriptionPlans.name,
+        subscriptionPlans.description,
+        subscriptionPlans.maxGenerations,
+        subscriptionPlans.maxAudioGenerations,
+        subscriptionPlans.maxVideoGenerations
+      )
+      .orderBy(desc(users.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const mappedUsers = results.map((u) => ({
+      ...u,
+      generationCount: Number(u.generationCount),
+      subscriptionPlan: u.planName
+        ? ({ id: u.subscriptionPlanId!, name: u.planName, description: u.planDescription, maxGenerations: u.maxGenerations } as any)
+        : undefined,
+    }));
+
+    return {
+      users: mappedUsers,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async updateUser(userId: string, updates: Partial<User>): Promise<User> {

@@ -1875,13 +1875,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== REGULAR USER MANAGEMENT ROUTES (Admin Only) =====
   
-  // Get all regular users
+  // Get all regular users with filtering and pagination
   app.get('/api/admin/regular-users', isAdminAuthenticated, async (req, res) => {
     try {
-      const usersWithCounts = await storage.getAllUsersWithGenerationCount();
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const emailFilter = req.query.email as string | undefined;
+      const subscriptionPlanId = req.query.subscriptionPlanId as string | undefined;
+      
+      // Convert subscriptionPlanId: "null" string means free plan, undefined means all
+      let subscriptionFilter: string | null | undefined = undefined;
+      if (subscriptionPlanId === "null" || subscriptionPlanId === "") {
+        subscriptionFilter = null; // Free plan users
+      } else if (subscriptionPlanId) {
+        subscriptionFilter = subscriptionPlanId; // Specific plan
+      }
+      
+      const result = await storage.getAllUsersWithGenerationCountPaginated({
+        page,
+        limit,
+        emailFilter,
+        subscriptionPlanId: subscriptionFilter,
+      });
+      
       // Remove password hash from response for security
-      const userList = usersWithCounts.map(({ passwordHash, ...user }) => user);
-      res.json(userList);
+      const userList = result.users.map(({ passwordHash, ...user }) => user);
+      
+      res.json({
+        users: userList,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      });
     } catch (error) {
       console.error('Error fetching regular users:', error);
       res.status(500).json({ message: 'Failed to fetch users' });
