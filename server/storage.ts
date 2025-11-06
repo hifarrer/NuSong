@@ -977,11 +977,16 @@ export class DatabaseStorage implements IStorage {
         })
         .from(musicGenerations)
         .leftJoin(users, eq(musicGenerations.userId, users.id))
-        .orderBy(desc(musicGenerations.createdAt));
+        .orderBy(desc(musicGenerations.createdAt))
+        .limit(10);
 
       console.log(`[getAllMusicGenerationsWithUsers] Fetched ${rows.length} rows from database`);
 
       const mapped = rows.map((r) => {
+        // Ensure dates are properly serializable
+        const createdAt = r.createdAt instanceof Date ? r.createdAt : (r.createdAt ? new Date(r.createdAt) : undefined);
+        const updatedAt = r.updatedAt instanceof Date ? r.updatedAt : (r.updatedAt ? new Date(r.updatedAt) : undefined);
+        
         const track: MusicGeneration & { user?: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> } = {
           id: r.id,
           userId: r.userId,
@@ -1005,8 +1010,8 @@ export class DatabaseStorage implements IStorage {
           muxAssetId: r.muxAssetId ?? undefined,
           muxPlaybackId: r.muxPlaybackId ?? undefined,
           muxAssetStatus: r.muxAssetStatus ?? undefined,
-          createdAt: r.createdAt as any,
-          updatedAt: r.updatedAt as any,
+          createdAt: createdAt as any,
+          updatedAt: updatedAt as any,
         };
 
         if (r.user_id) {

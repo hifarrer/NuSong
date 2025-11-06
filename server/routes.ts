@@ -1560,13 +1560,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[GET /api/admin/tracks] Starting fetch...');
       const tracks = await storage.getAllMusicGenerationsWithUsers();
       console.log(`[GET /api/admin/tracks] Successfully fetched ${tracks.length} tracks`);
-      res.json(tracks);
+      
+      // Calculate approximate response size (sample first track to avoid full serialization)
+      const sampleSize = tracks.length > 0 ? JSON.stringify(tracks[0]).length : 0;
+      const estimatedSize = sampleSize * tracks.length;
+      console.log(`[GET /api/admin/tracks] Estimated response size: ~${estimatedSize} bytes (${(estimatedSize / 1024).toFixed(2)} KB) for ${tracks.length} tracks`);
+      
+      // Set response headers before sending
+      res.setHeader('Content-Type', 'application/json');
+      
+      // Use res.send with JSON.stringify for better error handling
+      try {
+        const jsonString = JSON.stringify(tracks);
+        console.log(`[GET /api/admin/tracks] JSON serialized successfully: ${jsonString.length} bytes`);
+        res.send(jsonString);
+        console.log('[GET /api/admin/tracks] Response sent successfully');
+      } catch (sendError) {
+        console.error('[GET /api/admin/tracks] Error sending response:', sendError);
+        throw sendError;
+      }
     } catch (error) {
       console.error('[GET /api/admin/tracks] Error fetching admin tracks:', error);
       if (error instanceof Error) {
         console.error('[GET /api/admin/tracks] Error stack:', error.stack);
       }
-      res.status(500).json({ message: 'Failed to fetch tracks', error: error instanceof Error ? error.message : String(error) });
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Failed to fetch tracks', error: error instanceof Error ? error.message : String(error) });
+      }
     }
   });
 
