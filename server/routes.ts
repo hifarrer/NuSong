@@ -1557,11 +1557,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin music tracks management
   app.get('/api/admin/tracks', isAdminAuthenticated, async (req, res) => {
     try {
+      console.log('[GET /api/admin/tracks] Starting fetch...');
       const tracks = await storage.getAllMusicGenerationsWithUsers();
+      console.log(`[GET /api/admin/tracks] Successfully fetched ${tracks.length} tracks`);
       res.json(tracks);
     } catch (error) {
-      console.error('Error fetching admin tracks:', error);
-      res.status(500).json({ message: 'Failed to fetch tracks' });
+      console.error('[GET /api/admin/tracks] Error fetching admin tracks:', error);
+      if (error instanceof Error) {
+        console.error('[GET /api/admin/tracks] Error stack:', error.stack);
+      }
+      res.status(500).json({ message: 'Failed to fetch tracks', error: error instanceof Error ? error.message : String(error) });
     }
   });
 

@@ -942,77 +942,92 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllMusicGenerationsWithUsers(): Promise<Array<MusicGeneration & { user?: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> }>> {
-    const rows = await db
-      .select({
-        id: musicGenerations.id,
-        userId: musicGenerations.userId,
-        albumId: musicGenerations.albumId,
-        type: musicGenerations.type,
-        tags: musicGenerations.tags,
-        lyrics: musicGenerations.lyrics,
-        duration: musicGenerations.duration,
-        inputAudioUrl: musicGenerations.inputAudioUrl,
-        audioUrl: musicGenerations.audioUrl,
-        seed: musicGenerations.seed,
-        status: musicGenerations.status,
-        visibility: musicGenerations.visibility,
-        showInGallery: musicGenerations.showInGallery,
-        title: musicGenerations.title,
-        viewCount: musicGenerations.viewCount,
-        falRequestId: musicGenerations.falRequestId,
-        kieTaskId: musicGenerations.kieTaskId,
-        imageUrl: musicGenerations.imageUrl,
-        videoUrl: musicGenerations.videoUrl,
-        muxAssetId: musicGenerations.muxAssetId,
-        muxPlaybackId: musicGenerations.muxPlaybackId,
-        muxAssetStatus: musicGenerations.muxAssetStatus,
-        createdAt: musicGenerations.createdAt,
-        updatedAt: musicGenerations.updatedAt,
-        user_id: users.id,
-        user_firstName: users.firstName,
-        user_lastName: users.lastName,
-        user_email: users.email,
-        user_profileImageUrl: users.profileImageUrl,
-      })
-      .from(musicGenerations)
-      .leftJoin(users, eq(musicGenerations.userId, users.id))
-      .orderBy(desc(musicGenerations.createdAt));
+    try {
+      const rows = await db
+        .select({
+          id: musicGenerations.id,
+          userId: musicGenerations.userId,
+          albumId: musicGenerations.albumId,
+          type: musicGenerations.type,
+          tags: musicGenerations.tags,
+          lyrics: musicGenerations.lyrics,
+          duration: musicGenerations.duration,
+          inputAudioUrl: musicGenerations.inputAudioUrl,
+          audioUrl: musicGenerations.audioUrl,
+          seed: musicGenerations.seed,
+          status: musicGenerations.status,
+          visibility: musicGenerations.visibility,
+          showInGallery: musicGenerations.showInGallery,
+          title: musicGenerations.title,
+          viewCount: musicGenerations.viewCount,
+          falRequestId: musicGenerations.falRequestId,
+          kieTaskId: musicGenerations.kieTaskId,
+          imageUrl: musicGenerations.imageUrl,
+          videoUrl: musicGenerations.videoUrl,
+          muxAssetId: musicGenerations.muxAssetId,
+          muxPlaybackId: musicGenerations.muxPlaybackId,
+          muxAssetStatus: musicGenerations.muxAssetStatus,
+          createdAt: musicGenerations.createdAt,
+          updatedAt: musicGenerations.updatedAt,
+          user_id: users.id,
+          user_firstName: users.firstName,
+          user_lastName: users.lastName,
+          user_email: users.email,
+          user_profileImageUrl: users.profileImageUrl,
+        })
+        .from(musicGenerations)
+        .leftJoin(users, eq(musicGenerations.userId, users.id))
+        .orderBy(desc(musicGenerations.createdAt));
 
-    return rows.map((r) => ({
-      id: r.id,
-      userId: r.userId,
-      albumId: r.albumId ?? undefined,
-      type: r.type as any,
-      tags: r.tags,
-      lyrics: r.lyrics ?? undefined,
-      duration: r.duration ?? undefined,
-      inputAudioUrl: r.inputAudioUrl ?? undefined,
-      audioUrl: r.audioUrl ?? undefined,
-      seed: r.seed ?? undefined,
-      status: r.status as any,
-      visibility: r.visibility as any,
-      showInGallery: r.showInGallery,
-      title: r.title ?? undefined,
-      viewCount: r.viewCount,
-      falRequestId: r.falRequestId ?? undefined,
-      kieTaskId: r.kieTaskId ?? undefined,
-      imageUrl: r.imageUrl ?? undefined,
-      videoUrl: r.videoUrl ?? undefined,
-      muxAssetId: r.muxAssetId ?? undefined,
-      muxPlaybackId: r.muxPlaybackId ?? undefined,
-      muxAssetStatus: r.muxAssetStatus ?? undefined,
-      createdAt: r.createdAt as any,
-      updatedAt: r.updatedAt as any,
-      ...(r.user_id ? {
-        user: {
-          id: r.user_id,
-          firstName: r.user_firstName ?? '',
-          lastName: r.user_lastName ?? '',
-          email: r.user_email ?? '',
-          profileImageUrl: r.user_profileImageUrl ?? null,
-        },
-      } : {}),
-    }));
+      console.log(`[getAllMusicGenerationsWithUsers] Fetched ${rows.length} rows from database`);
+
+      const mapped = rows.map((r) => {
+        const track: MusicGeneration & { user?: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> } = {
+          id: r.id,
+          userId: r.userId,
+          albumId: r.albumId ?? undefined,
+          type: r.type as any,
+          tags: r.tags,
+          lyrics: r.lyrics ?? undefined,
+          duration: r.duration ?? undefined,
+          inputAudioUrl: r.inputAudioUrl ?? undefined,
+          audioUrl: r.audioUrl ?? undefined,
+          seed: r.seed ?? undefined,
+          status: r.status as any,
+          visibility: r.visibility as any,
+          showInGallery: r.showInGallery,
+          title: r.title ?? undefined,
+          viewCount: r.viewCount,
+          falRequestId: r.falRequestId ?? undefined,
+          kieTaskId: r.kieTaskId ?? undefined,
+          imageUrl: r.imageUrl ?? undefined,
+          videoUrl: r.videoUrl ?? undefined,
+          muxAssetId: r.muxAssetId ?? undefined,
+          muxPlaybackId: r.muxPlaybackId ?? undefined,
+          muxAssetStatus: r.muxAssetStatus ?? undefined,
+          createdAt: r.createdAt as any,
+          updatedAt: r.updatedAt as any,
+        };
+
+        if (r.user_id) {
+          track.user = {
+            id: r.user_id,
+            firstName: r.user_firstName ?? '',
+            lastName: r.user_lastName ?? '',
+            email: r.user_email ?? '',
+            profileImageUrl: r.user_profileImageUrl ?? null,
+          };
+        }
+
+        return track;
+      });
+
+      console.log(`[getAllMusicGenerationsWithUsers] Mapped ${mapped.length} tracks`);
+      return mapped;
+    } catch (error) {
+      console.error('[getAllMusicGenerationsWithUsers] Error:', error);
+      throw error;
+    }
   }
 
   async updateMusicGenerationGalleryVisibility(id: string, showInGallery: boolean): Promise<MusicGeneration> {
