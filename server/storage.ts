@@ -74,7 +74,7 @@ export interface IStorage {
   getUserMusicGenerations(userId: string): Promise<MusicGeneration[]>;
   getMusicGenerationsByAlbumId(albumId: string): Promise<MusicGeneration[]>;
   getPublicMusicGenerations(): Promise<MusicGeneration[]>;
-  getAllMusicGenerationsWithUsers(): Promise<Array<MusicGeneration & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> }>>;
+  getAllMusicGenerationsWithUsers(): Promise<Array<MusicGeneration & { user?: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> }>>;
   deleteMusicGeneration(id: string): Promise<void>;
   canUserGenerateMusic(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }>; // Deprecated - use canUserGenerateAudio
   canUserGenerateAudio(userId: string): Promise<{ canGenerate: boolean; reason?: string; currentUsage: number; maxGenerations: number }>;
@@ -941,22 +941,31 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(musicGenerations.createdAt));
   }
 
-  async getAllMusicGenerationsWithUsers(): Promise<Array<MusicGeneration & { user: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> }>> {
+  async getAllMusicGenerationsWithUsers(): Promise<Array<MusicGeneration & { user?: Pick<User, "id" | "firstName" | "lastName" | "email" | "profileImageUrl"> }>> {
     const rows = await db
       .select({
         id: musicGenerations.id,
         userId: musicGenerations.userId,
+        albumId: musicGenerations.albumId,
         type: musicGenerations.type,
         tags: musicGenerations.tags,
         lyrics: musicGenerations.lyrics,
         duration: musicGenerations.duration,
+        inputAudioUrl: musicGenerations.inputAudioUrl,
         audioUrl: musicGenerations.audioUrl,
         seed: musicGenerations.seed,
         status: musicGenerations.status,
         visibility: musicGenerations.visibility,
         showInGallery: musicGenerations.showInGallery,
         title: musicGenerations.title,
+        viewCount: musicGenerations.viewCount,
         falRequestId: musicGenerations.falRequestId,
+        kieTaskId: musicGenerations.kieTaskId,
+        imageUrl: musicGenerations.imageUrl,
+        videoUrl: musicGenerations.videoUrl,
+        muxAssetId: musicGenerations.muxAssetId,
+        muxPlaybackId: musicGenerations.muxPlaybackId,
+        muxAssetStatus: musicGenerations.muxAssetStatus,
         createdAt: musicGenerations.createdAt,
         updatedAt: musicGenerations.updatedAt,
         user_id: users.id,
@@ -972,26 +981,37 @@ export class DatabaseStorage implements IStorage {
     return rows.map((r) => ({
       id: r.id,
       userId: r.userId,
+      albumId: r.albumId ?? undefined,
       type: r.type as any,
       tags: r.tags,
       lyrics: r.lyrics ?? undefined,
       duration: r.duration ?? undefined,
+      inputAudioUrl: r.inputAudioUrl ?? undefined,
       audioUrl: r.audioUrl ?? undefined,
       seed: r.seed ?? undefined,
       status: r.status as any,
       visibility: r.visibility as any,
       showInGallery: r.showInGallery,
       title: r.title ?? undefined,
+      viewCount: r.viewCount,
       falRequestId: r.falRequestId ?? undefined,
+      kieTaskId: r.kieTaskId ?? undefined,
+      imageUrl: r.imageUrl ?? undefined,
+      videoUrl: r.videoUrl ?? undefined,
+      muxAssetId: r.muxAssetId ?? undefined,
+      muxPlaybackId: r.muxPlaybackId ?? undefined,
+      muxAssetStatus: r.muxAssetStatus ?? undefined,
       createdAt: r.createdAt as any,
       updatedAt: r.updatedAt as any,
-      user: {
-        id: r.user_id!,
-        firstName: r.user_firstName!,
-        lastName: r.user_lastName!,
-        email: r.user_email!,
-        profileImageUrl: r.user_profileImageUrl ?? null,
-      },
+      ...(r.user_id ? {
+        user: {
+          id: r.user_id,
+          firstName: r.user_firstName ?? '',
+          lastName: r.user_lastName ?? '',
+          email: r.user_email ?? '',
+          profileImageUrl: r.user_profileImageUrl ?? null,
+        },
+      } : {}),
     }));
   }
 
