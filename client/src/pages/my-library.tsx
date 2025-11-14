@@ -233,58 +233,63 @@ export default function MyLibrary() {
           </CardHeader>
           <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
             {/* Album Filter */}
-            <div className="mb-4 flex items-center gap-2 flex-wrap">
-              <label className="text-sm text-gray-300">Album</label>
-              <Select value={libraryAlbumId} onValueChange={handleLibraryAlbumChange}>
-                <SelectTrigger className="w-64 bg-music-dark border-gray-600 text-white focus:border-music-blue">
-                  <SelectValue placeholder="All albums" />
-                </SelectTrigger>
-                <SelectContent className="bg-music-dark border-gray-600">
-                  {(albums || []).map((a: any) => (
-                    <SelectItem key={a.id} value={a.id} className="text-white hover:bg-gray-700">
-                      {a.name}{a.isDefault ? " (Default)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-sm text-gray-300 whitespace-nowrap">Album</label>
+                <Select value={libraryAlbumId} onValueChange={handleLibraryAlbumChange}>
+                  <SelectTrigger className="w-full sm:w-64 bg-music-dark border-gray-600 text-white focus:border-music-blue">
+                    <SelectValue placeholder="All albums" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-music-dark border-gray-600">
+                    {(albums || []).map((a: any) => (
+                      <SelectItem key={a.id} value={a.id} className="text-white hover:bg-gray-700">
+                        {a.name}{a.isDefault ? " (Default)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <Button type="button" variant="outline" className="border-gray-600" onClick={() => setShowCreateAlbum(true)}>Create New</Button>
-              <Button type="button" variant="outline" className="border-gray-600" onClick={() => {
-                const current = (albums || []).find((a: any) => a.id === libraryAlbumId);
-                setEditAlbumName((current as any)?.name || "");
-                setShowEditAlbum(true);
-              }}>Edit Album</Button>
-              
-              <div className="flex gap-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="border-gray-600"
-                  disabled={isGeneratingShareLink || !libraryAlbumId}
-                  onClick={() => copyShareLink(libraryAlbumId)}
-                >
-                  {isGeneratingShareLink ? (
-                    <>
-                      <LoadingSpinner className="w-4 h-4 mr-2" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4 mr-2" />
-                      Copy Link
-                    </>
-                  )}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="border-gray-600"
-                  disabled={isGeneratingShareLink || !libraryAlbumId}
-                  onClick={() => openShareLink(libraryAlbumId)}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Open
-                </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button type="button" variant="outline" className="border-gray-600 flex-1 sm:flex-initial" onClick={() => setShowCreateAlbum(true)}>Create New</Button>
+                <Button type="button" variant="outline" className="border-gray-600 flex-1 sm:flex-initial" onClick={() => {
+                  const current = (albums || []).find((a: any) => a.id === libraryAlbumId);
+                  setEditAlbumName((current as any)?.name || "");
+                  setShowEditAlbum(true);
+                }}>Edit Album</Button>
+                
+                <div className="flex gap-2 flex-1 sm:flex-initial">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="border-gray-600 flex-1 sm:flex-initial"
+                    disabled={isGeneratingShareLink || !libraryAlbumId}
+                    onClick={() => copyShareLink(libraryAlbumId)}
+                  >
+                    {isGeneratingShareLink ? (
+                      <>
+                        <LoadingSpinner className="w-4 h-4 mr-2" />
+                        <span className="hidden sm:inline">Generating...</span>
+                        <span className="sm:hidden">...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Copy Link</span>
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="border-gray-600 flex-1 sm:flex-initial"
+                    disabled={isGeneratingShareLink || !libraryAlbumId}
+                    onClick={() => openShareLink(libraryAlbumId)}
+                  >
+                    <ExternalLink className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Open</span>
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -748,7 +753,7 @@ function TrackCard({
   return (
     <div className="bg-music-dark border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors">
       {/* Main Content Row */}
-      <div className="flex gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         {/* Left Side - Track Info and Controls */}
         <div className="flex-1 min-w-0">
           {/* Track Info */}
@@ -765,17 +770,17 @@ function TrackCard({
         ) : (
           <div className="flex items-center gap-2">
             <h3 
-              className="text-white font-medium truncate cursor-pointer hover:text-music-blue transition-colors"
+              className="text-white font-medium truncate cursor-pointer hover:text-music-blue transition-colors text-base sm:text-lg"
               onClick={() => setIsEditingTitle(true)}
               title="Click to edit title"
             >
               {track.title || "Untitled Track"}
             </h3>
-            <Edit3 className="w-3 h-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Edit3 className="w-3 h-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
           </div>
         )}
         
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex flex-wrap items-center gap-2 mt-1">
           <span className={`text-xs px-2 py-1 rounded ${
             track.status === "completed" 
               ? "bg-green-600/20 text-green-400" 
@@ -824,7 +829,7 @@ function TrackCard({
       )}
 
           {/* Controls Row */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
             {/* Album Selector */}
             <div className="w-full sm:w-40">
               <Select
@@ -852,7 +857,7 @@ function TrackCard({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
           {track.status === "completed" && track.audioUrl && (
             !isUserOnFreePlan() ? (
               <Button
@@ -864,7 +869,7 @@ function TrackCard({
                   link.download = `${track.title || 'track'}.wav`;
                   link.click();
                 }}
-                className="text-gray-400 hover:text-white flex-1 sm:flex-initial flex-col h-auto py-2"
+                className="text-gray-400 hover:text-white flex-col h-auto py-2 min-w-[60px]"
               >
                 <Download className="w-4 h-4 mb-1" />
                 <span className="text-xs">Download</span>
@@ -874,7 +879,7 @@ function TrackCard({
                 size="sm"
                 variant="ghost"
                 onClick={() => window.location.href = "/pricing"}
-                className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-1 sm:flex-initial flex-col h-auto py-2"
+                className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-col h-auto py-2 min-w-[60px]"
                 title="Upgrade to download tracks"
               >
                 <Download className="w-4 h-4 mb-1" />
@@ -894,7 +899,7 @@ function TrackCard({
                   variant: "destructive",
                 });
               }}
-              className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-1 sm:flex-initial flex-col h-auto py-2"
+              className="text-music-purple hover:text-white hover:bg-music-purple/20 flex-col h-auto py-2 min-w-[60px]"
               title="Upgrade to share tracks"
             >
               <Share className="w-4 h-4 mb-1" />
@@ -919,7 +924,7 @@ function TrackCard({
                   });
                 }
               }}
-              className="text-gray-400 hover:text-white flex-1 sm:flex-initial flex-col h-auto py-2"
+              className="text-gray-400 hover:text-white flex-col h-auto py-2 min-w-[60px]"
             >
               <Share className="w-4 h-4 mb-1" />
               <span className="text-xs">Share</span>
@@ -931,7 +936,7 @@ function TrackCard({
             variant="ghost"
             onClick={() => updateVisibilityMutation.mutate(track.visibility === "public" ? "private" : "public")}
             disabled={updateVisibilityMutation.isPending}
-            className="text-gray-400 hover:text-white flex-1 sm:flex-initial flex-col h-auto py-2"
+            className="text-gray-400 hover:text-white flex-col h-auto py-2 min-w-[60px]"
           >
             {track.visibility === "public" ? (
               <EyeOff className="w-4 h-4 mb-1" />
@@ -945,7 +950,7 @@ function TrackCard({
             size="sm"
             variant="ghost"
             onClick={() => onAddToPlaylist(track)}
-            className="text-gray-400 hover:text-music-blue flex-1 sm:flex-initial flex-col h-auto py-2"
+            className="text-gray-400 hover:text-music-blue flex-col h-auto py-2 min-w-[60px]"
           >
             <ListMusic className="w-4 h-4 mb-1" />
             <span className="text-xs">+ Playlist</span>
@@ -955,7 +960,7 @@ function TrackCard({
             size="sm"
             variant="ghost"
             onClick={() => onDelete(track)}
-            className="text-gray-400 hover:text-red-400 flex-1 sm:flex-initial flex-col h-auto py-2"
+            className="text-gray-400 hover:text-red-400 flex-col h-auto py-2 min-w-[60px]"
           >
             <Trash2 className="w-4 h-4 mb-1" />
             <span className="text-xs">Delete</span>
@@ -965,9 +970,9 @@ function TrackCard({
         </div>
 
         {/* Right Side - Video Display or Create Button */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 w-full lg:w-auto flex justify-center lg:justify-start">
           {(track as any).videoUrl ? (
-            <div className="w-64 aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden border border-gray-600">
+            <div className="w-full sm:w-48 lg:w-64 aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden border border-gray-600">
               <MuxVideoPlayer
                 playbackId={(track as any).muxPlaybackId}
                 fallbackUrl={(track as any).videoUrl}
@@ -977,10 +982,10 @@ function TrackCard({
               />
             </div>
           ) : (
-            <div className="w-64 aspect-[3/4] bg-gray-900 rounded-lg border border-dashed border-gray-600 flex items-center justify-center">
+            <div className="w-full sm:w-48 lg:w-64 aspect-[3/4] bg-gray-900 rounded-lg border border-dashed border-gray-600 flex items-center justify-center">
               <Button
                 onClick={() => (window.location.href = '/?tab=createVideo')}
-                className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
+                className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white text-sm sm:text-base"
               >
                 Create Video
               </Button>

@@ -1524,21 +1524,21 @@ export default function Home() {
               <Card className="bg-music-secondary border-gray-700">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <div className="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center mr-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-music-purple to-music-blue rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
                       <Video className="text-sm text-white" />
                     </div>
                     <span className="text-music-blue">Create Music Video</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-300 mb-3">
+                  <p className="text-gray-300 mb-3 text-sm sm:text-base">
                     Select one of your tracks below and create a music video with AI-generated scenes. 
                     Describe your vision and we'll generate 6 scene prompts for your video.
                   </p>
                   {!hasValidBand && (
                     <div className="mt-3 pt-3 border-t border-gray-600">
-                      <p className="text-sm text-yellow-400 flex items-center">
-                        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <p className="text-sm text-yellow-400 flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                        <svg className="w-4 h-4 mr-0 sm:mr-2 flex-shrink-0 mt-0.5 sm:mt-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                         <span>You need to create a <a href="/my-band" className="underline hover:text-yellow-300 font-medium">band with members</a> first. Band members will be used as characters in your music videos.</span>
@@ -1562,36 +1562,36 @@ export default function Home() {
                       .map((track: MusicGeneration) => (
                         <Card key={track.id} className="bg-music-dark border-gray-600 hover:border-gray-500 transition-colors">
                           <CardContent className="p-4">
-                            <div className="flex items-center space-x-4">
+                            <div className="flex flex-col md:flex-row md:items-center gap-4 md:space-x-4">
                               {/* Track Info */}
                               <div className="flex-1 min-w-0">
-                                <h4 className="text-lg font-semibold text-white truncate">
+                                <h4 className="text-base sm:text-lg font-semibold text-white truncate">
                                   {track.title || track.tags || "Untitled Track"}
                                 </h4>
-                                <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
+                                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-gray-400 mt-1">
                                   {track.title && (
                                     <span className="flex items-center">
-                                      <Tags className="w-4 h-4 mr-1" />
-                                      {track.tags}
+                                      <Tags className="w-4 h-4 mr-1 flex-shrink-0" />
+                                      <span className="truncate">{track.tags}</span>
                                     </span>
                                   )}
                                   <span className="flex items-center">
-                                    <Clock className="w-4 h-4 mr-1" />
+                                    <Clock className="w-4 h-4 mr-1 flex-shrink-0" />
                                     {track.duration ? `${track.duration}s` : "N/A"}
                                   </span>
                                 </div>
                               </div>
 
                               {/* Mini Audio Player */}
-                              <div className="flex-shrink-0">
+                              <div className="flex-shrink-0 w-full md:w-auto">
                                 <AudioPlayer 
                                   src={track.audioUrl!}
-                                  className="w-64"
+                                  className="w-full md:w-64"
                                 />
                               </div>
 
                               {/* Video Actions */}
-                              <div className="flex-shrink-0 flex items-center gap-2">
+                              <div className="flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
                                 {(track as any).videoUrl ? (
                                   <>
                                     <Button
@@ -1602,7 +1602,7 @@ export default function Home() {
                                         setShowVideoModal(true);
                                       }}
                                       variant="outline"
-                                      className="border-gray-600 text-gray-300 hover:text-white hover:border-gray-500"
+                                      className="border-gray-600 text-gray-300 hover:text-white hover:border-gray-500 w-full sm:w-auto"
                                       data-testid={`button-play-video-${track.id}`}
                                     >
                                       <Play className="mr-2 h-4 w-4" />
@@ -1610,7 +1610,7 @@ export default function Home() {
                                     </Button>
                                     <Button
                                       onClick={() => handleCreateVideo(track)}
-                                      className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
+                                      className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white w-full sm:w-auto"
                                       data-testid={`button-recreate-video-${track.id}`}
                                     >
                                       <Film className="mr-2 h-4 w-4" />
@@ -1620,7 +1620,7 @@ export default function Home() {
                                 ) : (
                                   <Button
                                     onClick={() => handleCreateVideo(track)}
-                                    className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white"
+                                    className="bg-gradient-to-r from-music-purple to-music-blue hover:from-purple-600 hover:to-blue-600 text-white w-full sm:w-auto"
                                     data-testid={`button-create-video-${track.id}`}
                                   >
                                     <Film className="mr-2 h-4 w-4" />
