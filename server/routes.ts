@@ -1650,6 +1650,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to delete track' });
     }
   });
+
+  // Admin bands management
+  app.get('/api/admin/bands', isAdminAuthenticated, async (req, res) => {
+    try {
+      console.log('[GET /api/admin/bands] Starting fetch...');
+      
+      // Fetch all bands with user info
+      const bandsResult = await pool.query(
+        `SELECT 
+           b.id,
+           b.user_id AS "userId",
+           b.name,
+           b.description,
+           b.band_image_url AS "bandImageUrl",
+           b.created_at AS "createdAt",
+           b.updated_at AS "updatedAt",
+           u.id AS "user_id",
+           u.first_name AS "user_firstName",
+           u.last_name AS "user_lastName",
+           u.email AS "user_email",
+           u.profile_image_url AS "user_profileImageUrl"
+         FROM bands b
+         LEFT JOIN users u ON b.user_id = u.id
+         ORDER BY b.created_at DESC`
+      );
+
+      // Fetch members for each band
+      const bandsWithMembers = await Promise.all(
+        bandsResult.rows.map(async (band) => {
+          const membersResult = await pool.query(
+            `SELECT 
+               id,
+               band_id AS "bandId",
+               name,
+               role,
+               image_url AS "imageUrl",
+               description,
+               position,
+               created_at AS "createdAt",
+               updated_at AS "updatedAt"
+             FROM band_members 
+             WHERE band_id = $1 
+             ORDER BY position ASC`,
+            [band.id]
+          );
+
+          return {
+            ...band,
+            user: band.user_id ? {
+              id: band.user_id,
+              firstName: band.user_firstName,
+              lastName: band.user_lastName,
+              email: band.user_email,
+              profileImageUrl: band.user_profileImageUrl,
+            } : undefined,
+            members: membersResult.rows,
+          };
+        })
+      );
+
+      // Remove the individual user fields from the response
+      const cleanedBands = bandsWithMembers.map(({ user_id, user_firstName, user_lastName, user_email, user_profileImageUrl, ...band }) => band);
+
+      console.log(`[GET /api/admin/bands] Successfully fetched ${cleanedBands.length} bands`);
+      res.json(cleanedBands);
+    } catch (error) {
+      console.error('[GET /api/admin/bands] Error fetching bands:', error);
+      res.status(500).json({ message: 'Failed to fetch bands', error: error instanceof Error ? error.message : String(error) });
+    }
+  });
   
   // Site settings management
   app.get('/api/admin/settings', isAdminAuthenticated, async (req, res) => {

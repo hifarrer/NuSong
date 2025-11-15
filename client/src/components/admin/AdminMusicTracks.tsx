@@ -10,9 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Music, Eye, EyeOff, Search, Filter, WandSparkles, AudioWaveform, Edit3, Check, X, Download, Trash2 } from "lucide-react";
+import { Music, Eye, EyeOff, Search, Filter, WandSparkles, AudioWaveform, Edit3, Check, X, Download, Trash2, Video } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MuxVideoPlayer } from "@/components/MuxVideoPlayer";
 import type { MusicGeneration } from "@shared/schema";
 
 export function AdminMusicTracks() {
@@ -23,6 +25,7 @@ export function AdminMusicTracks() {
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const [editTitleValue, setEditTitleValue] = useState("");
+  const [viewingVideoTrack, setViewingVideoTrack] = useState<MusicGeneration | null>(null);
 
   // Fetch all music tracks
   const { data: tracks, isLoading } = useQuery({
@@ -440,6 +443,21 @@ export function AdminMusicTracks() {
 
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-shrink-0">
+                    {/* View Video Button */}
+                    {(track.muxPlaybackId || track.videoUrl) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setViewingVideoTrack(track)}
+                        className="text-purple-400 hover:text-purple-300 border-purple-400 hover:border-purple-300 w-full sm:w-auto"
+                        data-testid={`button-view-video-${track.id}`}
+                      >
+                        <Video className="w-4 h-4 mr-2" />
+                        <span className="hidden sm:inline">View Video</span>
+                        <span className="sm:hidden">Video</span>
+                      </Button>
+                    )}
+
                     {/* Download Button */}
                     {track.audioUrl && track.status === "completed" && (
                       <Button
@@ -522,6 +540,38 @@ export function AdminMusicTracks() {
           })
         )}
       </div>
+
+      {/* Video Viewing Dialog */}
+      <Dialog open={!!viewingVideoTrack} onOpenChange={(open) => !open && setViewingVideoTrack(null)}>
+        <DialogContent className="bg-gray-900 border-gray-700 max-w-4xl w-[90vw]">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {viewingVideoTrack?.title || "Untitled Track"} - Video
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {viewingVideoTrack && (
+              <div className="w-full">
+                <MuxVideoPlayer
+                  playbackId={viewingVideoTrack.muxPlaybackId || undefined}
+                  fallbackUrl={viewingVideoTrack.videoUrl || undefined}
+                  className="w-full aspect-[3/4] object-cover rounded border border-gray-600"
+                  controls={true}
+                  poster={viewingVideoTrack.imageUrl || undefined}
+                />
+                <div className="mt-4 text-sm text-gray-400">
+                  {viewingVideoTrack.muxPlaybackId && (
+                    <p><strong>MUX Status:</strong> {viewingVideoTrack.muxAssetStatus || "Unknown"}</p>
+                  )}
+                  {viewingVideoTrack.videoUrl && (
+                    <p><strong>Video URL:</strong> {viewingVideoTrack.videoUrl}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

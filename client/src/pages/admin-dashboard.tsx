@@ -6,6 +6,7 @@ import AdminUserManagement from "@/components/admin/AdminUserManagement";
 import { AdminPlanManagement } from "@/components/admin/AdminPlanManagement";
 import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings";
 import { AdminMusicTracks } from "@/components/admin/AdminMusicTracks";
+import { AdminMusicBands } from "@/components/admin/AdminMusicBands";
 import { AdminMaintenance } from "@/components/admin/AdminMaintenance";
 import { AdminDatabaseManagement } from "@/components/admin/AdminDatabaseManagement";
 
@@ -33,6 +34,9 @@ export default function AdminDashboard() {
     }
     if (currentPath === "/admin/tracks") {
       return <AdminMusicTracks />;
+    }
+    if (currentPath === "/admin/bands") {
+      return <AdminMusicBands />;
     }
     if (currentPath === "/admin/plans") {
       return <AdminPlanManagement />;
